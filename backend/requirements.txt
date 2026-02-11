@@ -1,0 +1,39 @@
+# Backend Dependencies
+
+# FastAPI
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# Database
+sqlalchemy==2.0.25
+psycopg2-binary==2.9.9
+alembic==1.13.1
+
+# Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==3.2.2
+python-multipart==0.0.6
+
+# AI & ML (Temporarily disabled - requires pydantic>=2.7.4 for Python 3.12)
+# openai==1.10.0
+# langchain==0.1.20
+# langchain-openai==0.0.8
+# langchain-community==0.0.38
+# langsmith==0.1.85
+
+# Data Science
+numpy==1.26.3
+pandas==2.2.0
+
+# Caching (optional)
+redis==5.0.1
+
+# Utilities
+python-dotenv==1.0.0
+httpx==0.26.0
+
+bcrypt==3.2.2
+passlib==1.7.4
