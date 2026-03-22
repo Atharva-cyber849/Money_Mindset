@@ -17,36 +17,95 @@ class ScenarioType(str, Enum):
     EMERGENCY_FUND = "emergency_fund"
 
 
+class AssetClass(str, Enum):
+    """Indian asset classes with historical volatility"""
+    NIFTY_50 = "nifty_50"              # Large cap equity (10.5% CAGR, 16% volatility)
+    MIDCAP = "midcap"                  # Midcap 150 (13% CAGR, 22% volatility)
+    GOLD = "gold"                      # Gold/Silver (5% CAGR, 12% volatility)
+    BONDS = "bonds"                    # GOI securities (6.5% CAGR, 3% volatility)
+    FD = "fd"                          # Fixed Deposits (6% CAGR, 0% volatility)
+    REAL_ESTATE = "real_estate"        # Property (7% CAGR, 8% volatility)
+    BALANCED = "balanced"              # 60/40 equity/debt (8.5% CAGR, 10% volatility)
+
+
+# Indian asset class return and volatility parameters (historical 10-year avg)
+ASSET_CLASS_PARAMS = {
+    AssetClass.NIFTY_50: {"return": 0.105, "volatility": 0.16},      # High return, high risk
+    AssetClass.MIDCAP: {"return": 0.13, "volatility": 0.22},         # Higher return, higher volatility
+    AssetClass.GOLD: {"return": 0.05, "volatility": 0.12},           # Hedge asset
+    AssetClass.BONDS: {"return": 0.065, "volatility": 0.03},         # Stable income
+    AssetClass.FD: {"return": 0.06, "volatility": 0.0},              # Guaranteed, no risk
+    AssetClass.REAL_ESTATE: {"return": 0.07, "volatility": 0.08},    # Capital appreciation
+    AssetClass.BALANCED: {"return": 0.085, "volatility": 0.10},      # Moderate risk/return
+}
+
+# Regional crisis impact on returns (sudden market shocks)
+CRISIS_SCENARIOS = {
+    "demonetization": {"probability": 0.02, "impact": -0.15, "recovery_months": 6},
+    "covid_2020": {"probability": 0.05, "impact": -0.35, "recovery_months": 12},
+    "interest_rate_hike": {"probability": 0.15, "impact": -0.08, "recovery_months": 3},
+    "rupee_crisis": {"probability": 0.08, "impact": -0.12, "recovery_months": 9},
+}
+
+
 @dataclass
 class SimulationParams:
-    """Parameters for simulation"""
+    """Parameters for simulation - Indian-specific defaults"""
     initial_amount: float
     monthly_contribution: float
     time_horizon_months: int
-    annual_return: float = 0.07  # 7% default
-    volatility: float = 0.15  # 15% volatility
-    inflation_rate: float = 0.03  # 3% inflation
+    annual_return: float = 0.085  # 8.5% (balanced portfolio average)
+    volatility: float = 0.10  # 10% (balanced portfolio volatility)
+    inflation_rate: float = 0.065  # 6.5% (Indian inflation avg)
     iterations: int = 10000
+
+    # Indian-specific parameters
+    asset_class: str = "balanced"  # Which asset class to simulate
+    include_crisis_risk: bool = True  # Include tail risk (crises)
+    tax_rate: float = 0.20  # 20% LTCG tax for growth
+
 
 
 class MonteCarloEngine:
-    """Monte Carlo simulation engine"""
-    
+    """
+    Monte Carlo simulation engine - Indian market context
+
+    Includes:
+    - Asset class-specific volatility (Nifty 50, Gold, FD, etc.)
+    - Crisis scenarios (Demonetization, COVID, rupee crises)
+    - Sequence-of-returns risk
+    - Inflation erosion (Indian real returns)
+    """
+
     def __init__(self, params: SimulationParams):
         self.params = params
         np.random.seed(42)  # For reproducibility in testing
-    
+
+        # Load asset class parameters if specified
+        if params.asset_class in ASSET_CLASS_PARAMS:
+            asset_params = ASSET_CLASS_PARAMS[params.asset_class]
+            if params.annual_return == 0.085:  # Default value
+                self.params.annual_return = asset_params["return"]
+            if params.volatility == 0.10:  # Default value
+                self.params.volatility = asset_params["volatility"]
+
     def run_simulation(self) -> Dict:
-        """Run Monte Carlo simulation"""
-        
+        """Run Monte Carlo simulation - Indian market context"""
+
         results = []
-        
+        crisis_count = 0
+
         for _ in range(self.params.iterations):
-            trajectory = self._simulate_single_path()
+            trajectory, hit_crisis = self._simulate_single_path()
+            if hit_crisis:
+                crisis_count += 1
             results.append(trajectory[-1])  # Final value
-        
+
         results = np.array(results)
-        
+
+        # Calculate real returns (inflation-adjusted)
+        inflation_adjusted = results / ((1 + self.params.inflation_rate) ** (self.params.time_horizon_months / 12))
+
         return {
             "mean": float(np.mean(results)),
             "median": float(np.median(results)),
@@ -59,26 +118,44 @@ class MonteCarloEngine:
             "best_case": float(np.max(results)),
             "worst_case": float(np.min(results)),
             "probability_positive": float(np.sum(results > self.params.initial_amount) / len(results)),
+            # Indian-specific metrics
+            "real_return_mean": float(np.mean(inflation_adjusted)),
+            "real_return_median": float(np.median(inflation_adjusted)),
+            "crisis_probability": float(crisis_count / self.params.iterations),
+            "asset_class": self.params.asset_class,
+            "tax_impact_estimate": float(np.mean(results) * self.params.tax_rate),
         }
-    
-    def _simulate_single_path(self) -> np.ndarray:
-        """Simulate a single trajectory"""
+
+    def _simulate_single_path(self) -> Tuple[np.ndarray, bool]:
+        """Simulate a single trajectory with Indian crisis risk"""
         balance = self.params.initial_amount
         trajectory = [balance]
-        
+        hit_crisis = False
+
         # Monthly return parameters
         monthly_return = self.params.annual_return / 12
         monthly_volatility = self.params.volatility / np.sqrt(12)
-        
+
         for month in range(self.params.time_horizon_months):
-            # Random return for this month
+            # Check for crisis event this month
+            if self.params.include_crisis_risk and not hit_crisis:
+                for crisis_name, crisis_params in CRISIS_SCENARIOS.items():
+                    if np.random.random() < crisis_params["probability"] / 12:
+                        # Crisis hit!
+                        random_return = crisis_params["impact"]
+                        hit_crisis = True
+                        trajectory.append(max(0, balance * (1 + random_return) + self.params.monthly_contribution))
+                        balance = trajectory[-1]
+                        continue
+
+            # Normal market return
             random_return = np.random.normal(monthly_return, monthly_volatility)
-            
+
             # Update balance
             balance = balance * (1 + random_return) + self.params.monthly_contribution
             trajectory.append(max(0, balance))  # Can't go negative
-        
-        return np.array(trajectory)
+
+        return np.array(trajectory), hit_crisis
     
     def get_sample_trajectories(self, num_samples: int = 100) -> List[List[float]]:
         """Get sample trajectories for visualization"""

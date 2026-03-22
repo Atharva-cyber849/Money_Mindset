@@ -136,6 +136,7 @@ class AIResponse(BaseModel):
     response: str
     suggestions: Optional[List[str]] = None
     insights: Optional[dict] = None
+    detected_biases: Optional[List[dict]] = None
 
 
 # Simulation schemas

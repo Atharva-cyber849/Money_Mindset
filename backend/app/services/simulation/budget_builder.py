@@ -1,14 +1,29 @@
 """
-Budget Builder Simulation - 50/30/20 Rule Implementation
-Interactive budget creation with real-world constraints
+Indian Budget Builder Simulation - 50/30/20 Rule with Indian salary structure
+Interactive budget creation with real-world Indian constraints
+Includes HRA/TA/DA, city multipliers, Indian expense categories, wedding/festivalcosts
 """
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
 
 
+class IndianCity(Enum):
+    """Indian cities with cost-of-living multipliers"""
+    MUMBAI = ("mumbai", 1.35)               # Tier-1 metro (highest)
+    BANGALORE = ("bangalore", 1.25)         # Tier-1 tech hub
+    DELHI = ("delhi", 1.30)                 # Tier-1 NCR
+    HYDERABAD = ("hyderabad", 1.15)         # Tier-2 growth city
+    PUNE = ("pune", 1.10)                   # Tier-2 IT hub
+    CHENNAI = ("chennai", 1.12)             # Tier-2 southern metro
+    KOLKATA = ("kolkata", 0.95)             # Tier-2 eastern
+    AHMEDABAD = ("ahmedabad", 1.05)         # Tier-2 business hub
+    TIER3_CITIES = ("tier3", 0.80)          # Tier-3 smaller cities
+    TIER4_VILLAGES = ("tier4", 0.65)        # Rural/villages
+
+
 class BudgetCategory(Enum):
-    """Budget category types"""
+    """Budget category types - Indian context"""
     # NEEDS (50%)
     HOUSING = "housing"
     UTILITIES = "utilities"
@@ -17,7 +32,13 @@ class BudgetCategory(Enum):
     INSURANCE = "insurance"
     MINIMUM_DEBT_PAYMENTS = "minimum_debt_payments"
     HEALTHCARE = "healthcare"
-    
+
+    # INDIAN-SPECIFIC NEEDS
+    SCHOOL_FEES = "school_fees"                    # School/college tuition + coaching
+    DOMESTIC_HELP = "domestic_help"                # Servants, ayahs, household staff
+    PROFESSIONAL_TAX = "professional_tax"          # State-specific tax
+    EPF_DEDUCTION = "epf_deduction"                # Employee Provident Fund
+
     # WANTS (30%)
     DINING_OUT = "dining_out"
     ENTERTAINMENT = "entertainment"
@@ -25,13 +46,21 @@ class BudgetCategory(Enum):
     HOBBIES = "hobbies"
     SUBSCRIPTIONS = "subscriptions"
     TRAVEL = "travel"
-    
+
+    # INDIAN-SPECIFIC WANTS
+    RELIGIOUS_FESTIVALS = "religious_festivals"    # Diwali, Holi, pujas, temple
+    GOLD_JEWELRY = "gold_jewelry"                  # Cultural savings vehicle
+
     # SAVINGS (20%)
     EMERGENCY_FUND = "emergency_fund"
     RETIREMENT = "retirement"
     INVESTMENTS = "investments"
     DEBT_PAYOFF = "debt_payoff"
     GOALS = "goals"
+
+    # INDIAN-SPECIFIC SAVINGS
+    WEDDING_ESCROW = "wedding_escrow"              # Long-term marriage fund
+    MARRIAGE_GIFTS = "marriage_gifts"              # Gift obligations
 
 
 @dataclass
@@ -42,6 +71,25 @@ class CategoryAllocation:
     percentage: float
     is_fixed: bool = False
     notes: Optional[str] = None
+
+
+@dataclass
+class IndianSalaryBreakdown:
+    """Indian salary structure with components"""
+    basic_salary: float
+    hra: float                      # House Rent Allowance (40-50% of basic in metros)
+    ta: float                       # Travel Allowance (₹1-2K typically)
+    da: float                       # Dearness Allowance (inflation-linked)
+    performance_bonus: float        # Annual/quarterly
+    annual_bonus: float             # Year-end bonus (December)
+
+    @property
+    def gross_salary(self) -> float:
+        return self.basic_salary + self.hra + self.ta + self.da
+
+    @property
+    def total_with_bonuses(self) -> float:
+        return self.gross_salary + (self.performance_bonus + self.annual_bonus) / 12
 
 
 @dataclass
@@ -58,21 +106,24 @@ class BudgetValidation:
 
 
 class BudgetBuilderSimulator:
-    """Interactive 50/30/20 budget builder with constraints"""
-    
-    # Ideal percentages
+    """Interactive 50/30/20 budget builder with Indian salary structure and constraints"""
+
+    # Indian city cost-of-living multipliers
+    CITY_MULTIPLIERS = {city.value[0]: city.value[1] for city in IndianCity}
+
+    # Ideal percentages (adjusted for Indian context - needs often higher)
     IDEAL_NEEDS = 50.0
     IDEAL_WANTS = 30.0
     IDEAL_SAVINGS = 20.0
-    
-    # Acceptable ranges
+
+    # Acceptable ranges (more lenient for Indian needs like school fees, domestic help)
     NEEDS_MIN = 40.0
-    NEEDS_MAX = 65.0
+    NEEDS_MAX = 70.0              # Higher max for Indian context
     WANTS_MIN = 15.0
     WANTS_MAX = 40.0
     SAVINGS_MIN = 10.0
     SAVINGS_MAX = 35.0
-    
+
     def __init__(self):
         self.needs_categories = [
             BudgetCategory.HOUSING,
@@ -81,43 +132,110 @@ class BudgetBuilderSimulator:
             BudgetCategory.TRANSPORTATION,
             BudgetCategory.INSURANCE,
             BudgetCategory.MINIMUM_DEBT_PAYMENTS,
-            BudgetCategory.HEALTHCARE
+            BudgetCategory.HEALTHCARE,
+            # Indian-specific needs
+            BudgetCategory.SCHOOL_FEES,
+            BudgetCategory.DOMESTIC_HELP,
+            BudgetCategory.PROFESSIONAL_TAX,
+            BudgetCategory.EPF_DEDUCTION
         ]
-        
+
         self.wants_categories = [
             BudgetCategory.DINING_OUT,
             BudgetCategory.ENTERTAINMENT,
             BudgetCategory.SHOPPING,
             BudgetCategory.HOBBIES,
             BudgetCategory.SUBSCRIPTIONS,
-            BudgetCategory.TRAVEL
+            BudgetCategory.TRAVEL,
+            # Indian-specific wants
+            BudgetCategory.RELIGIOUS_FESTIVALS,
+            BudgetCategory.GOLD_JEWELRY
         ]
-        
+
         self.savings_categories = [
             BudgetCategory.EMERGENCY_FUND,
             BudgetCategory.RETIREMENT,
             BudgetCategory.INVESTMENTS,
             BudgetCategory.DEBT_PAYOFF,
-            BudgetCategory.GOALS
+            BudgetCategory.GOALS,
+            # Indian-specific savings
+            BudgetCategory.WEDDING_ESCROW,
+            BudgetCategory.MARRIAGE_GIFTS
         ]
-    
+
+    def calculate_indian_monthly_income(
+        self,
+        basic_salary: float,
+        city: str = "bangalore",
+        hra_percent: float = 0.40,
+        ta_monthly: float = 1500,
+        da_percent: float = 0.06
+    ) -> Dict[str, float]:
+        """
+        Calculate Indian monthly take-home with salary components
+
+        Args:
+            basic_salary: Base salary (₹)
+            city: City name for HRA calculation
+            hra_percent: HRA as % of basic (40-50% for metros, 30-40% for tier-2/3)
+            ta_monthly: Travel allowance (₹)
+            da_percent: Dearness allowance as % of basic
+
+        Returns:
+            Dictionary with salary breakdown and city multiplier
+        """
+        hra = basic_salary * hra_percent
+        da = basic_salary * da_percent
+        gross_monthly = basic_salary + hra + da + ta_monthly
+
+        # Deductions: EPF (12%), Professional Tax (state-specific), Income Tax (estimated)
+        epf = basic_salary * 0.12
+        # Professional tax varies by state (₹0-₹2500)
+        professional_tax = 200 if city in ["mumbai", "delhi"] else 100 if city else 0
+        # Rough income tax estimate based on tax bracket
+        income_tax = max(0, (gross_monthly - 250000) * 0.05)
+
+        net_monthly = gross_monthly - epf - professional_tax - income_tax
+        city_multiplier = self.CITY_MULTIPLIERS.get(city, 1.0)
+
+        return {
+            "basic_salary": basic_salary,
+            "hra": hra,
+            "hra_percent": hra_percent,
+            "da": da,
+            "ta": ta_monthly,
+            "gross_monthly": gross_monthly,
+            "epf_deduction": epf,
+            "professional_tax": professional_tax,
+            "income_tax": income_tax,
+            "net_monthly": net_monthly,
+            "city": city,
+            "city_multiplier": city_multiplier
+        }
+
     def create_budget(
         self,
         monthly_income: float,
         allocations: Dict[str, float],
-        location_col_multiplier: float = 1.0
+        city: str = "bangalore",
+        location_col_multiplier: float = None
     ) -> Dict[str, Any]:
         """
-        Create and validate a budget
-        
+        Create and validate a budget with Indian context
+
         Args:
-            monthly_income: Monthly income
+            monthly_income: Monthly income (net take-home in ₹)
             allocations: Dict of category names to amounts
-            location_col_multiplier: Cost of living multiplier (1.0 = average)
-            
+            city: Indian city name for cost multiplier (overrides location_col_multiplier)
+            location_col_multiplier: Manual cost multiplier (deprecated, use city parameter)
+
         Returns:
             Budget analysis with validation
         """
+        # Determine multiplier from city or use provided
+        if location_col_multiplier is None:
+            location_col_multiplier = self.CITY_MULTIPLIERS.get(city, 1.0)
+
         
         # Parse allocations
         category_allocations = []
@@ -247,10 +365,10 @@ class BudgetBuilderSimulator:
         is_balanced = abs(remaining) < 1.0
         
         if remaining > 100:
-            warnings.append(f"${remaining:.0f} unallocated - assign to a category")
+            warnings.append(f"₹{remaining:.0f} unallocated - assign to a category")
             score -= 10
         elif remaining < -1:
-            warnings.append(f"Over budget by ${abs(remaining):.0f}")
+            warnings.append(f"Over budget by ₹{abs(remaining):.0f}")
             score -= 20
         
         # Check needs percentage
@@ -377,7 +495,7 @@ class BudgetBuilderSimulator:
                 "current": current_savings,
                 "suggested": target_savings,
                 "savings": gap,
-                "action": f"Increase savings by ${gap:.0f}/month to reach 20% target"
+                "action": f"Increase savings by ₹{gap:.0f}/month to reach 20% target"
             })
             
             # Suggest where to cut
@@ -389,7 +507,7 @@ class BudgetBuilderSimulator:
                     "current": wants_total,
                     "suggested": wants_total - gap,
                     "savings": gap,
-                    "action": f"Reduce discretionary spending by ${gap:.0f}/month"
+                    "action": f"Reduce discretionary spending by ₹{gap:.0f}/month"
                 })
         
         # Subscription optimization
@@ -440,61 +558,66 @@ class BudgetBuilderSimulator:
     def generate_challenge_scenario(
         self,
         monthly_income: float,
-        location: str = "average"
+        city: str = "bangalore"
     ) -> Dict[str, Any]:
         """
-        Generate a realistic budget challenge with constraints
-        
+        Generate a realistic Indian budget challenge with constraints
+
         Args:
-            monthly_income: Monthly income
-            location: 'low_cost', 'average', 'high_cost'
-            
+            monthly_income: Monthly income (₹)
+            city: Indian city name (defaults to Bangalore)
+
         Returns:
             Challenge scenario with constraints
         """
-        
-        # Cost of living multipliers
-        col_multipliers = {
-            "low_cost": 0.85,
-            "average": 1.0,
-            "high_cost": 1.35
-        }
-        multiplier = col_multipliers.get(location, 1.0)
-        
-        # Generate realistic constraints
-        rent_baseline = monthly_income * 0.35
+        # Get city multiplier
+        multiplier = self.CITY_MULTIPLIERS.get(city, 1.0)
+
+        # Generate realistic Indian housing constraints
+        # In India, avg rent is 25-40% of income depending on city
+        rent_baseline = monthly_income * 0.30
         rent = rent_baseline * multiplier
-        
+
+        # Indian-specific constraints
         constraints = {
             "housing": {
                 "amount": rent,
                 "fixed": True,
-                "note": f"Your rent is ${rent:.0f} - that's already {(rent/monthly_income)*100:.1f}% of income"
+                "note": f"Your {{city}} rent is ₹{rent:.0f} - that's {(rent/monthly_income)*100:.1f}% of income"
             },
-            "minimum_debt": {
-                "amount": monthly_income * 0.10,
+            "epf_professional_tax": {
+                "amount": monthly_income * 0.15,        # EPF 12% + Prof Tax ~3%
                 "fixed": True,
-                "note": "Minimum debt payments required"
+                "note": "EPF (₹12%) + Professional Tax deductible before allocation"
             },
             "groceries": {
                 "amount": monthly_income * 0.08 * multiplier,
                 "fixed": False,
-                "note": "Average grocery spending for your area"
+                "note": f"Average grocery spend for {city}"
+            },
+            "school_fees": {
+                "amount": monthly_income * 0.05 * multiplier if multiplier > 1.1 else 0,
+                "fixed": False,
+                "note": "School fees + coaching center costs (if applicable)"
+            },
+            "religious_festivals": {
+                "amount": monthly_income * 0.02,
+                "fixed": False,
+                "note": "Average for festivals (Diwali, Holi, temple, pujas)"
             }
         }
-        
+
         return {
             "monthly_income": monthly_income,
-            "location": location,
-            "col_multiplier": multiplier,
+            "city": city,
+            "city_multiplier": multiplier,
             "constraints": constraints,
             "challenge": (
-                f"Create a balanced budget with ${monthly_income:,.0f}/month. "
-                f"You live in a {location.replace('_', ' ')} city. "
-                f"Rent is ${rent:.0f} (fixed). "
-                f"Can you still save 20%?"
+                f"Create a balanced 50/30/20 budget with ₹{monthly_income:,.0f}/month income in {city}. "
+                f"Rent is ₹{rent:.0f} (fixed). Account for EPF deduction, festivals, "
+                f"and daily Indian expenses. Can you achieve 20% savings?"
             ),
-            "difficulty": "hard" if multiplier > 1.2 else "medium" if multiplier > 1.0 else "easy"
+            "difficulty": "hard" if multiplier > 1.25 else "medium" if multiplier > 0.95 else "easy"
         }
     
     def compare_to_national_average(
@@ -502,15 +625,16 @@ class BudgetBuilderSimulator:
         monthly_income: float,
         allocations: Dict[str, float]
     ) -> Dict[str, Any]:
-        """Compare user's budget to national averages"""
-        
-        # National average percentages (approximate)
+        """Compare user's budget to Indian national averages"""
+
+        # Indian national average percentages (based on NSSO/IBEF data)
+        # India: Higher needs due to education, essentials
         national_avg = {
-            "needs": 58.0,  # Most Americans spend too much on needs
-            "wants": 28.0,
-            "savings": 14.0  # Below recommended 20%
+            "needs": 60.0,        # Indians spend more on necessities (food, rent, school)
+            "wants": 25.0,         # Discretionary spending lower
+            "savings": 15.0        # Average saving rate ~15%
         }
-        
+
         # Calculate user percentages
         needs_total = sum(
             amount for cat, amount in allocations.items()
@@ -561,16 +685,16 @@ class BudgetBuilderSimulator:
         }
     
     def _assess_vs_average(self, comparison: Dict) -> str:
-        """Assess overall budget vs national average"""
-        
+        """Assess overall budget vs Indian national average"""
+
         savings_better = comparison["savings"]["better_than_average"]
         needs_better = comparison["needs"]["better_than_average"]
-        
+
         if savings_better and needs_better:
-            return "Excellent! You're saving more and spending less on needs than average."
+            return "Excellent! You're saving more and spending less on needs than average Indian household."
         elif savings_better:
-            return "Good! You're saving more than the average American."
+            return "Good! You're saving more than the average Indian (15%). Focus on controlling needs spending."
         elif needs_better:
-            return "Your needs spending is controlled, but try to increase savings."
+            return "Your needs spending is controlled below average. Now increase your savings rate!"
         else:
-            return "There's room for improvement. Focus on reducing needs and increasing savings."
+            return "You're following typical Indian patterns. Work on reducing necessities to increase savings towards 20%."

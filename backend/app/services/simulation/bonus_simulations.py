@@ -65,56 +65,99 @@ class InflationSimulator:
     """
     Demonstrates the hidden tax of inflation
     Shows how purchasing power erodes over time
+    Indian context: Higher food inflation, regional variations, seasonal spikes
     """
-    
-    # Historical inflation rates (1960-2023 average ~3.8%)
+
+    # Historical inflation rates (1960-2023 average ~3.8% global, 6-7% India)
     HISTORICAL_AVERAGE = 0.038
     LOW_INFLATION = 0.02
     MODERATE_INFLATION = 0.04
     HIGH_INFLATION = 0.08
-    
+
+    # Indian inflation context (higher than developed countries)
+    INDIA_LOW_INFLATION = 0.05
+    INDIA_MODERATE_INFLATION = 0.065
+    INDIA_HIGH_INFLATION = 0.10
+
+    # Indian inflation basket composition (% weights)
+    INFLATION_BASKET = {
+        "food": 0.40,        # Highly volatile in India (8-10% typical)
+        "energy": 0.10,      # Oil import dependent
+        "housing": 0.20,     # Real estate driven
+        "others": 0.30,      # Goods and services
+    }
+
+    # Regional inflation variations (multiplier)
+    REGIONAL_MULTIPLIERS = {
+        "metro": 1.15,       # Mumbai, Delhi, Bangalore (15% higher)
+        "tier2": 1.0,        # Pune, Hyderabad, Chennai (baseline)
+        "tier3": 0.85,       # Smaller cities (15% lower)
+    }
+
     def __init__(self, seed: int = None):
         if seed:
             random.seed(seed)
-    
+
     def simulate_purchasing_power(
         self,
         starting_amount: float,
         years: int,
-        inflation_scenario: str = "moderate"
+        inflation_scenario: str = "moderate",
+        region: str = "tier2",
+        is_india: bool = True
     ) -> List[InflationScenario]:
         """
         Simulate how much purchasing power erodes
-        
+
         Args:
-            starting_amount: Current dollar amount
+            starting_amount: Current rupee amount
             years: Years to project
             inflation_scenario: low, moderate, or high
-        
+            region: metro, tier2, tier3
+            is_india: Use Indian inflation rates if True
+
         Returns:
             List of yearly purchasing power calculations
         """
         scenarios = []
-        
+
         # Select inflation rate
-        if inflation_scenario == "low":
-            base_rate = self.LOW_INFLATION
-        elif inflation_scenario == "high":
-            base_rate = self.HIGH_INFLATION
+        if is_india:
+            if inflation_scenario == "low":
+                base_rate = self.INDIA_LOW_INFLATION
+            elif inflation_scenario == "high":
+                base_rate = self.INDIA_HIGH_INFLATION
+            else:
+                base_rate = self.INDIA_MODERATE_INFLATION
         else:
-            base_rate = self.MODERATE_INFLATION
-        
+            if inflation_scenario == "low":
+                base_rate = self.LOW_INFLATION
+            elif inflation_scenario == "high":
+                base_rate = self.HIGH_INFLATION
+            else:
+                base_rate = self.MODERATE_INFLATION
+
+        # Apply regional multiplier
+        regional_mult = self.REGIONAL_MULTIPLIERS.get(region, 1.0)
+        base_rate *= regional_mult
+
         purchasing_power = starting_amount
-        
+
         for year in range(1, years + 1):
-            # Add some variance to inflation rate
-            annual_rate = random.gauss(base_rate, base_rate * 0.2)
-            annual_rate = max(0, annual_rate)  # Inflation can't be negative in this simulation
-            
+            # Add some variance to inflation rate + seasonal spikes
+            seasonal_factor = 1.0
+            if year % 12 in [10, 11, 12]:  # Post-monsoon & festival season
+                seasonal_factor = 1.15  # 15% inflation spike
+
+            # Food inflation dominates in India
+            annual_rate = random.gauss(base_rate, base_rate * 0.25)
+            annual_rate = max(0.01, annual_rate)  # Minimum 1% inflation
+            annual_rate *= seasonal_factor
+
             # Calculate purchasing power
             purchasing_power /= (1 + annual_rate)
             loss_percentage = ((starting_amount - purchasing_power) / starting_amount) * 100
-            
+
             scenarios.append(InflationScenario(
                 year=year,
                 inflation_rate=annual_rate,
@@ -122,7 +165,7 @@ class InflationSimulator:
                 purchasing_power=purchasing_power,
                 loss_percentage=loss_percentage
             ))
-        
+
         return scenarios
     
     def calculate_salary_needed(
@@ -194,22 +237,33 @@ class InflationSimulator:
 class RentVsBuySimulator:
     """
     Comprehensive rent vs buy calculator
-    Factors in all costs, opportunity cost, and lifestyle
+    Indian context: Property registration tax, maintenance with servants, land ownership cultural importance
     """
-    
-    # Typical costs
-    PROPERTY_TAX_RATE = 0.012  # 1.2% of home value annually
+
+    # Indian property costs (₹ based)
+    PROPERTY_TAX_RATE = 0.002  # 0.2% of home value annually (varies by state 0.1-0.3%)
     HOME_INSURANCE_RATE = 0.005  # 0.5% of home value annually
-    MAINTENANCE_RATE = 0.01  # 1% of home value annually
-    HOA_FEES_MONTHLY = 300  # Average HOA
-    CLOSING_COSTS_RATE = 0.03  # 3% closing costs
-    REALTOR_FEE = 0.06  # 6% when selling
-    
-    # Market assumptions
-    HOME_APPRECIATION = 0.04  # 4% annual appreciation
-    RENT_INCREASE = 0.03  # 3% annual rent increase
-    INVESTMENT_RETURN = 0.08  # 8% stock market return
-    
+    MAINTENANCE_RATE = 0.015  # 1.5% of home value annually (higher due to servants, repairs)
+    REGISTRATION_COST_RATE = 0.07  # 5-11% registration (avg 7% in major states)
+    STAMP_DUTY_RATE = 0.05  # 5% stamp duty on purchase
+    CLOSING_COSTS_RATE = 0.12  # Total 12% for registration + stamp duty
+    CAPITAL_GAINS_TAX_LTCG = 0.20  # 20% LTCG after 2 years
+    REALTOR_FEE = 0.01  # 1% broker fees when selling (lower in India)
+
+    # Market assumptions (Indian context)
+    HOME_APPRECIATION = 0.065  # 6-8% annual appreciation (city specific)
+    RENT_INCREASE = 0.05  # 5% annual rent increase (higher in India)
+    INVESTMENT_RETURN = 0.10  # 10% stock market return (Indian markets)
+
+    # City-specific property appreciation rates
+    CITY_APPRECIATION_RATES = {
+        "mumbai": 0.08,
+        "delhi": 0.07,
+        "bangalore": 0.07,
+        "tier2": 0.05,
+        "tier3": 0.04,
+    }
+
     def __init__(self, seed: int = None):
         if seed:
             random.seed(seed)
@@ -220,18 +274,22 @@ class RentVsBuySimulator:
         down_payment_percentage: float,
         interest_rate: float,
         monthly_rent: float,
-        years: int = 30
+        years: int = 30,
+        city: str = "tier2",
+        is_india: bool = True
     ) -> Dict[str, RentVsBuyComparison]:
         """
         Comprehensive rent vs buy analysis
-        
+
         Args:
-            home_price: Purchase price of home
+            home_price: Purchase price of home (₹)
             down_payment_percentage: Down payment as percentage (e.g., 0.20 for 20%)
             interest_rate: Mortgage interest rate (e.g., 0.07 for 7%)
-            monthly_rent: Current monthly rent
+            monthly_rent: Current monthly rent (₹)
             years: Analysis period
-        
+            city: City for appreciation rate (mumbai, delhi, bangalore, tier2, tier3)
+            is_india: Use Indian tax and cost structure if True
+
         Returns:
             Comparison of rent vs buy scenarios
         """
@@ -239,20 +297,24 @@ class RentVsBuySimulator:
             home_price,
             down_payment_percentage,
             interest_rate,
-            years
+            years,
+            city,
+            is_india
         )
-        
+
         rent_scenario = self._simulate_renting(
             monthly_rent,
             home_price * down_payment_percentage,  # Invest down payment instead
-            years
+            years,
+            is_india
         )
-        
+
         return {
             "buy": buy_scenario,
             "rent": rent_scenario,
             "verdict": self._generate_verdict(buy_scenario, rent_scenario),
-            "breakeven_year": self._calculate_breakeven(buy_scenario, rent_scenario, years)
+            "breakeven_year": self._calculate_breakeven(buy_scenario, rent_scenario, years),
+            "cultural_note": "In Indian culture, property ownership is a significant wealth and status indicator beyond financial returns"
         }
     
     def _simulate_buying(
@@ -260,48 +322,84 @@ class RentVsBuySimulator:
         home_price: float,
         down_payment_pct: float,
         interest_rate: float,
-        years: int
+        years: int,
+        city: str = "tier2",
+        is_india: bool = True
     ) -> RentVsBuyComparison:
-        """Simulate home buying scenario"""
+        """Simulate home buying scenario (Indian context)"""
         # Initial costs
         down_payment = home_price * down_payment_pct
+
+        # Indian registration/stamp duty costs
+        if is_india:
+            registration_and_stamp = home_price * self.CLOSING_COSTS_RATE
+        else:
+            registration_and_stamp = home_price * 0.03
+
+        total_upfront = down_payment + registration_and_stamp
         loan_amount = home_price - down_payment
-        closing_costs = home_price * self.CLOSING_COSTS_RATE
-        
+
         # Calculate monthly mortgage payment (P&I)
         monthly_rate = interest_rate / 12
         num_payments = years * 12
-        
+
         if monthly_rate > 0:
             monthly_payment = loan_amount * (
                 monthly_rate * (1 + monthly_rate) ** num_payments
             ) / ((1 + monthly_rate) ** num_payments - 1)
         else:
             monthly_payment = loan_amount / num_payments
-        
-        # Additional monthly costs
+
+        # Additional monthly costs (Indian context - no HOA, but servants/maintenance)
         monthly_property_tax = (home_price * self.PROPERTY_TAX_RATE) / 12
         monthly_insurance = (home_price * self.HOME_INSURANCE_RATE) / 12
         monthly_maintenance = (home_price * self.MAINTENANCE_RATE) / 12
-        monthly_hoa = self.HOA_FEES_MONTHLY
-        
+
         total_monthly = (
             monthly_payment +
             monthly_property_tax +
             monthly_insurance +
-            monthly_maintenance +
-            monthly_hoa
+            monthly_maintenance
         )
-        
+
         # Calculate equity built
-        total_paid = (total_monthly * years * 12) + down_payment + closing_costs
-        
-        # Home appreciation
-        future_home_value = home_price * ((1 + self.HOME_APPRECIATION) ** years)
-        
+        total_paid = (total_monthly * years * 12) + total_upfront
+
+        # Home appreciation (city-specific for India)
+        if is_india:
+            appreciation_rate = self.CITY_APPRECIATION_RATES.get(city, self.HOME_APPRECIATION)
+        else:
+            appreciation_rate = self.HOME_APPRECIATION
+
+        future_home_value = home_price * ((1 + appreciation_rate) ** years)
+
         # Remaining loan balance (simplified)
         total_interest = (monthly_payment * num_payments) - loan_amount
-        remaining_balance = max(0, loan_amount - (monthly_payment * num_payments - total_interest))
+        equity_from_paydown = monthly_payment * num_payments - total_interest
+
+        # Equity = home value - remaining loan + appreciation
+        remaining_balance = max(0, loan_amount - equity_from_paydown)
+        equity_gained = future_home_value - remaining_balance
+
+        # Account for capital gains tax on sale (India: 20% LTCG after 2 years)
+        if is_india and years >= 2:
+            capital_gain = future_home_value - home_price
+            capital_gains_tax = capital_gain * self.CAPITAL_GAINS_TAX_LTCG
+        else:
+            capital_gains_tax = 0
+
+        net_wealth = equity_gained - capital_gains_tax
+
+        return RentVsBuyComparison(
+            scenario="buy",
+            total_cost=total_paid,
+            equity_built=equity_gained,
+            net_wealth=net_wealth,
+            monthly_payment=total_monthly,
+            total_paid=total_paid,
+            opportunity_cost=0,  # Calculated in verdict
+            flexibility_score=3  # Lower flexibility when owning
+        )
         
         # Equity = home value - remaining loan
         equity = future_home_value - remaining_balance
@@ -328,31 +426,42 @@ class RentVsBuySimulator:
         self,
         monthly_rent: float,
         investment_amount: float,  # Down payment invested instead
-        years: int
+        years: int,
+        is_india: bool = True
     ) -> RentVsBuyComparison:
         """Simulate renting + investing scenario"""
         # Rent increases over time
         total_rent_paid = 0
         current_rent = monthly_rent
-        
+
+        if is_india:
+            rent_increase_rate = 0.05  # 5% annual in India
+        else:
+            rent_increase_rate = 0.03  # 3% in developed countries
+
         for year in range(years):
             total_rent_paid += current_rent * 12
-            current_rent *= (1 + self.RENT_INCREASE)
-        
-        # Investment growth (down payment invested in stocks)
+            current_rent *= (1 + rent_increase_rate)
+
+        # Investment growth (down payment invested in stocks/MF)
         investment_balance = investment_amount
-        
+
+        if is_india:
+            investment_return = 0.10  # 10% Indian market return
+        else:
+            investment_return = self.INVESTMENT_RETURN
+
         for year in range(years):
-            investment_balance *= (1 + self.INVESTMENT_RETURN)
-        
+            investment_balance *= (1 + investment_return)
+
         # Net wealth = investment value
-        net_wealth = investment_balance - total_rent_paid
-        
+        net_wealth = investment_balance
+
         return RentVsBuyComparison(
             scenario="Rent + Invest",
             total_cost=total_rent_paid,
             equity_built=0,  # No home equity
-            net_wealth=investment_balance,  # Wealth from investments
+            net_wealth=net_wealth,  # Wealth from investments
             monthly_payment=monthly_rent,
             total_paid=total_rent_paid,
             opportunity_cost=investment_balance,

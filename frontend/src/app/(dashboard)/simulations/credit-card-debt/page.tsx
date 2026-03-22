@@ -15,7 +15,7 @@ function StepDebtSetup({ onNext }: { onNext: (balance: number, apr: number) => v
   const [apr, setApr] = useState(22)
 
   const monthlyRate = apr / 100 / 12
-  const minimumPayment = Math.max(25, balance * 0.02) // 2% of balance or $25
+  const minimumPayment = Math.max(2000, balance * 0.02) // 2% of balance or ₹2,000
   const monthsToPayoff = Math.log(minimumPayment / (minimumPayment - balance * monthlyRate)) / Math.log(1 + monthlyRate)
   const totalPaid = minimumPayment * monthsToPayoff
   const totalInterest = totalPaid - balance
@@ -118,20 +118,20 @@ function StepCompare({ balance, apr, onNext }: { balance: number; apr: number; o
       emoji: '😰',
     },
     {
-      name: 'Fixed $100',
-      monthlyPayment: 100,
+      name: 'Fixed ₹8,000',
+      monthlyPayment: 8000,
       color: '#f59e0b',
       emoji: '😐',
     },
     {
-      name: 'Fixed $200',
-      monthlyPayment: 200,
+      name: 'Fixed ₹16,000',
+      monthlyPayment: 16000,
       color: '#10b981',
       emoji: '😊',
     },
     {
-      name: 'Aggressive $400',
-      monthlyPayment: 400,
+      name: 'Aggressive ₹32,000',
+      monthlyPayment: 32000,
       color: '#3b82f6',
       emoji: '🚀',
     },
@@ -265,7 +265,7 @@ function StepCompare({ balance, apr, onNext }: { balance: number; apr: number; o
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" angle={-15} textAnchor="end" height={80} />
-              <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`} />
+              <YAxis tickFormatter={(v) => `₹${(v / 100000).toFixed(1)}L`} />
               <Tooltip formatter={(value) => formatCurrency(Number(value))} />
               <Bar dataKey="interest" fill="#8884d8">
                 {chartData.map((entry, index) => (
@@ -429,7 +429,7 @@ function StepStrategies({ onNext }: { onNext: () => void }) {
             <span className="mr-2 text-lg">4️⃣</span>
             <div>
               <span className="font-semibold">Pay more than the minimum</span>
-              <p className="text-sm text-gray-600">Even $50 extra per month makes a huge difference</p>
+              <p className="text-sm text-gray-600">Even ₹4,000 extra per month makes a huge difference</p>
             </div>
           </div>
           <div className="flex items-start">

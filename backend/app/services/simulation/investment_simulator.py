@@ -12,19 +12,47 @@ from datetime import datetime
 
 class InvestmentStrategy(Enum):
     """Investment strategy types"""
-    INDEX_FUND = "index_fund"
-    STOCK_PICKER = "stock_picker"
-    DIVERSIFIED = "diversified"
-    CONSERVATIVE = "conservative"
-    AGGRESSIVE = "aggressive"
+    INDEX_FUND = "index_fund"           # Nifty 50 Index passive
+    STOCK_PICKER = "stock_picker"       # Active NSE stock picking
+    MUTUAL_FUND = "mutual_fund"         # Active fund manager (1.5% expense ratio)
+    DIVERSIFIED = "diversified"         # Mix of index + stocks
+    CONSERVATIVE = "conservative"       # High dividend, low volatility
+    AGGRESSIVE = "aggressive"           # Growth stocks, high beta
+
+
+class FundType(str, Enum):
+    """Indian mutual fund categories"""
+    NIFTY_50_INDEX = "nifty_50_index"   # Passive index tracking (0.1-0.3% fee)
+    MIDCAP_INDEX = "midcap_index"       # Midcap 150 tracking (0.2-0.4% fee)
+    LIQUID_FUND = "liquid_fund"         # Short-term, low risk (1-2% returns)
+    BALANCED_FUND = "balanced_fund"     # 60/40 equity/debt (1.2% fee)
+    AGGRESSIVE_FUND = "aggressive_fund" # 100% equity (1.5% fee)
+    TAX_SAVER_FUND = "tax_saver_fund"   # ELSS (1-1.5% fee, 80C benefit)
 
 
 class MarketCondition(Enum):
-    """Market condition types"""
-    BULL = "bull"  # Strong upward trend
-    BEAR = "bear"  # Strong downward trend
-    VOLATILE = "volatile"  # High volatility
-    STABLE = "stable"  # Low volatility
+    """Market condition types - Indian context"""
+    BULL = "bull"           # Strong upward trend (Sensex +8-12%)
+    BEAR = "bear"           # Strong downward trend (Sensex -8-12%)
+    VOLATILE = "volatile"   # High volatility (±3-5% daily swings)
+    STABLE = "stable"       # Low volatility (±1-2% daily moves)
+    CORRECTION = "correction"  # Market correction (-5% to -15%)
+    RECOVERY = "recovery"   # Post-crisis recovery (+3-8%)
+
+
+# Indian stock market indices and contexts
+NIFTY_50_STOCKS = [
+    {"symbol": "INFY", "name": "Infosys", "sector": "IT", "base_return": 0.12, "volatility": 0.06},
+    {"symbol": "TCS", "name": "Tata Consultancy", "sector": "IT", "base_return": 0.11, "volatility": 0.05},
+    {"symbol": "RELIANCE", "name": "Reliance Industries", "sector": "Energy", "base_return": 0.10, "volatility": 0.07},
+    {"symbol": "HDFC", "name": "HDFC Bank", "sector": "Banking", "base_return": 0.14, "volatility": 0.08},
+    {"symbol": "ICICI", "name": "ICICI Bank", "sector": "Banking", "base_return": 0.13, "volatility": 0.09},
+    {"symbol": "SBIN", "name": "State Bank", "sector": "Banking", "base_return": 0.12, "volatility": 0.10},
+    {"symbol": "ITC", "name": "ITC Limited", "sector": "FMCG", "base_return": 0.08, "volatility": 0.04},
+    {"symbol": "LT", "name": "L&T", "sector": "Infrastructure", "base_return": 0.11, "volatility": 0.08},
+    {"symbol": "MARUTI", "name": "Maruti Suzuki", "sector": "Auto", "base_return": 0.10, "volatility": 0.12},
+    {"symbol": "SUNPHARMA", "name": "Sun Pharma", "sector": "Pharma", "base_return": 0.09, "volatility": 0.11},
+]
 
 
 @dataclass
@@ -73,95 +101,295 @@ class StockPerformance:
 
 class IndexFundChallengeSimulator:
     """
-    Simulation 10: Index Fund vs Stock Picker
-    Shows the difficulty of beating index funds through stock picking
+    Simulation: Nifty 50 Index vs Active Stock Picker
+    Indian context: Shows why passive index fund investing beats active management
+
+    Key Indian Context:
+    - Nifty 50 index: 10.5% CAGR historical average
+    - Active fund manager fees: 1-1.5% (reduces returns significantly)
+    - TDS on dividends: 10-15% for residents, withholding tax
+    - SEBI regulations: Limits on portfolio concentration
+    - Tax-loss harvesting: Capital gains tax treatment (20% LTCG after 1 year, indexation)
     """
-    
-    # Historical data suggests index funds return ~10% annually on average
-    INDEX_FUND_BASE_RETURN = 0.10 / 12  # Monthly
-    INDEX_FUND_VOLATILITY = 0.04  # Monthly standard deviation
-    INDEX_FUND_FEE = 0.0003  # 0.03% annual (very low)
-    
-    # Stock pickers typically underperform due to fees and poor timing
-    STOCK_PICKER_FEE = 0.01  # 1% annual (higher due to trading)
-    
-    # Sample stocks with different characteristics
-    STOCK_UNIVERSE = [
-        {"ticker": "TECH", "name": "Tech Giant", "base_return": 0.15, "volatility": 0.08},
-        {"ticker": "STABL", "name": "Stable Corp", "base_return": 0.08, "volatility": 0.03},
-        {"ticker": "GROW", "name": "Growth Co", "base_return": 0.20, "volatility": 0.12},
-        {"ticker": "RISK", "name": "Risky Inc", "base_return": 0.25, "volatility": 0.20},
-        {"ticker": "DIV", "name": "Dividend Co", "base_return": 0.06, "volatility": 0.02},
-        {"ticker": "CYCL", "name": "Cyclical Corp", "base_return": 0.10, "volatility": 0.15},
-    ]
-    
+
+    # Nifty 50 historical performance
+    NIFTY_50_BASE_RETURN = 0.105 / 12  # 10.5% annual (~0.875% monthly)
+    NIFTY_50_VOLATILITY = 0.04  # Monthly standard deviation
+    NIFTY_50_EXPENSE_RATIO = 0.001  # 0.1% annual (very low for index funds)
+
+    # Active management returns (SEBI data: 80% of fund managers underperform)
+    ACTIVE_MANAGER_BASE_RETURN = 0.095 / 12  # 9.5% annual (underperformance)
+    ACTIVE_MANAGER_EXPENSE_RATIO = 0.015  # 1.5% annual (typical MF fee)
+
+    # Dividend TDS treatment
+    DIVIDEND_TDS_RATE = 0.10  # 10% TDS on dividends (can be higher for non-residents)
+
+    # Indian fund expense ratios by type
+    FUND_EXPENSE_RATIOS = {
+        FundType.NIFTY_50_INDEX: 0.001,        # ₹100Cr+ funds = 0.03-0.15%
+        FundType.MIDCAP_INDEX: 0.002,         # Midcap funds = 0.2-0.4%
+        FundType.LIQUID_FUND: 0.004,          # Liquid funds = 0.3-0.5%
+        FundType.BALANCED_FUND: 0.010,        # 1.0% typical
+        FundType.AGGRESSIVE_FUND: 0.015,      # 1.5% typical
+        FundType.TAX_SAVER_FUND: 0.012,       # 1.2% with 80C benefit
+    }
+
     def __init__(self, seed: int = None):
         """Initialize simulator with optional seed for reproducibility"""
         if seed:
             random.seed(seed)
-    
+
     def simulate_race(
         self,
         initial_investment: float,
         monthly_contribution: float,
-        months: int = 60,
-        stock_picker_skill: str = "average"  # poor, average, good
+        months: int = 360,  # 30 years
+        strategy: InvestmentStrategy = InvestmentStrategy.INDEX_FUND,
+        fund_type: FundType = FundType.NIFTY_50_INDEX,
+        show_dividend_tax: bool = True
     ) -> Dict[str, InvestmentResult]:
         """
-        Simulate index fund vs stock picker over time
-        
+        Simulate Nifty 50 Index vs Active Manager over time
+
         Args:
-            initial_investment: Starting amount
-            monthly_contribution: Monthly investment amount
-            months: Number of months to simulate (default 5 years)
-            stock_picker_skill: Skill level of stock picker
-        
+            initial_investment: Starting amount (₹)
+            monthly_contribution: Monthly SIP amount (₹)
+            months: Number of months to simulate (default 30 years)
+            strategy: Investment strategy to compare
+            fund_type: Type of Indian mutual fund
+            show_dividend_tax: Whether to show dividend TDS impact
+
         Returns:
-            Dictionary with 'index_fund' and 'stock_picker' results
+            Dictionary with results and SEBI-compliant analysis
         """
-        # Generate market conditions for all months
+        # Generate market conditions for all months (Indian context)
         market_conditions = self._generate_market_conditions(months)
-        
-        # Simulate index fund (passive strategy)
+
+        # Simulate index fund (passive strategy - Nifty 50 tracking)
         index_result = self._simulate_index_fund(
             initial_investment,
             monthly_contribution,
             months,
-            market_conditions
+            market_conditions,
+            fund_type
         )
-        
-        # Simulate stock picker (active strategy)
-        picker_result = self._simulate_stock_picker(
+
+        # Simulate active manager (underperforms 80% of the time per SEBI)
+        manager_result = self._simulate_active_manager(
             initial_investment,
             monthly_contribution,
             months,
             market_conditions,
-            stock_picker_skill
+            show_dividend_tax
         )
-        
+
         return {
             "index_fund": index_result,
-            "stock_picker": picker_result,
-            "comparison": self._compare_strategies(index_result, picker_result)
+            "active_manager": manager_result,
+            "comparison": self._compare_strategies(index_result, manager_result),
+            "sebi_insight": self._generate_sebi_insight(index_result, manager_result)
         }
-    
+
+    def _simulate_index_fund(
+        self,
+        initial_investment: float,
+        monthly_contribution: float,
+        months: int,
+        market_conditions: List[MarketCondition],
+        fund_type: FundType
+    ) -> InvestmentResult:
+        """Simulate Nifty 50 index fund (low cost, predictable)"""
+        expense_ratio = self.FUND_EXPENSE_RATIOS[fund_type]
+        balance = initial_investment
+        total_contributed = initial_investment
+        monthly_returns = []
+        total_fees = 0
+
+        for month in range(1, months + 1):
+            # Base Nifty 50 return for this market condition
+            base_return = self._get_return_for_condition(market_conditions[month - 1], True)
+
+            # Apply expense ratio
+            monthly_fee = (balance * expense_ratio) / 12
+            total_fees += monthly_fee
+
+            # Calculate return
+            return_amount = (balance * base_return) - monthly_fee
+            balance += monthly_contribution + return_amount
+            total_contributed += monthly_contribution
+
+            monthly_returns.append(MonthlyReturn(
+                month=month,
+                strategy=InvestmentStrategy.INDEX_FUND,
+                starting_balance=balance - monthly_contribution - return_amount,
+                monthly_contribution=monthly_contribution,
+                return_rate=base_return,
+                return_amount=return_amount,
+                ending_balance=balance,
+                market_condition=market_conditions[month - 1],
+                fees=monthly_fee,
+                stress_level=3  # Index investing = low stress
+            ))
+
+        final_return = ((balance - total_contributed) / total_contributed) * 100 if total_contributed > 0 else 0
+
+        return InvestmentResult(
+            strategy=InvestmentStrategy.INDEX_FUND,
+            initial_investment=initial_investment,
+            monthly_contribution=monthly_contribution,
+            total_months=months,
+            total_contributed=total_contributed,
+            final_balance=balance,
+            total_return=balance - total_contributed,
+            return_percentage=final_return,
+            total_fees=total_fees,
+            monthly_breakdown=monthly_returns,
+            average_stress=3,
+            best_month=max(monthly_returns, key=lambda x: x.return_amount, default=monthly_returns[0]),
+            worst_month=min(monthly_returns, key=lambda x: x.return_amount, default=monthly_returns[0])
+        )
+
+    def _simulate_active_manager(
+        self,
+        initial_investment: float,
+        monthly_contribution: float,
+        months: int,
+        market_conditions: List[MarketCondition],
+        include_dividend_tax: bool = True
+    ) -> InvestmentResult:
+        """Simulate active fund manager (higher fees, underperformance)"""
+        balance = initial_investment
+        total_contributed = initial_investment
+        monthly_returns = []
+        total_fees = 0
+        total_dividend_tax = 0
+
+        for month in range(1, months + 1):
+            # Active managers underperform (return slightly less than Nifty)
+            base_return = self._get_return_for_condition(market_conditions[month - 1], False)
+
+            # Apply expense ratio (1.5% typical)
+            monthly_fee = (balance * self.ACTIVE_MANAGER_EXPENSE_RATIO) / 12
+            total_fees += monthly_fee
+
+            # TDS on dividends (if dividend payout month - 5% probability)
+            dividend_tax = 0
+            if include_dividend_tax and random.random() < 0.05:
+                dividend_amount = balance * 0.015  # ~1.5% dividend per annum
+                dividend_tax = dividend_amount * self.DIVIDEND_TDS_RATE
+                total_dividend_tax += dividend_tax
+
+            # Calculate return
+            return_amount = (balance * base_return) - monthly_fee - dividend_tax
+            balance += monthly_contribution + return_amount
+            total_contributed += monthly_contribution
+
+            monthly_returns.append(MonthlyReturn(
+                month=month,
+                strategy=InvestmentStrategy.MUTUAL_FUND,
+                starting_balance=balance - monthly_contribution - return_amount,
+                monthly_contribution=monthly_contribution,
+                return_rate=base_return,
+                return_amount=return_amount,
+                ending_balance=balance,
+                market_condition=market_conditions[month - 1],
+                fees=monthly_fee + dividend_tax,
+                stress_level=6  # Active investing = moderate stress
+            ))
+
+        final_return = ((balance - total_contributed) / total_contributed) * 100 if total_contributed > 0 else 0
+
+        return InvestmentResult(
+            strategy=InvestmentStrategy.MUTUAL_FUND,
+            initial_investment=initial_investment,
+            monthly_contribution=monthly_contribution,
+            total_months=months,
+            total_contributed=total_contributed,
+            final_balance=balance,
+            total_return=balance - total_contributed,
+            return_percentage=final_return,
+            total_fees=total_fees + total_dividend_tax,
+            monthly_breakdown=monthly_returns,
+            average_stress=6,
+            best_month=max(monthly_returns, key=lambda x: x.return_amount, default=monthly_returns[0]),
+            worst_month=min(monthly_returns, key=lambda x: x.return_amount, default=monthly_returns[0])
+        )
+
+    def _get_return_for_condition(self, condition: MarketCondition, is_index: bool) -> float:
+        """Get monthly return based on market condition"""
+        if is_index:
+            base = self.NIFTY_50_BASE_RETURN
+        else:
+            base = self.ACTIVE_MANAGER_BASE_RETURN
+
+        # Market condition impacts
+        if condition == MarketCondition.BULL:
+            return base * random.gauss(1.2, 0.1)
+        elif condition == MarketCondition.BEAR:
+            return base * random.gauss(0.3, 0.2)
+        elif condition == MarketCondition.CORRECTION:
+            return base * random.gauss(-0.15, 0.15)
+        elif condition == MarketCondition.RECOVERY:
+            return base * random.gauss(1.3, 0.15)
+        elif condition == MarketCondition.VOLATILE:
+            return base * random.gauss(1.0, 0.2)
+        else:  # STABLE
+            return base * random.gauss(1.0, 0.05)
+
+    def _generate_sebi_insight(self, index_result: InvestmentResult, manager_result: InvestmentResult) -> Dict:
+        """Generate SEBI-based insight about fund performance"""
+        difference = index_result.final_balance - manager_result.final_balance
+        difference_pct = (difference / manager_result.final_balance) * 100 if manager_result.final_balance > 0 else 0
+
+        return {
+            "key_finding": "SEBI research shows 80% of active fund managers underperform index funds",
+            "index_fund_winner": index_result.final_balance > manager_result.final_balance,
+            "wealth_difference": difference,
+            "outperformance_pct": difference_pct,
+            "message": f"Index fund build ₹{difference:,.0f} ({difference_pct:.1f}%) MORE wealth over {index_result.total_months} months",
+            "recommendations": [
+                "✅ Start with Nifty 50 index funds (lowest cost)",
+                "✅ Add ELSS funds for tax benefits (Section 80C)",
+                "✅ Use SIP for rupee-cost averaging",
+                "❌ Avoid active fund managers with 1-1.5% fees",
+                "❌ Don't chase past performance (SEBI disclaimer applies)",
+            ]
+        }
+
     def _generate_market_conditions(self, months: int) -> List[MarketCondition]:
-        """Generate realistic market conditions over time"""
+        """Generate realistic Indian market conditions over time"""
         conditions = []
-        
-        # Markets trend - periods of bull/bear markets
+
+        # Markets trend - periods of bull/bear markets by historical patterns
         current_trend = random.choice([MarketCondition.BULL, MarketCondition.STABLE])
-        trend_duration = random.randint(6, 24)
-        
+        trend_duration = random.randint(12, 60)  # 1-5 year trends typical
+
         for month in range(months):
             # Change trend occasionally
             if month > 0 and month % trend_duration == 0:
-                current_trend = random.choice(list(MarketCondition))
-                trend_duration = random.randint(6, 24)
-            
+                # Weight towards bull (Indian markets trend positive long-term)
+                current_trend = random.choices(
+                    list(MarketCondition),
+                    weights=[0.35, 0.15, 0.15, 0.25, 0.05, 0.05]  # Bull weighted
+                )[0]
+                trend_duration = random.randint(12, 60)
+
             conditions.append(current_trend)
-        
+
         return conditions
+
+    def _compare_strategies(self, index_result: InvestmentResult, manager_result: InvestmentResult) -> Dict:
+        """Compare index fund vs active manager performance"""
+        return {
+            "index_fund_final": index_result.final_balance,
+            "active_manager_final": manager_result.final_balance,
+            "difference": index_result.final_balance - manager_result.final_balance,
+            "index_outperformance_pct": ((index_result.final_balance - manager_result.final_balance) / manager_result.final_balance) * 100 if manager_result.final_balance > 0 else 0,
+            "index_fees_total": index_result.total_fees,
+            "manager_fees_total": manager_result.total_fees,
+            "fee_difference": manager_result.total_fees - index_result.total_fees,
+            "winner": "Index Fund" if index_result.final_balance > manager_result.final_balance else "Active Manager",
+        }
     
     def _simulate_index_fund(
         self,

@@ -53,13 +53,12 @@ export default function RegisterPage() {
     try {
       // Register user
       await authAPI.register(formData.email, formData.password, formData.name)
-      
-      // Auto-login after registration
-      const loginResponse = await authAPI.login(formData.email, formData.password)
-      localStorage.setItem('token', loginResponse.access_token)
-      
-      // Redirect to dashboard
-      router.push('/dashboard')
+
+      // Store email in session for OTP verification
+      localStorage.setItem('pendingEmail', formData.email)
+
+      // Redirect to OTP verification
+      router.push('/verify-email')
     } catch (err: any) {
       console.error('Registration error:', err)
       setError(err.response?.data?.detail || 'Failed to create account. Please try again.')

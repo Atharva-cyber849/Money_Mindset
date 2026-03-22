@@ -495,7 +495,7 @@ function StepVisualize({ income, budget, onNext }: { income: number; budget: Bud
             <BarChart data={barData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} fontSize={12} />
-              <YAxis tickFormatter={(value) => `$${value}`} />
+              <YAxis tickFormatter={(value) => `₹${value}`} />
               <Tooltip formatter={(value) => formatCurrency(Number(value))} />
               <Bar dataKey="amount" fill="#8884d8">
                 {barData.map((entry, index) => (

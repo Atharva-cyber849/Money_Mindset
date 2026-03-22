@@ -14,6 +14,23 @@ class DebtType(Enum):
     NEUTRAL = "neutral"
 
 
+class LenderType(Enum):
+    """Types of lenders in Indian context"""
+    BANK = "bank"                # Regulated, lower rates
+    NBFC = "nbfc"                # Non-bank, higher rates (18-25%)
+    MICROFINANCE = "microfinance"  # Group lending, weekly repayments
+    INFORMAL = "informal"        # Money lender, exploitative
+
+
+class CIBILScore(Enum):
+    """CIBIL credit score ranges and implications"""
+    EXCELLENT = (850, 900, "Excellent: Loan approval easy, best rates")
+    HIGH = (750, 849, "High: Good approval chances, competitive rates")
+    FAIR = (650, 749, "Fair: Approval possible, higher rates")
+    POOR = (550, 649, "Poor: Risky profile, predatory rates")
+    VERY_POOR = (300, 549, "Very Poor: Likely rejection, limited options")
+
+
 @dataclass
 class Debt:
     """A debt obligation"""
@@ -31,46 +48,83 @@ class Debt:
 
 
 class CreditCardTrapSimulator:
-    """Simulates the impact of credit card interest and payment strategies"""
-    
+    """
+    Simulates the impact of credit card interest and payment strategies
+    Indian context: Includes NBFC rates, CIBIL scoring, predatory lending
+    """
+
+    # Indian lending rates by source
+    INDIAN_APR_RATES = {
+        "bank_credit_card": 0.36,      # 36% APR typical for bank CC
+        "NBFC_personal_loan": (0.18, 0.25),  # 18-25% typical NBFC rates
+        "NBFC_predatory": (0.35, 0.42),     # 35-42% for high-risk NBFC
+        "microfinance": 0.24,           # 24% typical microfinance
+        "money_lender": (0.60, 1.20),   # 60-120% for hired muscle
+    }
+
+    # CIBIL score impact on APR adjustment
+    CIBIL_APR_ADJUSTMENT = {
+        CIBILScore.EXCELLENT: 0.0,      # No adjustment
+        CIBILScore.HIGH: 0.02,          # +2% APR
+        CIBILScore.FAIR: 0.05,          # +5% APR
+        CIBILScore.POOR: 0.10,          # +10% APR
+        CIBILScore.VERY_POOR: 0.20,     # +20% APR (pushed to predatory rates)
+    }
+
     def compare_payment_strategies(
         self,
         balance: float,
-        apr: float = 0.24,
-        minimum_payment_pct: float = 0.02
+        apr: float = 0.36,
+        minimum_payment_pct: float =0.02,
+        cibil_score: int = 750,
+        lender_type: str = "bank"
     ) -> Dict[str, Any]:
         """
-        Compare minimum payment vs accelerated payoff
-        
+        Compare payment strategies with Indian debt context
+
         Args:
-            balance: Current credit card balance
-            apr: Annual percentage rate (e.g., 0.24 for 24%)
+            balance: Current balance (₹)
+            apr: Annual percentage rate
             minimum_payment_pct: Minimum payment as % of balance
-            
+            cibil_score: CIBIL credit score (300-900)
+            lender_type: Type of lender (bank, NBFC, microfinance, informal)
+
         Returns:
             Comparison of payment strategies
         """
-        
-        monthly_rate = apr / 12
-        
+
+        # Apply CIBIL score adjustment
+        cibil_adjustment = self._get_cibil_adjustment(cibil_score)
+        effective_apr = apr * (1 + cibil_adjustment)
+
+        monthly_rate = effective_apr / 12
+
         # Strategy 1: Minimum payments only
-        min_payment = max(25, balance * minimum_payment_pct)
-        min_result = self._calculate_payoff(balance, apr, min_payment)
-        
+        min_payment = max(100, balance * minimum_payment_pct)  # ₹100 minimum
+        min_result = self._calculate_payoff(balance, effective_apr, min_payment)
+
         # Strategy 2: Double minimum
-        double_result = self._calculate_payoff(balance, apr, min_payment * 2)
-        
-        # Strategy 3: Aggressive ($500/month if possible)
-        aggressive_payment = min(500, balance * 0.15)
-        aggressive_result = self._calculate_payoff(balance, apr, aggressive_payment)
-        
+        double_result = self._calculate_payoff(balance, effective_apr, min_payment * 2)
+
+        # Strategy 3: Aggressive (₹2000/month if possible)
+        aggressive_payment = min(2000, balance * 0.15)
+        aggressive_result = self._calculate_payoff(balance, effective_apr, aggressive_payment)
+
         # Show "interest clock" - cost per day/hour
-        daily_interest = (balance * apr) / 365
+        daily_interest = (balance * effective_apr) / 365
         hourly_interest = daily_interest / 24
-        
+
+        # CIBIL impact warning
+        cibil_warning = self._generate_cibil_warning(cibil_score)
+
         return {
             "balance": balance,
-            "apr": apr * 100,
+            "apr": effective_apr * 100,
+            "original_apr": apr * 100,
+            "cibil_score": cibil_score,
+            "cibil_adjustment_pct": cibil_adjustment * 100,
+            "lender_type": lender_type,
+            "cibil_warning": cibil_warning,
             "minimum_payment": min_payment,
             "strategies": {
                 "minimum_payment": {
@@ -110,9 +164,32 @@ class CreditCardTrapSimulator:
                 balance,
                 min_result,
                 double_result,
-                aggressive_result
+                aggressive_result,
+                cibil_score
             )
         }
+
+    def _get_cibil_adjustment(self, cibil_score: int) -> float:
+        """Get APR adjustment based on CIBIL score"""
+        if cibil_score >= 850:
+            return 0.0  # Excellent
+        elif cibil_score >= 750:
+            return 0.02  # High
+        elif cibil_score >= 650:
+            return 0.05  # Fair
+        elif cibil_score >= 550:
+            return 0.10  # Poor
+        else:
+            return 0.20  # Very Poor (predatory rates)
+
+    def _generate_cibil_warning(self, cibil_score: int) -> str:
+        """Generate warning about CIBIL score implications"""
+        if cibil_score >= 750:
+            return f"Score {cibil_score}: Excellent. Can access good rates. Build emergency fund to protect score."
+        elif cibil_score >= 650:
+            return f"Score {cibil_score}: Fair. Rates are higher. Avoid default - even small delays hurt score."
+        else:
+            return f"Score {cibil_score}: RISKY. You're pushed to NBFC/predatory rates (18-42% APR). Default leads to wage garnishment."
     
     def _calculate_payoff(
         self,
@@ -224,73 +301,168 @@ class CreditCardTrapSimulator:
 
 
 class DebtClassificationSimulator:
-    """Classify and analyze different types of debt"""
-    
+    """
+    Classify and analyze different types of debt
+    Indian context: Includes NBFC, microfinance, gold loans, and CIBIL impact
+    """
+
+    # Indian debt classifications with typical rates
+    INDIAN_DEBT_TYPES = {
+        "good": {
+            "rates": (0.06, 0.09),           # 6-9% APR
+            "examples": ["Home loan", "Education loan", "Vehicle loan"]
+        },
+        "neutral": {
+            "rates": (0.10, 0.12),           # 10-12% APR
+            "examples": ["Business loan", "Gold loan"]
+        },
+        "bad": {
+            "rates": (0.18, 0.42),           # 18-42% APR (NBFC to predatory)
+            "examples": ["Personal NBFC loan", "Credit card", "Money lender"]
+        }
+    }
+
     def __init__(self):
         self.debt_examples = {
             DebtType.GOOD: [
                 {
-                    "name": "Student loan for nursing degree",
-                    "cost": 30000,
-                    "apr": 0.06,
-                    "purpose": "Education leading to $65K salary",
-                    "annual_return": 0.15,  # Career advancement
-                    "explanation": "Investment in career that increases earning potential"
+                    "name": "Home loan - ₹25L for property",
+                    "cost": 2500000,
+                    "apr": 0.075,  # 7.5% typical
+                    "lender": "Bank",
+                    "purpose": "Real estate that appreciates",
+                    "annual_return": 0.065,  # 6-8% appreciation
+                    "explanation": "Leverage on appreciating asset, equity building, tax benefits"
                 },
                 {
-                    "name": "Mortgage on home",
-                    "cost": 250000,
-                    "apr": 0.04,
-                    "purpose": "Home that appreciates + builds equity",
-                    "annual_return": 0.04,  # Avg home appreciation
-                    "explanation": "Asset that typically appreciates over time"
+                    "name": "Education loan - ₹10L for IIT",
+                    "cost": 1000000,
+                    "apr": 0.08,   # 8% typical
+                    "lender": "Bank",
+                    "purpose": "Engineering degree leading to ₹8L+ salary",
+                    "annual_return": 0.20,  # Career development
+                    "explanation": "Investment in career earning potential"
                 },
                 {
-                    "name": "Car loan for reliable commute",
-                    "cost": 15000,
-                    "apr": 0.07,
-                    "purpose": "Transportation to keep job",
+                    "name": "Vehicle loan - ₹10L for car",
+                    "cost": 1000000,
+                    "apr": 0.09,   # 9% typical
+                    "lender": "Bank",
+                    "purpose": "Transportation for commute/work",
                     "annual_return": 0.10,  # Job retention value
-                    "explanation": "Necessary for income generation"
-                }
-            ],
-            DebtType.BAD: [
-                {
-                    "name": "Vacation on credit card",
-                    "cost": 5000,
-                    "apr": 0.22,
-                    "purpose": "2-week vacation",
-                    "annual_return": -0.22,  # Just loses money
-                    "explanation": "No lasting value, high interest rate"
-                },
-                {
-                    "name": "Furniture on credit",
-                    "cost": 8000,
-                    "apr": 0.19,
-                    "purpose": "New living room set",
-                    "annual_return": -0.15,  # Depreciates
-                    "explanation": "Depreciating asset + high interest"
-                },
-                {
-                    "name": "Payday loan",
-                    "cost": 2000,
-                    "apr": 4.00,  # 400% APR!
-                    "purpose": "Emergency cash",
-                    "annual_return": -4.00,
-                    "explanation": "Predatory rates that trap borrowers"
+                    "explanation": "Necessary for income generation, manageable rates"
                 }
             ],
             DebtType.NEUTRAL: [
                 {
-                    "name": "Car loan for luxury vehicle",
-                    "cost": 45000,
-                    "apr": 0.08,
-                    "purpose": "Want vs need",
-                    "annual_return": -0.12,  # Depreciates
-                    "explanation": "Can be good or bad depending on need vs want"
+                    "name": "Business loan - ₹20L for startup capital",
+                    "cost": 2000000,
+                    "apr": 0.12,   # 12% typical
+                    "lender": "Bank/NBFC",
+                    "purpose": "Business growth with expected returns",
+                    "annual_return": 0.25,  # High variance
+                    "explanation": "Moderate-high risk, but potential for high returns"
+                },
+                {
+                    "name": "Gold loan - ₹1L against gold",
+                    "cost": 100000,
+                    "apr": 0.12,   # 12% typical
+                    "lender": "Bank/NBFC",
+                    "purpose": "Quick liquidity with collateral",
+                    "annual_return": 0.0,   # Collateral-based, not productive
+                    "explanation": "Better option than NBFC personal loans, asset-backed"
+                }
+            ],
+            DebtType.BAD: [
+                {
+                    "name": "NBFC personal loan - ₹5L unsecured",
+                    "cost": 500000,
+                    "apr": 0.20,   # 20% typical (can be up to 25%)
+                    "lender": "NBFC",
+                    "purpose": "Emergency medical expense",
+                    "annual_return": -0.20, # Just loses to interest
+                    "explanation": "High rates, predatory terms, damages CIBIL score on default"
+                },
+                {
+                    "name": "Credit card debt - ₹50K balance",
+                    "cost": 50000,
+                    "apr": 0.36,   # 36% typical (can reach 42%)
+                    "lender": "Bank",
+                    "purpose": "Vacation and shopping",
+                    "annual_return": -0.36, # Loses to interest
+                    "explanation": "Extreme interest rates, revolving debt trap"
+                },
+                {
+                    "name": "Money lender loan - ₹50K",
+                    "cost": 50000,
+                    "apr": 0.84,   # 84% (7% per month!!)
+                    "lender": "Informal",
+                    "purpose": "Emergency with no formal credit access",
+                    "annual_return": -0.84, # Predatory
+                    "explanation": "7% monthly interest = ₹3.5K/month, wage garnishment risk"
                 }
             ]
         }
+
+    def classify_debt(self, balance: float, apr: float, purpose: str) -> Dict[str, Any]:
+        """Classify debt quality and provide recommendations"""
+        if apr <= 0.09:
+            classification = DebtType.GOOD
+            color = "green"
+        elif apr <= 0.12:
+            classification = DebtType.NEUTRAL
+            color = "yellow"
+        else:
+            classification = DebtType.BAD
+            color = "red"
+
+        if apr >= 0.60:  # Money lender rates
+            urgency = "CRISIS: Seek debt relief programs immediately"
+        elif apr >= 0.20:  # High NBFC rates
+            urgency = "HIGH PRIORITY: Repay ASAP, consider consolidation"
+        elif apr >= 0.12:  # Neutral rates
+            urgency = "MANAGEABLE: Standard debt, monitor CIBIL score"
+        else:  # Good rates
+            urgency = "LOW PRIORITY: Manageable debt, continue payments"
+
+        return {
+            "balance": balance,
+            "apr_percentage": apr * 100,
+            "classification": classification.value,
+            "color_indicator": color,
+            "urgency": urgency,
+            "explanation": self._get_classification_explanation(classification),
+            "monthly_interest": balance * (apr / 12),
+            "annual_interest": balance * apr,
+            "recommendations": self._get_recommendations(classification, apr)
+        }
+
+    def _get_classification_explanation(self, debt_type: DebtType) -> str:
+        """Get explanation for debt classification"""
+        if debt_type == DebtType.GOOD:
+            return "Good debt: Lower rates (6-9%), builds wealth or skills, appreciating assets"
+        elif debt_type == DebtType.NEUTRAL:
+            return "Neutral debt: Moderate rates (10-12%), business or secured loans"
+        else:
+            return "Bad debt: High rates (18-42%+), no productive value, risky default consequences"
+
+    def _get_recommendations(self, debt_type: DebtType, apr: float) -> List[str]:
+        """Get recommendations based on debt type"""
+        recommendations = []
+
+        if apr >= 0.20:
+            recommendations.append("🚨 CIBIL ALERT: Missing even one payment damages your credit score for 7 years")
+            recommendations.append("Default = wage garnishment possible + legal action")
+            recommendations.append("Explore debt consolidation or settlement programs")
+        elif apr >= 0.12:
+            recommendations.append("Make full payments on time - protect your CIBIL score (750+ = low rates)")
+            recommendations.append("Each delay = ₹25-50 penalty + score drop")
+        else:
+            recommendations.append("Continue regular payments - building positive credit history")
+            recommendations.append("This debt is helping your financial profile if paid on time")
+
+        recommendations.append(f"Monthly interest cost: ₹{apr * 10000 / 12:.0f} per ₹10L borrowed")
+        return recommendations
     
     def classify_debt(
         self,

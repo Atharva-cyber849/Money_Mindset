@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Money Mindset User Flow</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0d0f0e; color: #e8ede8; min-height: 100vh; }
+
+  /* ── HEADER ── */
+  .header { background: #141716; border-bottom: 1px solid #2a3030; padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+  .logo { width: 34px; height: 34px; background: #d4a843; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .header-title { font-size: 18px; font-weight: 700; color: #e8ede8; }
+  .header-sub { font-size: 11px; color: #4a5e5a; letter-spacing: 0.08em; font-family: 'Courier New', monospace; }
+
+  /* ── PHASE RAIL ── */
+  .layout { display: flex; height: calc(100vh - 65px); }
+  .rail { width: 200px; flex-shrink: 0; background: #141716; border-right: 1px solid #2a3030; overflow-y: auto; padding: 16px 0; }
+  .phase-btn { width: 100%; padding: 10px 16px; border: none; background: none; color: #4a5e5a; cursor: pointer; text-align: left; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; font-family: 'Courier New', monospace; transition: all 0.2s; display: flex; align-items: center; gap: 10px; }
+  .phase-btn:hover { color: #8a9e9a; background: #1c2020; }
+  .phase-btn.active { color: #d4a843; background: rgba(212,168,67,0.08); border-right: 2px solid #d4a843; }
+  .phase-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .phase-btn.done .phase-dot { background: #4ade80; }
+  .phase-btn.done { color: #4a5e5a; }
+  .phase-btn.done .phase-dot { background: #166534; }
+
+  /* ── MAIN CONTENT ── */
+  .main { flex: 1; overflow-y: auto; padding: 28px 32px; }
+  .phase-header { margin-bottom: 24px; }
+  .phase-tag { font-size: 10px; font-family: 'Courier New', monospace; letter-spacing: 0.12em; color: #4a5e5a; margin-bottom: 6px; }
+  .phase-title { font-size: 26px; font-weight: 800; color: #e8ede8; margin-bottom: 6px; }
+  .phase-desc { font-size: 14px; color: #8a9e9a; line-height: 1.6; max-width: 560px; }
+
+  /* ── FLOW NODES ── */
+  .flow { display: flex; flex-direction: column; gap: 0; }
+  .node-row { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 4px; }
+  .node-row.centered { justify-content: center; }
+  .node-row.split { justify-content: space-between; }
+
+  .node { border-radius: 10px; padding: 14px 18px; border: 1px solid; flex: 1; max-width: 340px; cursor: pointer; transition: all 0.2s; position: relative; }
+  .node:hover { transform: translateY(-1px); }
+  .node.full { max-width: 100%; }
+  .node.half { max-width: 48%; }
+  .node.third { max-width: 31%; }
+
+  .node.purple { background: rgba(83,74,183,0.12); border-color: rgba(83,74,183,0.4); }
+  .node.purple:hover { border-color: #534AB7; box-shadow: 0 4px 20px rgba(83,74,183,0.2); }
+  .node.teal { background: rgba(15,110,86,0.12); border-color: rgba(15,110,86,0.4); }
+  .node.teal:hover { border-color: #0F6E56; }
+  .node.amber { background: rgba(133,79,11,0.15); border-color: rgba(212,168,67,0.35); }
+  .node.amber:hover { border-color: #d4a843; }
+  .node.green { background: rgba(22,101,52,0.12); border-color: rgba(22,101,52,0.4); }
+  .node.green:hover { border-color: #166534; }
+  .node.coral { background: rgba(153,60,29,0.12); border-color: rgba(153,60,29,0.4); }
+  .node.coral:hover { border-color: #993C1D; }
+  .node.blue { background: rgba(24,95,165,0.12); border-color: rgba(24,95,165,0.4); }
+  .node.blue:hover { border-color: #185FA5; }
+  .node.pink { background: rgba(153,53,86,0.15); border-color: rgba(212,83,126,0.4); }
+  .node.pink:hover { border-color: #D4537E; }
+  .node.gray { background: rgba(50,50,48,0.4); border-color: #3a4545; }
+  .node.gray:hover { border-color: #5F5E5A; }
+
+  .node-tag { font-size: 10px; font-family: 'Courier New', monospace; letter-spacing: 0.08em; margin-bottom: 5px; opacity: 0.7; }
+  .node-title { font-size: 14px; font-weight: 700; color: #e8ede8; margin-bottom: 3px; }
+  .node-detail { font-size: 12px; color: #8a9e9a; line-height: 1.5; }
+
+  /* ── ARROW ── */
+  .arrow { text-align: center; color: #3a4545; font-size: 18px; margin: 6px 0; line-height: 1; }
+  .arrow.split-out { display: flex; justify-content: space-around; color: #3a4545; }
+  .arrow-label { font-size: 10px; font-family: 'Courier New', monospace; color: #4a5e5a; text-align: center; margin: 2px 0; }
+
+  /* ── QUIZ GRID ── */
+  .quiz-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 8px 0; }
+  .quiz-card { background: rgba(133,79,11,0.12); border: 1px solid rgba(212,168,67,0.3); border-radius: 10px; padding: 14px 10px; text-align: center; cursor: pointer; transition: all 0.2s; }
+  .quiz-card:hover { border-color: #d4a843; background: rgba(212,168,67,0.1); }
+  .quiz-num { font-size: 22px; font-weight: 800; color: #d4a843; display: block; }
+  .quiz-label { font-size: 11px; color: #8a9e9a; margin-top: 4px; }
+  .quiz-sub { font-size: 10px; color: #4a5e5a; margin-top: 3px; line-height: 1.3; }
+
+  /* ── AI OUTPUT GRID ── */
+  .ai-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+
+  /* ── FIRST SESSION GRID ── */
+  .session-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+  /* ── PROGRESSION SPLIT ── */
+  .prog-split { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 8px 0; }
+  .prog-path { display: flex; flex-direction: column; gap: 8px; }
+  .prog-path-label { font-size: 10px; font-family: 'Courier New', monospace; letter-spacing: 0.08em; color: #4a5e5a; text-align: center; }
+
+  /* ── RETENTION ROW ── */
+  .retention-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  /* ── LOOP BADGE ── */
+  .loop-badge { background: rgba(26,31,30,0.8); border: 1px dashed #2a3030; border-radius: 8px; padding: 10px 16px; text-align: center; }
+  .loop-badge span { font-size: 11px; color: #4a5e5a; font-family: 'Courier New', monospace; }
+
+  /* ── NAV ── */
+  .nav { display: flex; gap: 12px; margin-top: 32px; padding-top: 24px; border-top: 1px solid #2a3030; }
+  .btn { padding: 10px 22px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: 'Segoe UI', sans-serif; }
+  .btn-prev { background: transparent; border: 1px solid #3a4545; color: #8a9e9a; }
+  .btn-prev:hover { border-color: #8a9e9a; color: #e8ede8; }
+  .btn-next { background: #d4a843; border: 1px solid #d4a843; color: #0d0f0e; margin-left: auto; }
+  .btn-next:hover { background: #e0b84f; }
+  .btn-next:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap { background: #1c2020; border-radius: 2px; height: 3px; margin-bottom: 20px; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #8a6c2a, #d4a843); border-radius: 2px; transition: width 0.4s ease; }
+
+  /* ── STAT CHIPS ── */
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+  .chip { background: #1c2020; border: 1px solid #2a3030; border-radius: 6px; padding: 5px 12px; font-size: 11px; color: #8a9e9a; font-family: 'Courier New', monospace; }
+  .chip.gold { border-color: #8a6c2a; color: #d4a843; }
+  .chip.green { border-color: #166534; color: #4ade80; }
+  .chip.red { border-color: #7f1d1d; color: #f87171; }
+
+  .divider { border: none; border-top: 1px solid #2a3030; margin: 16px 0; }
+
+  /* ── AI CALLOUT ── */
+  .ai-callout { background: rgba(83,74,183,0.08); border: 1px solid rgba(83,74,183,0.3); border-radius: 10px; padding: 14px 18px; margin: 12px 0; }
+  .ai-callout-title { font-size: 11px; font-family: 'Courier New', monospace; color: #7F77DD; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .ai-callout-body { font-size: 13px; color: #8a9e9a; line-height: 1.6; }
+
+  @media (max-width: 768px) {
+    .rail { width: 52px; }
+    .phase-btn span:last-child { display: none; }
+    .quiz-grid { grid-template-columns: repeat(3, 1fr); }
+    .ai-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">💰</div>
+  <div>
+    <div class="header-title">Money Mindset</div>
+    <div class="header-sub">USER FLOW · NEW USER JOURNEY</div>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- ── PHASE RAIL ── -->
+  <nav class="rail" id="rail"></nav>
+
+  <!-- ── MAIN ── -->
+  <main class="main" id="main">
+    <div class="progress-wrap"><div class="progress-fill" id="progress"></div></div>
+    <div id="content"></div>
+    <div class="nav">
+      <button class="btn btn-prev" id="btnPrev" onclick="go(-1)">← Back</button>
+      <button class="btn btn-next" id="btnNext" onclick="go(1)">Next phase →</button>
+    </div>
+  </main>
+</div>
+
+<script>
+const PHASES = [
+  {
+    id: "entry",
+    label: "Entry",
+    color: "purple",
+    title: "1. Discovery & Entry",
+    desc: "The user finds Money Mindset — through organic search, App Store, college recommendation, or a friend sharing their Finance IQ score. They land on the home screen.",
+    render: () => `
+      <div class="flow">
+        <div class="node-row centered">
+          <div class="node purple full" style="max-width:420px">
+            <div class="node-tag" style="color:#7F77DD">LANDING SCREEN</div>
+            <div class="node-title">App / Web Landing Page</div>
+            <div class="node-detail">Hero: "Learn Finance by Living It" · Simulation demo reel · Social proof (Finance IQ scores) · Single CTA</div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="node-row split">
+          <div class="node teal half">
+            <div class="node-tag" style="color:#1D9E75">OPTION A</div>
+            <div class="node-title">Continue with Google</div>
+            <div class="node-detail">OAuth — zero friction, pre-fills name + email</div>
+          </div>
+          <div class="node teal half">
+            <div class="node-tag" style="color:#1D9E75">OPTION B</div>
+            <div class="node-title">Email + Password</div>
+            <div class="node-detail">Standard registration form</div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="node-row centered">
+          <div class="node gray full" style="max-width:420px">
+            <div class="node-tag">BOTH PATHS CONVERGE</div>
+            <div class="node-title">OTP / Email Verification</div>
+            <div class="node-detail">One-time code sent · Confirms valid account · Auto-advances on verify</div>
+          </div>
+        </div>
+      </div>
+      <div class="chips">
+        <span class="chip">Friction: very low</span>
+        <span class="chip gold">Goal: get user to quiz</span>
+        <span class="chip">Time: ~60 seconds</span>
+      </div>
+    `
+  },
+  {
+    id: "profile",
+    label: "Profile Setup",
+    color: "teal",
+    title: "2. Basic Profile Setup",
+    desc: "Minimal info collected before the quiz. Just enough to personalise the experience — not enough to feel like a form.",
+    render: () => `
+      <div class="flow">
+        <div class="node-row centered">
+          <div class="node teal full" style="max-width:440px">
+            <div class="node-tag" style="color:#1D9E75">PROFILE SCREEN</div>
+            <div class="node-title">Three quick questions</div>
+            <div class="node-detail">What's your name? · Your age group (18–24 / 25–35 / 35–50 / 50+) · Preferred language (English / Hindi / Marathi / Tamil…)</div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="node-row centered">
+          <div class="node amber full" style="max-width:440px">
+            <div class="node-tag" style="color:#BA7517">TRANSITION</div>
+            <div class="node-title">"Before we build your financial profile, let's learn a little about you"</div>
+            <div class="node-detail">Animated transition into the onboarding quiz. Sets expectations: 5 questions, 3 minutes, no wrong answers.</div>
+          </div>
+        </div>
+      </div>
+      <div class="ai-callout">
+        <div class="ai-callout-title">🧠 WHY MINIMAL INFO FIRST</div>
+        <div class="ai-callout-body">Research shows users abandon apps when early onboarding feels like a data extraction exercise. The quiz that follows collects the same information — but it feels like a game, not a form. Age and language are the only pre-quiz data points the AI actually needs to calibrate question difficulty.</div>
+      </div>
+    `
+  },
+  {
+    id: "quiz",
+    label: "Onboarding Quiz",
+    color: "amber",
+    title: "3. Financial Fingerprint Quiz",
+    desc: "The heart of onboarding. 5 adaptive questions that build the user's financial profile — goals, life stage, knowledge, risk tolerance, and monthly surplus. Each question adapts based on the previous answer.",
+    render: () => `
+      <div class="quiz-grid">
+        <div class="quiz-card">
+          <span class="quiz-num">Q1</span>
+          <div class="quiz-label" style="color:#d4a843">Goals</div>
+          <div class="quiz-sub">Save · Invest · Pay off debt · Build emergency fund</div>
+        </div>
+        <div class="quiz-card">
+          <span class="quiz-num">Q2</span>
+          <div class="quiz-label" style="color:#d4a843">Life stage</div>
+          <div class="quiz-sub">Student · First job · Mid-career · Business owner</div>
+        </div>
+        <div class="quiz-card">
+          <span class="quiz-num">Q3</span>
+          <div class="quiz-label" style="color:#d4a843">Knowledge</div>
+          <div class="quiz-sub">"What is a SIP?" → 3 options reveal actual understanding level</div>
+        </div>
+        <div class="quiz-card">
+          <span class="quiz-num">Q4</span>
+          <div class="quiz-label" style="color:#d4a843">Risk tolerance</div>
+          <div class="quiz-sub">Market drops 20% — what do you do? (scenario choice)</div>
+        </div>
+        <div class="quiz-card">
+          <span class="quiz-num">Q5</span>
+          <div class="quiz-label" style="color:#d4a843">Monthly surplus</div>
+          <div class="quiz-sub">₹500 · ₹2,000 · ₹5,000 · ₹10,000+</div>
+        </div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="node-row centered">
+        <div class="node amber full" style="max-width:480px">
+          <div class="node-tag" style="color:#BA7517">QUIZ COMPLETE</div>
+          <div class="node-title">"Analysing your financial fingerprint…" loading screen</div>
+          <div class="node-detail">2–3 second animated AI processing screen. Builds anticipation before the reveal. Shows progress bar, animated icons for each category being scored.</div>
+        </div>
+      </div>
+      <div class="chips">
+        <span class="chip">Adaptive: Q3 difficulty adjusts based on Q2 answer</span>
+        <span class="chip gold">Time: ~3 minutes</span>
+        <span class="chip green">Completion target: 90%+</span>
+      </div>
+    `
+  },
+  {
+    id: "ai",
+    label: "AI Analysis",
+    color: "purple",
+    title: "4. AI Analysis & Results Reveal",
+    desc: "Claude API processes all 5 answers simultaneously and generates four outputs that personalise everything from this point forward. The reveal screen is the emotional centrepiece of onboarding.",
+    render: () => `
+      <div class="ai-callout" style="margin-bottom:20px">
+        <div class="ai-callout-title">⚡ WHAT THE AI DOES IN BACKGROUND</div>
+        <div class="ai-callout-body">Quiz responses are sent to Claude API with a structured system prompt. The AI returns: money personality type, Finance IQ baseline score (0–100), ranked knowledge gaps, and the single best first simulation for this specific user. All four outputs feed the dashboard simultaneously.</div>
+      </div>
+      <div class="ai-grid">
+        <div class="node purple">
+          <div class="node-tag" style="color:#7F77DD">OUTPUT 1</div>
+          <div class="node-title">Money Personality</div>
+          <div class="node-detail">The Careful Builder · The Ambitious Investor · The Overwhelmed Earner · The Smart Saver</div>
+        </div>
+        <div class="node purple">
+          <div class="node-tag" style="color:#7F77DD">OUTPUT 2</div>
+          <div class="node-title">Finance IQ Score</div>
+          <div class="node-detail">Baseline 0–100 derived from Q3 + Q4 answers. Shown as animated ring fill on reveal screen.</div>
+        </div>
+        <div class="node purple">
+          <div class="node-tag" style="color:#7F77DD">OUTPUT 3</div>
+          <div class="node-title">Learning Path</div>
+          <div class="node-detail">3–5 priority topics ranked by gap severity. Displayed as "Your Finance Roadmap" card on dashboard.</div>
+        </div>
+        <div class="node teal">
+          <div class="node-tag" style="color:#1D9E75">OUTPUT 4</div>
+          <div class="node-title">First Simulation Pick</div>
+          <div class="node-detail">Single best starting sim. E.g. beginner + saver → Gullak. Mid-level + investor → Market Replay COVID.</div>
+        </div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="node-row centered">
+        <div class="node teal full" style="max-width:500px">
+          <div class="node-tag" style="color:#1D9E75">REVEAL SCREEN</div>
+          <div class="node-title">Your Financial Fingerprint</div>
+          <div class="node-detail">Full-screen animated reveal: personality badge animates in → IQ score counts up → learning path expands → "Your first challenge: [name]" CTA glows. Each element has a 400ms stagger. Share button prominently placed.</div>
+        </div>
+      </div>
+      <div class="chips">
+        <span class="chip gold">This screen = highest share trigger in the app</span>
+        <span class="chip green">Share CTA → organic acquisition loop</span>
+      </div>
+    `
+  },
+  {
+    id: "dashboard",
+    label: "First Dashboard",
+    color: "teal",
+    title: "5. Personalised Dashboard Entry",
+    desc: "User lands on their personalised dashboard for the first time. Everything is pre-populated from the quiz. A guided coach mark tour highlights the three most important elements.",
+    render: () => `
+      <div class="node-row centered">
+        <div class="node teal full" style="max-width:520px">
+          <div class="node-tag" style="color:#1D9E75">DASHBOARD — FIRST VIEW</div>
+          <div class="node-title">Guided coach mark tour (3 stops)</div>
+          <div class="node-detail">Stop 1: Finance IQ ring — "This score grows every time you learn" · Stop 2: First recommended simulation — "Start here based on your profile" · Stop 3: AI Tutor button — "Ask me anything about money"</div>
+        </div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="session-grid">
+        <div class="node green">
+          <div class="node-tag" style="color:#639922">ACTION A</div>
+          <div class="node-title">Play first simulation</div>
+          <div class="node-detail">Auto-opened from the reveal screen CTA. AI-recommended based on profile.</div>
+        </div>
+        <div class="node green">
+          <div class="node-tag" style="color:#639922">ACTION B</div>
+          <div class="node-title">Complete first scenario</div>
+          <div class="node-detail">Gullak jar allocation or bonus decision scenario depending on knowledge level.</div>
+        </div>
+        <div class="node green">
+          <div class="node-tag" style="color:#639922">ACTION C</div>
+          <div class="node-title">Ask AI tutor first question</div>
+          <div class="node-detail">AI proactively opens with: "Based on your profile, your biggest blind spot is [X]. Want me to explain it?"</div>
+        </div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="node-row centered">
+        <div class="node amber full" style="max-width:480px">
+          <div class="node-tag" style="color:#BA7517">SESSION COMPLETE</div>
+          <div class="node-title">XP earned · Finance IQ updated · Streak day 1 🔥</div>
+          <div class="node-detail">Full-screen session summary. +150 XP animated. IQ score ticks up. "Come back tomorrow to keep your streak" with notification permission prompt.</div>
+        </div>
+      </div>
+      <div class="chips">
+        <span class="chip">Avg session target: 8–12 minutes</span>
+        <span class="chip gold">Goal: earn first XP before leaving</span>
+        <span class="chip green">Notification opt-in here</span>
+      </div>
+    `
+  },
+  {
+    id: "progression",
+    label: "Progression",
+    color: "coral",
+    title: "6. Ongoing Progression Loop",
+    desc: "Every return session follows the same core loop: simulate or learn → earn XP → Finance IQ rises → new content unlocks → AI tutor adapts → repeat. Two paths based on XP threshold.",
+    render: () => `
+      <div class="node-row centered">
+        <div class="node coral full" style="max-width:440px">
+          <div class="node-tag" style="color:#D85A30">EVERY SESSION</div>
+          <div class="node-title">Complete a simulation, scenario, or game</div>
+          <div class="node-detail">XP awarded based on difficulty and score. Finance IQ recalculated after every 3 completions.</div>
+        </div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="node-row centered">
+        <div class="node gray full" style="max-width:340px">
+          <div class="node-title">XP threshold check</div>
+          <div class="node-detail">Has user crossed next level threshold?</div>
+        </div>
+      </div>
+      <div class="arrow split-out">
+        <span style="font-size:13px;color:#4a5e5a">NO ↙</span>
+        <span style="font-size:13px;color:#4a5e5a">YES ↘</span>
+      </div>
+      <div class="prog-split">
+        <div class="prog-path">
+          <div class="prog-path-label">NOT YET</div>
+          <div class="node gray">
+            <div class="node-title">Continue current level</div>
+            <div class="node-detail">AI surfaces next recommended activity. Progress bar shown. Encouragement message.</div>
+          </div>
+          <div class="arrow">↓</div>
+          <div class="loop-badge"><span>→ back to session loop</span></div>
+        </div>
+        <div class="prog-path">
+          <div class="prog-path-label">LEVEL UP</div>
+          <div class="node green">
+            <div class="node-title">Level up animation!</div>
+            <div class="node-detail">Full-screen celebration. New level badge. Unlock announcement.</div>
+          </div>
+          <div class="arrow">↓</div>
+          <div class="node green">
+            <div class="node-title">New content unlocked</div>
+            <div class="node-detail">Game · Advanced sim · Concept card · New scenario set</div>
+          </div>
+        </div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="node-row centered">
+        <div class="node purple full" style="max-width:480px">
+          <div class="node-tag" style="color:#7F77DD">AI ADAPTATION</div>
+          <div class="node-title">Learning path re-scored by AI</div>
+          <div class="node-detail">After every 5 sessions: knowledge gaps re-evaluated. New weak points surfaced. Learning path reordered. AI tutor briefed on updated profile.</div>
+        </div>
+      </div>
+    `
+  },
+  {
+    id: "retention",
+    label: "Retention Loop",
+    color: "blue",
+    title: "7. Daily Retention Engine",
+    desc: "The mechanics that bring users back every day — not through dark patterns, but through genuine habit formation around a daily financial micro-routine.",
+    render: () => `
+      <div class="node-row centered">
+        <div class="node blue full" style="max-width:480px">
+          <div class="node-tag" style="color:#378ADD">DAILY TRIGGER</div>
+          <div class="node-title">Morning finance briefing (push notification)</div>
+          <div class="node-detail">1 market fact · 1 personal finance tip relevant to user's current learning path · Daily XP challenge preview · Streak reminder if day 6+</div>
+        </div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="retention-row">
+        <div class="node blue">
+          <div class="node-tag" style="color:#378ADD">LOOP 1</div>
+          <div class="node-title">Streak maintained 🔥</div>
+          <div class="node-detail">+bonus XP multiplier for consecutive days. Streak freeze available at level 5+.</div>
+        </div>
+        <div class="node blue">
+          <div class="node-tag" style="color:#378ADD">LOOP 2</div>
+          <div class="node-title">Weekly challenge</div>
+          <div class="node-detail">National leaderboard. "Survive the 2008 crash — top 100 featured this week." Shareable result.</div>
+        </div>
+        <div class="node pink">
+          <div class="node-tag" style="color:#D4537E">MONETISATION</div>
+          <div class="node-title">Freemium wall hit</div>
+          <div class="node-detail">Triggered when user tries to access premium sim or exceeds 3 AI questions/day.</div>
+        </div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="loop-badge"><span>→ loops back to next session</span></div>
+      <div class="ai-callout" style="margin-top:20px">
+        <div class="ai-callout-title">📊 RETENTION BENCHMARK TARGETS</div>
+        <div class="ai-callout-body">Day 1 retention: 60%+ · Day 7: 30%+ · Day 30: 15%+ · These are Duolingo-tier targets, achievable with the streak mechanic + daily briefing + weekly challenge combination.</div>
+      </div>
+    `
+  },
+  {
+    id: "premium",
+    label: "Premium Upgrade",
+    color: "pink",
+    title: "8. Freemium → Premium Conversion",
+    desc: "The upgrade moment is never forced — it's earned. The user hits a natural content limit after achieving enough to feel the platform's value. Conversion is highest at session 8–12.",
+    render: () => `
+      <div class="node-row centered">
+        <div class="node pink full" style="max-width:480px">
+          <div class="node-tag" style="color:#D4537E">TRIGGER EVENTS (any one of these)</div>
+          <div class="node-title">Premium prompt appears</div>
+          <div class="node-detail">Daily AI question limit (3/day) hit · User tries to open a Level 3+ simulation · Weekly challenge requires premium · User's Finance IQ crosses 60 (engagement signal)</div>
+        </div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="node-row split">
+        <div class="node pink half">
+          <div class="node-tag" style="color:#D4537E">PLAN A</div>
+          <div class="node-title">Individual Premium</div>
+          <div class="node-detail">₹149/month · Unlimited AI questions · All simulations · Market Replay full library · Monthly Finance Report PDF</div>
+        </div>
+        <div class="node pink half">
+          <div class="node-tag" style="color:#D4537E">PLAN B</div>
+          <div class="node-title">Yearly Plan</div>
+          <div class="node-detail">₹999/year (save 44%) · All premium features · Exclusive scenarios · Priority AI tutor response</div>
+        </div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="node-row centered">
+        <div class="node gray full" style="max-width:440px">
+          <div class="node-title">If user declines premium</div>
+          <div class="node-detail">Returns to free tier with clear indicator of what they unlocked vs. what's available. No aggressive re-prompt for 7 days. Next trigger: session 15 or next feature wall hit.</div>
+        </div>
+      </div>
+      <div class="chips">
+        <span class="chip">Target free → paid: 4–8%</span>
+        <span class="chip gold">670 paid users = ₹1L MRR</span>
+        <span class="chip green">B2B corporate path unlocks at v3</span>
+      </div>
+      <hr class="divider"/>
+      <div class="ai-callout">
+        <div class="ai-callout-title">🗺️ COMPLETE JOURNEY SUMMARY</div>
+        <div class="ai-callout-body">
+          Land on app → Sign up (60s) → Profile (30s) → Quiz (3min) → AI reveal (2min) → First session (8–12min) → Day 1 complete.<br><br>
+          Return daily → Build streak → Level up → Unlock content → Finance IQ grows → Hit freemium wall (session 8–12) → Convert to premium → Retain for 12+ months.
+        </div>
+      </div>
+    `
+  }
+];
+
+let current = 0;
+
+function renderRail() {
+  const rail = document.getElementById('rail');
+  rail.innerHTML = PHASES.map((p, i) => `
+    <button class="phase-btn ${i === current ? 'active' : i < current ? 'done' : ''}" onclick="jump(${i})">
+      <span class="phase-dot"></span>
+      <span>${p.label}</span>
+    </button>
+  `).join('');
+}
+
+function renderContent() {
+  const pct = ((current + 1) / PHASES.length * 100).toFixed(0);
+  document.getElementById('progress').style.width = pct + '%';
+
+  const p = PHASES[current];
+  document.getElementById('content').innerHTML = `
+    <div class="phase-header">
+      <div class="phase-tag">PHASE ${current + 1} OF ${PHASES.length}</div>
+      <div class="phase-title">${p.title}</div>
+      <div class="phase-desc">${p.desc}</div>
+    </div>
+    ${p.render()}
+  `;
+
+  document.getElementById('btnPrev').disabled = current === 0;
+  document.getElementById('btnNext').textContent = current === PHASES.length - 1 ? '✓ Complete' : 'Next phase →';
+  document.getElementById('btnNext').disabled = false;
+
+  document.getElementById('main').scrollTop = 0;
+}
+
+function go(dir) {
+  const next = current + dir;
+  if (next >= 0 && next < PHASES.length) {
+    current = next;
+    renderRail();
+    renderContent();
+  }
+}
+
+function jump(i) {
+  current = i;
+  renderRail();
+  renderContent();
+}
+
+renderRail();
+renderContent();
+</script>
+</body>
+</html>

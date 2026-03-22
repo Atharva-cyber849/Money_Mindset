@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Shield, AlertTriangle, CreditCard, TrendingUp, DollarSign, Heart, Zap, ArrowRight, Check, X } from 'lucide-react'
+import { Shield, AlertTriangle, Zap, ArrowRight, Check, X } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { formatCurrency } from '@/lib/utils'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 
 interface Character {
   name: string
@@ -56,11 +56,11 @@ function StepIntro({ onNext }: { onNext: () => void }) {
             <div className="space-y-2 text-left">
               <div className="flex items-center">
                 <Check className="w-5 h-5 text-green-500 mr-2" />
-                <span>Has $5,000 emergency fund</span>
+                <span>Has ₹4,00,000 emergency fund</span>
               </div>
               <div className="flex items-center">
                 <Check className="w-5 h-5 text-green-500 mr-2" />
-                <span>Saves $400/month</span>
+                <span>Saves ₹32,000/month</span>
               </div>
               <div className="flex items-center">
                 <Check className="w-5 h-5 text-green-500 mr-2" />
@@ -76,7 +76,7 @@ function StepIntro({ onNext }: { onNext: () => void }) {
             <div className="space-y-2 text-left">
               <div className="flex items-center">
                 <X className="w-5 h-5 text-red-500 mr-2" />
-                <span>$0 emergency fund</span>
+                <span>₹0 emergency fund</span>
               </div>
               <div className="flex items-center">
                 <X className="w-5 h-5 text-red-500 mr-2" />
@@ -93,7 +93,7 @@ function StepIntro({ onNext }: { onNext: () => void }) {
 
       <div className="text-center">
         <p className="text-gray-600 mb-4">
-          Both earn $4,000/month and have $3,200 in expenses.
+          Both earn ₹3,20,000/month and have ₹2,56,000 in expenses.
           <br />
           Let's see what happens when life throws curveballs...
         </p>
@@ -113,7 +113,7 @@ function StepRace({ onNext }: { onNext: (sarah: Character, mike: Character, emer
     name: 'Sarah',
     avatar: '👩‍💼',
     hasEmergencyFund: true,
-    emergencyFund: 5000,
+    emergencyFund: 400000,
     debt: 0,
     stress: 2,
   })
@@ -129,16 +129,12 @@ function StepRace({ onNext }: { onNext: (sarah: Character, mike: Character, emer
   const [showEmergency, setShowEmergency] = useState(false)
   const [currentEmergency, setCurrentEmergency] = useState<Emergency | null>(null)
 
-  const monthlyIncome = 4000
-  const monthlyExpenses = 3200
-  const monthlySurplus = monthlyIncome - monthlyExpenses
-
-  // Predefined emergencies
+  // Predefined emergencies - Realistic Indian scenarios
   const emergencyEvents: Emergency[] = [
-    { month: 2, type: 'car', cost: 800, description: '🚗 Car broke down - needs new battery and brakes' },
-    { month: 5, type: 'medical', cost: 1200, description: '🏥 Emergency dental work required' },
-    { month: 8, type: 'home', cost: 600, description: '🏠 Water heater failed and needs replacement' },
-    { month: 11, type: 'appliance', cost: 900, description: '❄️ Refrigerator died - need new one ASAP' },
+    { month: 2, type: 'car', cost: 35000, description: '🚗 Car broke down - needs new battery, brakes, and service' },
+    { month: 5, type: 'medical', cost: 45000, description: '🏥 Emergency dental work and treatment required' },
+    { month: 8, type: 'home', cost: 28000, description: '🏠 Monsoon damage - water leakage repairs needed' },
+    { month: 11, type: 'appliance', cost: 42000, description: '❄️ Refrigerator died - urgent replacement needed' },
   ]
 
   useEffect(() => {
@@ -362,7 +358,7 @@ function StepResults({ sarah, mike, emergencies, onNext }: {
 
   // Timeline data
   const timelineData = Array.from({ length: 13 }, (_, month) => {
-    let sarahFund = 5000
+    let sarahFund = 400000
     let sarahDebt = 0
     let mikeDebt = 0
 
@@ -572,7 +568,7 @@ function StepComplete() {
         <div className="text-left space-y-2">
           <div className="flex items-start">
             <span className="mr-2">1️⃣</span>
-            <span>Start with $1,000 as your first goal</span>
+            <span>Start with ₹80,000 as your first goal</span>
           </div>
           <div className="flex items-start">
             <span className="mr-2">2️⃣</span>

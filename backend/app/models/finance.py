@@ -808,3 +808,19 @@ class PaperTradingEvent(Base):
 
     # Relationships
     session = relationship("PaperTradingSession", back_populates="events")
+
+
+class MarketDataSource(Base):
+    """Tracks which API provided each data point for monitoring and analytics"""
+    __tablename__ = "market_data_sources"
+
+    id = Column(Integer, primary_key=True, index=True)
+    symbol = Column(String, nullable=False, index=True)
+    data_source = Column(String, nullable=False)  # "finnhub", "indian_api", "yfinance", "mock"
+    price = Column(Float, nullable=False)
+    change = Column(Float, default=0.0)
+    change_percent = Column(Float, default=0.0)
+    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    api_latency_ms = Column(Integer, default=0)  # Response time in milliseconds
+    created_at = Column(DateTime, default=datetime.utcnow)
+

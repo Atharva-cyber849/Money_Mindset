@@ -24,9 +24,13 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
-    # OpenAI
-    OPENAI_API_KEY: str = ""
-    OPENAI_MODEL: str = "gpt-4"
+    # OpenRouter (OpenAI-compatible API)
+    OPENAI_API_KEY: str = ""  # OpenRouter API key
+    OPENAI_MODEL: str = "openai/gpt-oss-120b:free"
+    OPENAI_BASE_URL: str = "https://openrouter.ai/api/v1"
+    
+    # Anthropic
+    ANTHROPIC_API_KEY: str = ""  # Anthropic API key
     
     # CORS
     CORS_ORIGINS: list = [
@@ -36,7 +40,18 @@ class Settings(BaseSettings):
     
     # Simulation
     MONTE_CARLO_ITERATIONS: int = 10000
-    
+
+    # Market Data APIs
+    FINNHUB_API_KEY: str = ""
+    FINNHUB_ENABLED: bool = True
+
+    INDIAN_MARKET_API_URL: str = "https://api.example.com"
+    INDIAN_MARKET_API_KEY: str = ""
+    INDIAN_MARKET_ENABLED: bool = True
+
+    # yfinance Fallback
+    YFINANCE_ENABLED: bool = True
+
     class Config:
         env_file = ".env"
         case_sensitive = True

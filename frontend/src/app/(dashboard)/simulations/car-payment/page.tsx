@@ -11,9 +11,9 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 // Step 1: Car Purchase
 function StepCarChoice({ onNext }: { onNext: (carPrice: number, downPayment: number, interestRate: number, term: number) => void }) {
-  const [carPrice, setCarPrice] = useState(30000)
-  const [downPayment, setDownPayment] = useState(5000)
-  const [interestRate, setInterestRate] = useState(6.5)
+  const [carPrice, setCarPrice] = useState(800000)
+  const [downPayment, setDownPayment] = useState(200000)
+  const [interestRate, setInterestRate] = useState(8.5)
   const [term, setTerm] = useState(60) // months
 
   const loanAmount = carPrice - downPayment
@@ -32,31 +32,31 @@ function StepCarChoice({ onNext }: { onNext: (carPrice: number, downPayment: num
           <Car className="w-12 h-12 text-white" />
         </div>
         <h2 className="text-3xl font-bold text-gray-900 mb-4">
-          The True Cost of a Car Loan
+          The True Cost of a Car Loan in India
         </h2>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          That monthly payment is just the tip of the iceberg.
+          That EMI is just the tip of the iceberg. Factor in insurance, maintenance, fuel, and taxes.
           <br />
-          <span className="font-semibold text-gray-900">Let's calculate the REAL cost.</span>
+          <span className="font-semibold text-gray-900">Let's calculate the REAL cost of car ownership.</span>
         </p>
       </div>
 
       <Card className="max-w-4xl mx-auto">
         <div className="space-y-6">
           <Slider
-            min={15000}
-            max={60000}
-            step={1000}
+            min={500000}
+            max={2500000}
+            step={100000}
             value={carPrice}
             onChange={setCarPrice}
-            label="Car Price"
+            label="Car Price (Maruti, Hyundai, Tata, etc.)"
             format={(v) => formatCurrency(v)}
             color="red"
           />
           <Slider
             min={0}
             max={carPrice * 0.4}
-            step={500}
+            step={50000}
             value={downPayment}
             onChange={setDownPayment}
             label="Down Payment"
@@ -64,18 +64,18 @@ function StepCarChoice({ onNext }: { onNext: (carPrice: number, downPayment: num
             color="green"
           />
           <Slider
-            min={3}
-            max={12}
+            min={5}
+            max={10}
             step={0.5}
             value={interestRate}
             onChange={setInterestRate}
-            label="Interest Rate (APR)"
+            label="Loan Interest Rate (Current: 7-9%)"
             format={(v) => `${v.toFixed(1)}%`}
             color="orange"
           />
           <Slider
             min={24}
-            max={72}
+            max={84}
             step={12}
             value={term}
             onChange={setTerm}
@@ -124,17 +124,17 @@ function StepTrueCost({ carPrice, downPayment, interestRate, term, onNext }: {
   const totalInterest = totalPaid - carPrice
   
   // Additional costs
-  const insurance = 150 * term // $150/month
-  const maintenance = 100 * term // $100/month
-  const gas = 150 * term // $150/month
-  const registration = 200 * (term / 12) // $200/year
+  const insurance = 12000 * term // ₹12,000/month
+  const maintenance = 8000 * term // ₹8,000/month
+  const gas = 12000 * term // ₹12,000/month
+  const registration = 15000 * (term / 12) // ₹15,000/year
   const depreciation = carPrice * 0.60 // 60% depreciation
   
   const totalOwnershipCost = totalPaid + insurance + maintenance + gas + registration
   const finalCarValue = carPrice - depreciation
 
   // Opportunity cost - what if invested instead
-  const monthlyInvestment = monthlyPayment + 150 + 100 + 150 // payment + insurance + maintenance + gas
+  const monthlyInvestment = monthlyPayment + 12000 + 8000 + 12000 // payment + insurance + maintenance + gas
   const investmentYears = term / 12
   const investmentReturn = 0.08
   const futureValue = monthlyInvestment * (((Math.pow(1 + investmentReturn / 12, term) - 1) / (investmentReturn / 12)))
@@ -197,7 +197,7 @@ function StepTrueCost({ carPrice, downPayment, interestRate, term, onNext }: {
           <BarChart data={costsBreakdown}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />
-            <YAxis tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
+            <YAxis tickFormatter={(value) => `₹${(value / 100000).toFixed(0)}L`} />
             <Tooltip formatter={(value) => formatCurrency(Number(value))} />
             <Bar dataKey="value" fill="#8884d8">
               {costsBreakdown.map((entry, index) => (
@@ -237,19 +237,19 @@ function StepTrueCost({ carPrice, downPayment, interestRate, term, onNext }: {
           </div>
           <div className="flex justify-between p-2 bg-orange-50 rounded">
             <span>Insurance</span>
-            <span className="font-bold">$150</span>
+            <span className="font-bold">₹12,000</span>
           </div>
           <div className="flex justify-between p-2 bg-green-50 rounded">
             <span>Maintenance</span>
-            <span className="font-bold">$100</span>
+            <span className="font-bold">₹8,000</span>
           </div>
           <div className="flex justify-between p-2 bg-purple-50 rounded">
             <span>Gas</span>
-            <span className="font-bold">$150</span>
+            <span className="font-bold">₹12,000</span>
           </div>
           <div className="flex justify-between p-3 bg-red-50 rounded border-t-2 border-red-200">
             <span className="font-bold">Total Monthly Cost</span>
-            <span className="font-bold text-red-600">{formatCurrency(monthlyPayment + 400)}</span>
+            <span className="font-bold text-red-600">{formatCurrency(monthlyPayment + 32000)}</span>
           </div>
         </div>
       </Card>
@@ -268,20 +268,20 @@ function StepTrueCost({ carPrice, downPayment, interestRate, term, onNext }: {
 function StepAlternatives({ onNext }: { onNext: () => void }) {
   const scenarios = [
     {
-      name: 'Buy New with Loan',
-      carPrice: 30000,
-      downPayment: 5000,
+      name: 'Buy New Budget Car with Loan',
+      carPrice: 700000,
+      downPayment: 200000,
       loan: true,
-      interestRate: 6.5,
+      interestRate: 8.5,
       term: 60,
       color: 'red',
       icon: '🚗',
-      description: 'The typical approach'
+      description: 'The typical approach - Maruti/Hyundai'
     },
     {
-      name: 'Buy Used with Cash',
-      carPrice: 15000,
-      downPayment: 15000,
+      name: 'Buy Used Reliable (3-5 years)',
+      carPrice: 400000,
+      downPayment: 400000,
       loan: false,
       interestRate: 0,
       term: 0,
@@ -290,9 +290,9 @@ function StepAlternatives({ onNext }: { onNext: () => void }) {
       description: 'Save first, then buy'
     },
     {
-      name: 'Buy Reliable Used',
-      carPrice: 8000,
-      downPayment: 8000,
+      name: 'Buy Old Reliable (8+ years)',
+      carPrice: 200000,
+      downPayment: 200000,
       loan: false,
       interestRate: 0,
       term: 0,
@@ -304,9 +304,9 @@ function StepAlternatives({ onNext }: { onNext: () => void }) {
 
   const calculateTotal = (scenario: typeof scenarios[0]) => {
     const years = Math.max(scenario.term / 12, 5)
-    const insurance = 150 * 12 * years * (scenario.name.includes('New') ? 1 : 0.7)
-    const maintenance = 100 * 12 * years * (scenario.name.includes('New') ? 1 : 1.3)
-    const gas = 150 * 12 * years
+    const insurance = 12000 * 12 * years * (scenario.name.includes('New') ? 1 : 0.7)
+    const maintenance = 8000 * 12 * years * (scenario.name.includes('New') ? 1 : 1.3)
+    const gas = 12000 * 12 * years
     
     if (scenario.loan) {
       const loanAmount = scenario.carPrice - scenario.downPayment
@@ -346,7 +346,7 @@ function StepAlternatives({ onNext }: { onNext: () => void }) {
           <BarChart data={comparisonData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />
-            <YAxis tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
+            <YAxis tickFormatter={(value) => `₹${(value / 100000).toFixed(0)}L`} />
             <Tooltip formatter={(value) => formatCurrency(Number(value))} />
             <Bar dataKey="cost" fill="#3b82f6" />
           </BarChart>

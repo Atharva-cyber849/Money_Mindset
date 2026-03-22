@@ -1,11 +1,15 @@
 """
 Market Data Service - Fetches live India and US indices
+Routes requests to specialized APIs with fallback chain
 """
 import yfinance as yf
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 from enum import Enum
 import logging
+
+from app.core.config import settings
+from app.services.api_clients import FinnhubClient, IndianMarketClient
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +42,7 @@ class MarketDataService:
 
     def __init__(self, cache_ttl: int = 300):
         """
-        Initialize market data service
+        Initialize market data service with API clients
 
         Args:
             cache_ttl: Cache time-to-live in seconds (default: 5 minutes)
@@ -46,6 +50,17 @@ class MarketDataService:
         self.cache_ttl = cache_ttl
         self._cache = {}
         self._cache_timestamps = {}
+
+        # Initialize API clients
+        self.finnhub_client = FinnhubClient(
+            api_key=settings.FINNHUB_API_KEY, enabled=settings.FINNHUB_ENABLED
+        )
+        self.indian_market_client = IndianMarketClient(
+            base_url=settings.INDIAN_MARKET_API_URL,
+            api_key=settings.INDIAN_MARKET_API_KEY,
+            enabled=settings.INDIAN_MARKET_ENABLED,
+        )
+        self.yfinance_enabled = settings.YFINANCE_ENABLED
 
     def _is_cache_valid(self, key: str) -> bool:
         """Check if cache entry is still valid"""
@@ -68,6 +83,82 @@ class MarketDataService:
         self._cache[key] = data
         self._cache_timestamps[key] = datetime.utcnow()
 
+    def _is_indian_symbol(self, symbol: str) -> bool:
+        """Detect if symbol is Indian (NSE/BSE)"""
+        return symbol.endswith((".NS", ".BO")) or symbol.startswith(("^NSEI", "^BSE", "^CNX"))
+
+    def _is_us_symbol(self, symbol: str) -> bool:
+        """Detect if symbol is US"""
+        return not self._is_indian_symbol(symbol)
+
+    def _get_price_india(self, symbol: str) -> Optional[Dict[str, Any]]:
+        """Fetch Indian stock price with fallback chain"""
+        try:
+            # Try Indian Market API first
+            if self.indian_market_client.enabled:
+                quote = self.indian_market_client.get_quote(symbol)
+                if quote and quote.get("source") != "mock":
+                    logger.info(f"Fetched {symbol} from Indian Market API")
+                    return quote
+        except Exception as e:
+            logger.warning(f"Indian Market API failed for {symbol}: {str(e)}")
+
+        # Fallback to yfinance
+        if self.yfinance_enabled:
+            try:
+                return self._fetch_from_yfinance(symbol)
+            except Exception as e:
+                logger.warning(f"yfinance failed for {symbol}: {str(e)}")
+
+        # Last resort: mock data
+        return self.indian_market_client._get_mock_quote(symbol)
+
+    def _get_price_us(self, symbol: str) -> Optional[Dict[str, Any]]:
+        """Fetch US stock price with fallback chain"""
+        try:
+            # Try Finnhub first
+            if self.finnhub_client.enabled:
+                quote = self.finnhub_client.get_quote(symbol)
+                if quote and quote.get("source") != "mock":
+                    logger.info(f"Fetched {symbol} from Finnhub")
+                    return quote
+        except Exception as e:
+            logger.warning(f"Finnhub failed for {symbol}: {str(e)}")
+
+        # Fallback to yfinance
+        if self.yfinance_enabled:
+            try:
+                return self._fetch_from_yfinance(symbol)
+            except Exception as e:
+                logger.warning(f"yfinance failed for {symbol}: {str(e)}")
+
+        # Last resort: mock data
+        return self.finnhub_client._get_mock_quote(symbol)
+
+    def _fetch_from_yfinance(self, symbol: str) -> Dict[str, Any]:
+        """Fetch data from yfinance"""
+        ticker = yf.Ticker(symbol)
+        info = ticker.info
+        history = ticker.history(period="1d")
+
+        if history.empty:
+            raise ValueError(f"No data from yfinance for {symbol}")
+
+        latest = history.iloc[-1]
+        current_price = float(latest["Close"])
+        previous_close = float(info.get("previousClose", current_price))
+        change = current_price - previous_close
+        change_percent = (change / previous_close * 100) if previous_close > 0 else 0
+
+        return {
+            "symbol": symbol,
+            "price": round(current_price, 2),
+            "change": round(change, 2),
+            "change_percent": round(change_percent, 2),
+            "timestamp": datetime.now(),
+            "source": "yfinance",
+        }
+
     def get_index_data(self, symbol: str) -> Optional[Dict[str, Any]]:
         """
         Fetch live index data for a single symbol
@@ -86,26 +177,21 @@ class MarketDataService:
             return {**cached_data, "from_cache": True}
 
         try:
-            # Fetch data from yfinance
-            ticker = yf.Ticker(symbol)
-            info = ticker.info
-            history = ticker.history(period="1d")
+            # Route to appropriate API based on symbol type
+            if self._is_indian_symbol(symbol):
+                quote = self._get_price_india(symbol)
+            else:
+                quote = self._get_price_us(symbol)
 
-            if history.empty:
-                logger.warning(f"No data returned for {symbol}")
+            if not quote:
                 return self._get_mock_data(symbol)
-
-            latest = history.iloc[-1]
-            current_price = float(latest["Close"])
-            previous_close = float(info.get("previousClose", current_price))
-            percentage_change = ((current_price - previous_close) / previous_close * 100) if previous_close > 0 else 0
 
             data = {
                 "symbol": symbol,
                 "name": self._get_index_name(symbol),
-                "current_price": round(current_price, 2),
-                "previous_close": round(previous_close, 2),
-                "percentage_change": round(percentage_change, 2),
+                "current_price": quote.get("price", 0),
+                "previous_close": quote.get("price", 0) - quote.get("change", 0),
+                "percentage_change": quote.get("change_percent", 0),
                 "last_updated": datetime.utcnow().isoformat() + "Z",
                 "from_cache": False,
             }

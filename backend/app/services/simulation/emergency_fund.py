@@ -1,6 +1,7 @@
 """
-Emergency Fund Race Simulation
+Emergency Fund Race Simulation - Indian Context
 Compare two characters over 12 months with/without emergency fund
+Indian emergencies: Festivals, medical, contractor scams, family obligations, weather
 """
 from typing import Dict, List, Any, Tuple
 from dataclasses import dataclass
@@ -9,13 +10,17 @@ import random
 
 
 class EmergencyType(Enum):
-    """Types of emergencies that can occur"""
-    CAR_REPAIR = "car_repair"
-    MEDICAL = "medical"
-    HOME_REPAIR = "home_repair"
-    JOB_LOSS = "job_loss"
-    APPLIANCE = "appliance"
-    PET_EMERGENCY = "pet_emergency"
+    """Types of emergencies that can occur in Indian context"""
+    FESTIVAL_EXPENSES = "festival_expenses"        # Diwali, Holi, Eid celebrations
+    MEDICAL_EMERGENCY = "medical_emergency"        # Hospital, surgery, medical tourism
+    HOME_REPAIR = "home_repair"                    # Roof leak, water damage, contractor fraud
+    ELECTRICAL_EMERGENCY = "electrical_emergency"  # Unexpected power issues, rewiring
+    WEDDING_OBLIGATION = "wedding_obligation"     # Wedding invitation gifts, family expectations
+    TEMPLE_RELIGIOUS = "temple_religious"         # Pilgrimage, religious ceremonies
+    COMPETITOR_LAYOFF = "competitor_layoff"       # Job loss or unexpected salary cut
+    MONSOON_DAMAGE = "monsoon_damage"             # Flood, water damage, crop failure (rural)
+    SCHOOL_FEES_SPIKE = "school_fees_spike"       # Unexpected exam coaching costs, admission fees
+    UTILITY_CRISIS = "utility_crisis"             # Water shortage, power disconnect, maintenance
 
 
 @dataclass
@@ -67,110 +72,168 @@ class EmergencyFundSimulator:
         self.credit_card_apr = 0.22  # 22% APR
         self.monthly_interest_rate = self.credit_card_apr / 12
         
-        # Emergency probabilities and costs
+        # Emergency probabilities and costs (in Indian context)
         self.emergency_templates = {
-            EmergencyType.CAR_REPAIR: {
-                "probability": 0.15,  # 15% chance per month
-                "cost_range": (300, 1500),
+            EmergencyType.FESTIVAL_EXPENSES: {
+                "probability": 0.20,  # 20% chance - festivals happen regularly
+                "cost_range": (5000, 50000),    # Diwali: ₹5K-50K for decorations, gifts, sweets
                 "descriptions": [
-                    "Flat tire needs replacement",
-                    "Battery died",
-                    "Brake pads worn out",
-                    "Transmission issue",
-                    "Engine trouble"
+                    "Diwali celebration expenses (decorations, firecrackers, gifts)",
+                    "Holi preparation (colors, sweets, gifts)",
+                    "Rakhi gifts and celebrations",
+                    "Festival shopping and household needs",
+                    "Wedding season gift obligations (₹10K-20K per wedding)"
                 ]
             },
-            EmergencyType.MEDICAL: {
-                "probability": 0.10,
-                "cost_range": (200, 2000),
+            EmergencyType.MEDICAL_EMERGENCY: {
+                "probability": 0.15,
+                "cost_range": (10000, 500000),  # ₹10K-₹5L (surgery, hospitalization)
                 "descriptions": [
-                    "Urgent care visit",
-                    "Prescription medication",
-                    "Dental emergency",
-                    "ER visit",
-                    "Medical test"
+                    "Emergency hospital admission (₹20-100K)",
+                    "Surgery or emergency procedure",
+                    "Dental emergency extraction/treatment",
+                    "Medical tourism for advanced treatment",
+                    "Accident or injury requiring immediate care"
                 ]
             },
             EmergencyType.HOME_REPAIR: {
+                "probability": 0.12,
+                "cost_range": (15000, 300000), # ₹15K-₹3L (contractor fraud common)
+                "descriptions": [
+                    "Roof leak during monsoon (₹30-50K repair)",
+                    "Water damage and flooring replacement",
+                    "Electrical short circuit repair (₹5-20K)",
+                    "Dishonest contractor overcharge (30% markup)",
+                    "Plumbing burst and replacement"
+                ]
+            },
+            EmergencyType.ELECTRICAL_EMERGENCY: {
                 "probability": 0.08,
-                "cost_range": (400, 1800),
+                "cost_range": (5000, 80000),   # ₹5K-₹80K for wiring issues
                 "descriptions": [
-                    "Plumbing leak",
-                    "Broken water heater",
-                    "Roof leak",
-                    "HVAC repair",
-                    "Electrical issue"
+                    "Power short circuit repair",
+                    "Electrical panel replacement",
+                    "Wiring upgrade for safety",
+                    "Appliance burn-out from power surge",
+                    "Generator/inverter repair"
                 ]
             },
-            EmergencyType.APPLIANCE: {
+            EmergencyType.WEDDING_OBLIGATION: {
+                "probability": 0.10,  # Wedding season Sept-Feb
+                "cost_range": (25000, 200000), # ₹25K-₹2L for wedding gifts
+                "descriptions": [
+                    "Cousin's wedding gift obligation (₹50-100K)",
+                    "Family wedding expenses (travel + gifts)",
+                    "Multiple wedding invitations (₹10K each × 3-5)",
+                    "Dowry-related family pressure",
+                    "Unexpected family function expenses"
+                ]
+            },
+            EmergencyType.TEMPLE_RELIGIOUS: {
                 "probability": 0.06,
-                "cost_range": (200, 800),
+                "cost_range": (10000, 100000), # ₹10K-₹1L for religious obligations
                 "descriptions": [
-                    "Refrigerator broke",
-                    "Washing machine died",
-                    "Microwave replacement",
-                    "Dishwasher repair"
+                    "Pilgrimage trip costs (₹30-80K)",
+                    "Religious ceremony/puja (₹10-50K)",
+                    "Temple donation/offering pressure",
+                    "Religious festival mass shopping",
+                    "Vow fulfillment (temple, monastery visit)"
                 ]
             },
-            EmergencyType.PET_EMERGENCY: {
-                "probability": 0.05,
-                "cost_range": (300, 1500),
+            EmergencyType.COMPETITOR_LAYOFF: {
+                "probability": 0.08,
+                "cost_range": (150000, 1000000), # ₹1.5L-₹10L lost income
                 "descriptions": [
-                    "Pet needs vet visit",
-                    "Emergency pet surgery",
-                    "Pet medication"
+                    "Unexpected job loss/layoff",
+                    "Salary cut due to company downsizing",
+                    "Project closure leading to unemployment",
+                    "Business income collapse",
+                    "Contract work dried up suddenly"
+                ]
+            },
+            EmergencyType.MONSOON_DAMAGE: {
+                "probability": 0.09,  # June-September monsoon season
+                "cost_range": (20000, 500000), # ₹20K-₹5L depending on severity
+                "descriptions": [
+                    "Monsoon flooding basement/ground floor",
+                    "Roof collapse partial damage",
+                    "Water damage to furniture & electronics",
+                    "Crop loss if agricultural income",
+                    "Drainage system failure cleanup"
+                ]
+            },
+            EmergencyType.SCHOOL_FEES_SPIKE: {
+                "probability": 0.08,
+                "cost_range": (30000, 200000), # ₹30K-₹2L
+                "descriptions": [
+                    "Competitive exam coaching (NEET/IIT prep ₹50-150K/year)",
+                    "School admission fees and setup costs",
+                    "Unexpected school fees hike",
+                    "Child's university entrance exam coaching",
+                    "Educational trip/excursion collection"
+                ]
+            },
+            EmergencyType.UTILITY_CRISIS: {
+                "probability": 0.05,
+                "cost_range": (5000, 50000),    # ₹5K-₹50K
+                "descriptions": [
+                    "Water tanker charges (dry season shortage)",
+                    "Electricity reconnection after late payment",
+                    "Plumber emergency call charges",
+                    "Gas cylinder leak emergency replacement",
+                    "Maintenance society fine/emergency levy"
                 ]
             }
         }
     
     def simulate_race(
         self,
-        monthly_income: float = 3500,
-        monthly_expenses: float = 2800,
+        monthly_income: float = 50000,
+        monthly_expenses: float = 35000,
         duration_months: int = 12
     ) -> Dict[str, Any]:
         """
-        Simulate two characters over time
-        
-        Character A (Alex): Builds emergency fund ($500/month)
-        Character B (Jordan): No emergency fund, spends everything
-        
+        Simulate two characters over time in Indian context
+
+        Character A (Priya): Saves ₹5,000/month for emergencies
+        Character B (Raj): No emergency fund, spends everything
+
         Args:
-            monthly_income: Monthly take-home pay
-            monthly_expenses: Fixed monthly expenses
+            monthly_income: Monthly take-home pay (₹)
+            monthly_expenses: Fixed monthly expenses (₹)
             duration_months: Number of months to simulate
-            
+
         Returns:
             Complete simulation results
         """
-        
+
         monthly_savings = monthly_income - monthly_expenses
-        
+
         # Generate emergencies (same for both characters)
         emergencies = self._generate_emergencies(duration_months)
-        
-        # Simulate Alex (with emergency fund)
-        alex_result = self._simulate_character(
-            name="Alex",
-            strategy="Saves $500/month for emergencies",
+
+        # Simulate Priya (with emergency fund)
+        priya_result = self._simulate_character(
+            name="Priya",
+            strategy="Saves ₹5,000/month for emergencies",
             monthly_income=monthly_income,
             monthly_expenses=monthly_expenses,
-            monthly_savings=500,
+            monthly_savings=5000,
             emergencies=emergencies
         )
-        
-        # Simulate Jordan (no emergency fund)
-        jordan_result = self._simulate_character(
-            name="Jordan",
+
+        # Simulate Raj (no emergency fund)
+        raj_result = self._simulate_character(
+            name="Raj",
             strategy="Spends everything, no emergency fund",
             monthly_income=monthly_income,
             monthly_expenses=monthly_expenses,
             monthly_savings=0,
             emergencies=emergencies
         )
-        
+
         # Compare outcomes
-        comparison = self._compare_outcomes(alex_result, jordan_result)
+        comparison = self._compare_outcomes(priya_result, raj_result)
         
         return {
             "setup": {
@@ -179,8 +242,8 @@ class EmergencyFundSimulator:
                 "available_to_save": monthly_savings,
                 "duration_months": duration_months
             },
-            "alex": self._format_result(alex_result),
-            "jordan": self._format_result(jordan_result),
+            "priya": self._format_result(priya_result),
+            "raj": self._format_result(raj_result),
             "comparison": comparison,
             "emergencies": [
                 {
@@ -193,9 +256,9 @@ class EmergencyFundSimulator:
                 for e in emergencies
             ],
             "lesson": (
-                f"Alex saved ${alex_result.total_saved:,.0f} and had ${alex_result.final_net_worth:,.0f} at the end. "
-                f"Jordan went ${jordan_result.total_debt_incurred:,.0f} into debt and paid ${jordan_result.total_interest_paid:,.0f} in interest. "
-                f"Emergency fund prevented a ${alex_result.final_net_worth - jordan_result.final_net_worth:,.0f} swing in net worth!"
+                f"Priya saved ₹{priya_result.total_saved:,.0f} and had ₹{priya_result.final_net_worth:,.0f} at the end. "
+                f"Raj went ₹{raj_result.total_debt_incurred:,.0f} into debt and paid ₹{raj_result.total_interest_paid:,.0f} in interest. "
+                f"Emergency fund prevented a ₹{priya_result.final_net_worth - raj_result.final_net_worth:,.0f} swing in net worth!"
             )
         }
     
@@ -356,30 +419,30 @@ class EmergencyFundSimulator:
     
     def _compare_outcomes(
         self,
-        alex: SimulationResult,
-        jordan: SimulationResult
+        priya: SimulationResult,
+        raj: SimulationResult
     ) -> Dict[str, Any]:
         """Compare outcomes between two characters"""
-        
-        net_worth_difference = alex.final_net_worth - jordan.final_net_worth
-        stress_difference = jordan.average_stress - alex.average_stress
-        
+
+        net_worth_difference = priya.final_net_worth - raj.final_net_worth
+        stress_difference = raj.average_stress - priya.average_stress
+
         return {
             "net_worth_difference": net_worth_difference,
-            "alex_advantage": net_worth_difference,
+            "priya_advantage": net_worth_difference,
             "stress_difference": stress_difference,
-            "alex_had_lower_stress": stress_difference > 0,
-            "interest_saved": jordan.total_interest_paid - alex.total_interest_paid,
-            "winner": "Alex" if alex.success_score > jordan.success_score else "Jordan",
+            "priya_had_lower_stress": stress_difference > 0,
+            "interest_saved": raj.total_interest_paid - priya.total_interest_paid,
+            "winner": "Priya" if priya.success_score > raj.success_score else "Raj",
             "key_insights": [
-                f"Alex ended with ${alex.final_net_worth:,.0f} vs Jordan's ${jordan.final_net_worth:,.0f}",
-                f"Jordan paid ${jordan.total_interest_paid:,.0f} in credit card interest, Alex paid ${alex.total_interest_paid:,.0f}",
-                f"Alex's average stress: {alex.average_stress:.1f}/10, Jordan's: {jordan.average_stress:.1f}/10",
-                f"Emergency fund prevented ${net_worth_difference:,.0f} loss"
+                f"Priya ended with ₹{priya.final_net_worth:,.0f} vs Raj's ₹{raj.final_net_worth:,.0f}",
+                f"Raj paid ₹{raj.total_interest_paid:,.0f} in credit card interest, Priya paid ₹{priya.total_interest_paid:,.0f}",
+                f"Priya's average stress: {priya.average_stress:.1f}/10, Raj's: {raj.average_stress:.1f}/10",
+                f"Emergency fund prevented ₹{net_worth_difference:,.0f} loss"
             ],
             "recommendation": (
                 "Emergency funds prevent debt spirals. "
-                "Even saving $500/month creates a safety net that avoids "
+                "Even saving ₹5,000/month creates a safety net that avoids "
                 "high-interest debt and reduces financial stress significantly."
             )
         }
@@ -454,8 +517,8 @@ class EmergencyFundSimulator:
                 else "MEDIUM"
             ),
             "strategy": (
-                f"Start with $1,000 starter fund, then build to ${min_fund:,.0f} "
-                f"({min_months} months of expenses), and eventually ${target_fund:,.0f} "
+                f"Start with ₹1,000 starter fund, then build to ₹{min_fund:,.0f} "
+                f"({min_months} months of expenses), and eventually ₹{target_fund:,.0f} "
                 f"({target_months} months of expenses)."
             )
         }
@@ -485,8 +548,8 @@ class EmergencyFundSimulator:
             shortfall = 0
             stress_level = "low"
             message = (
-                f"Your ${emergency_fund_amount:,.0f} emergency fund fully covers "
-                f"{job_search_duration_months} months of expenses (${total_needed:,.0f}). "
+                f"Your ₹{emergency_fund_amount:,.0f} emergency fund fully covers "
+                f"{job_search_duration_months} months of expenses (₹{total_needed:,.0f}). "
                 f"You can focus on job search without financial panic."
             )
         elif emergency_fund_amount >= total_needed * 0.5:
@@ -494,8 +557,8 @@ class EmergencyFundSimulator:
             shortfall = total_needed - emergency_fund_amount
             stress_level = "medium"
             message = (
-                f"Your ${emergency_fund_amount:,.0f} covers {emergency_fund_amount/monthly_expenses:.1f} months. "
-                f"You'd need ${shortfall:,.0f} more from credit cards or family. "
+                f"Your ₹{emergency_fund_amount:,.0f} covers {emergency_fund_amount/monthly_expenses:.1f} months. "
+                f"You'd need ₹{shortfall:,.0f} more from credit cards or family. "
                 f"Some stress, but manageable."
             )
         else:
@@ -503,11 +566,11 @@ class EmergencyFundSimulator:
             shortfall = total_needed - emergency_fund_amount
             stress_level = "high"
             message = (
-                f"Your ${emergency_fund_amount:,.0f} only covers {emergency_fund_amount/monthly_expenses:.1f} months. "
-                f"You'd face ${shortfall:,.0f} shortfall, likely requiring credit card debt, "
+                f"Your ₹{emergency_fund_amount:,.0f} only covers {emergency_fund_amount/monthly_expenses:.1f} months. "
+                f"You'd face ₹{shortfall:,.0f} shortfall, likely requiring credit card debt, "
                 f"loans from family, or drastic lifestyle cuts. High stress situation."
             )
-        
+
         return {
             "scenario": "Job Loss",
             "duration": job_search_duration_months,
@@ -518,7 +581,7 @@ class EmergencyFundSimulator:
             "stress_level": stress_level,
             "message": message,
             "recommendation": (
-                f"Target: ${total_needed:,.0f} ({job_search_duration_months} months) "
+                f"Target: ₹{total_needed:,.0f} ({job_search_duration_months} months) "
                 f"for full peace of mind."
             )
         }

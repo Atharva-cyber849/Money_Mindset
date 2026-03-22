@@ -20,6 +20,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Personality', href: '/personality/quiz', icon: User },
   { name: 'Simulations', href: '/simulations', icon: Gamepad2 },
+  { name: 'Games', href: '/games', icon: Gamepad2 },
   { name: 'Analytics', href: '/analytics', icon: Brain },
   { name: 'My Progress', href: '/progress', icon: TrendingUp },
   { name: 'Goals', href: '/goals', icon: Target },

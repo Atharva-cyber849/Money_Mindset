@@ -2,16 +2,16 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Coffee, TrendingUp, DollarSign, Calculator, Lightbulb, ArrowRight, Home, Car, Plane } from 'lucide-react'
+import { Coffee, TrendingUp, Lightbulb, ArrowRight } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Slider } from '@/components/ui/Slider'
 import { formatCurrency } from '@/lib/utils'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 
 // Step 1: Initial Guess
 function StepGuess({ onNext }: { onNext: (guess: number) => void }) {
-  const [guess, setGuess] = useState(500)
+  const [guess, setGuess] = useState(5000)
 
   return (
     <motion.div
@@ -25,10 +25,10 @@ function StepGuess({ onNext }: { onNext: (guess: number) => void }) {
           <Coffee className="w-12 h-12 text-white" />
         </div>
         <h2 className="text-3xl font-bold text-gray-900 mb-4">
-          The Coffee Shop Challenge
+          The Daily Chai Challenge ☕
         </h2>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          You buy a $5.50 coffee every workday (Monday-Friday). 
+          You buy a ₹20 chai from the local tea stall every workday (Monday-Friday). 
           <br />
           <span className="font-semibold text-gray-900">How much do you think this costs per year?</span>
         </p>
@@ -36,9 +36,9 @@ function StepGuess({ onNext }: { onNext: (guess: number) => void }) {
 
       <Card className="max-w-2xl mx-auto">
         <Slider
-          min={100}
-          max={2000}
-          step={50}
+          min={1000}
+          max={20000}
+          step={500}
           value={guess}
           onChange={setGuess}
           label="Your Guess"
@@ -55,7 +55,7 @@ function StepGuess({ onNext }: { onNext: (guess: number) => void }) {
       </Card>
 
       <div className="text-center text-sm text-gray-500">
-        💡 Most people guess between $500-$800
+        💡 Most people guess between ₹4,000-₹8,000
       </div>
     </motion.div>
   )
@@ -63,7 +63,7 @@ function StepGuess({ onNext }: { onNext: (guess: number) => void }) {
 
 // Step 2: The Reality
 function StepReality({ guess, onNext }: { guess: number; onNext: () => void }) {
-  const dailyCost = 5.50
+  const dailyCost = 20
   const workdaysPerWeek = 5
   const weeksPerYear = 52
   const actualCost = dailyCost * workdaysPerWeek * weeksPerYear
@@ -116,7 +116,7 @@ function StepReality({ guess, onNext }: { guess: number; onNext: () => void }) {
           <div className="mt-6 p-4 bg-white rounded-lg">
             <div className="text-sm text-gray-600 mb-2">Here's the math:</div>
             <div className="text-left max-w-md mx-auto font-mono text-sm space-y-1">
-              <div>$5.50 per coffee</div>
+              <div>₹20 per chai</div>
               <div>× 5 workdays per week</div>
               <div>× 52 weeks per year</div>
               <div className="border-t-2 border-gray-300 pt-1 font-bold text-lg text-red-600">
@@ -141,7 +141,7 @@ function StepReality({ guess, onNext }: { guess: number; onNext: () => void }) {
 function StepCompound({ onNext }: { onNext: () => void }) {
   const [years, setYears] = useState(10)
   
-  const dailyCost = 5.50
+  const dailyCost = 20
   const workdaysPerWeek = 5
   const weeksPerYear = 52
   const annualCost = dailyCost * workdaysPerWeek * weeksPerYear
@@ -174,7 +174,7 @@ function StepCompound({ onNext }: { onNext: () => void }) {
           The Compound Effect Over Time
         </h2>
         <p className="text-lg text-gray-600">
-          What if you invested that money instead?
+          What if you invested that chai money instead?
         </p>
       </div>
 
@@ -197,7 +197,7 @@ function StepCompound({ onNext }: { onNext: () => void }) {
         <Card className="bg-red-50">
           <div className="text-center">
             <Coffee className="w-12 h-12 text-red-500 mx-auto mb-3" />
-            <div className="text-sm text-gray-600 mb-2">Money Spent on Coffee</div>
+            <div className="text-sm text-gray-600 mb-2">Money Spent on Chai</div>
             <div className="text-3xl font-bold text-red-600 mb-2">
               {formatCurrency(totalSpent)}
             </div>
@@ -224,7 +224,7 @@ function StepCompound({ onNext }: { onNext: () => void }) {
       {/* Chart */}
       <Card className="max-w-4xl mx-auto">
         <h3 className="text-lg font-semibold mb-4 text-center">
-          Coffee Spending vs Investment Growth
+          Chai Spending vs Investment Growth
         </h3>
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart data={data}>
@@ -242,7 +242,7 @@ function StepCompound({ onNext }: { onNext: () => void }) {
             <XAxis dataKey="year" label={{ value: 'Years', position: 'insideBottom', offset: -5 }} />
             <YAxis tickFormatter={(value) => formatCurrency(value)} />
             <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-            <Area type="monotone" dataKey="spending" stroke="#ef4444" fillOpacity={1} fill="url(#colorSpending)" name="Coffee Spending" />
+            <Area type="monotone" dataKey="spending" stroke="#ef4444" fillOpacity={1} fill="url(#colorSpending)" name="Chai Spending" />
             <Area type="monotone" dataKey="invested" stroke="#10b981" fillOpacity={1} fill="url(#colorInvested)" name="If Invested" />
           </AreaChart>
         </ResponsiveContainer>
@@ -260,19 +260,17 @@ function StepCompound({ onNext }: { onNext: () => void }) {
 
 // Step 4: Opportunity Cost Visualizations
 function StepOpportunityCost({ onComplete }: { onComplete: () => void }) {
-  const annualCost = 1430
+  const annualCost = 5200
   const [selectedYears, setSelectedYears] = useState(5)
   const totalSavings = annualCost * selectedYears
 
   const purchases = [
-    { name: 'iPhone 15 Pro', cost: 1199, icon: '📱' },
-    { name: 'Vacation to Hawaii', cost: 3500, icon: '🏝️' },
-    { name: 'MacBook Air', cost: 1299, icon: '💻' },
-    { name: 'Used Car Down Payment', cost: 5000, icon: '🚗' },
+    { name: 'iPhone 15 Pro', cost: 79900, icon: '📱' },
+    { name: 'Trip to Goa/Maldives', cost: 200000, icon: '🏝️' },
+    { name: 'MacBook Air', cost: 99900, icon: '💻' },
+    { name: 'Gold Chain / Jewelry', cost: 300000, icon: '⛓️' },
     { name: 'Emergency Fund', cost: totalSavings, icon: '🛡️' },
   ]
-
-  const affordablePurchases = purchases.filter(p => p.cost <= totalSavings)
 
   return (
     <motion.div
@@ -286,7 +284,7 @@ function StepOpportunityCost({ onComplete }: { onComplete: () => void }) {
           What Could You Buy Instead?
         </h2>
         <p className="text-lg text-gray-600">
-          This is called "opportunity cost" - what you're giving up
+          This is called "opportunity cost" - what you're giving up by spending on daily chai
         </p>
       </div>
 
@@ -305,7 +303,7 @@ function StepOpportunityCost({ onComplete }: { onComplete: () => void }) {
           step={1}
           value={selectedYears}
           onChange={setSelectedYears}
-          label="Years of Coffee Savings"
+          label="Years of Chai Savings"
           format={(v) => `${v} years`}
           color="blue"
         />
@@ -351,19 +349,19 @@ function StepOpportunityCost({ onComplete }: { onComplete: () => void }) {
             💡 Key Takeaway
           </h3>
           <p className="text-lg text-gray-700 mb-4">
-            Small daily expenses add up to major opportunity costs. That coffee habit could be:
+            Small daily expenses add up. Your ₹20 daily chai habit could become:
           </p>
           <div className="grid md:grid-cols-3 gap-4 text-sm">
             <div className="bg-white rounded-lg p-4">
-              <div className="font-bold text-blue-600 mb-1">A vacation</div>
-              <div className="text-gray-600">Every 2-3 years</div>
+              <div className="font-bold text-blue-600 mb-1">Entertainment Budget</div>
+              <div className="text-gray-600">Every month</div>
             </div>
             <div className="bg-white rounded-lg p-4">
-              <div className="font-bold text-purple-600 mb-1">Tech upgrade</div>
-              <div className="text-gray-600">Annually</div>
+              <div className="font-bold text-purple-600 mb-1">Weekend Outing</div>
+              <div className="text-gray-600">Every quarter</div>
             </div>
             <div className="bg-white rounded-lg p-4">
-              <div className="font-bold text-green-600 mb-1">Emergency fund</div>
+              <div className="font-bold text-green-600 mb-1">Emergency Fund</div>
               <div className="text-gray-600">Building security</div>
             </div>
           </div>
@@ -379,17 +377,17 @@ function StepOpportunityCost({ onComplete }: { onComplete: () => void }) {
           <div>
             <div className="text-center mb-4">
               <div className="text-3xl mb-2">☕</div>
-              <div className="font-semibold text-gray-900">Coffee Shop 5 Days</div>
-              <div className="text-2xl font-bold text-red-600">{formatCurrency(1430)}/year</div>
+              <div className="font-semibold text-gray-900">Chai Daily (5 Days)</div>
+              <div className="text-2xl font-bold text-red-600">{formatCurrency(5200)}/year</div>
             </div>
           </div>
           <div>
             <div className="text-center mb-4">
               <div className="text-3xl mb-2">🏠</div>
-              <div className="font-semibold text-gray-900">Coffee Shop 2 Days + Home 3 Days</div>
-              <div className="text-2xl font-bold text-green-600">{formatCurrency(572)}/year</div>
+              <div className="font-semibold text-gray-900">Chai 2 Days + Home Made 3 Days</div>
+              <div className="text-2xl font-bold text-green-600">{formatCurrency(2080)}/year</div>
               <div className="text-sm text-green-600 font-semibold mt-1">
-                Save {formatCurrency(858)}/year!
+                Save {formatCurrency(3120)}/year!
               </div>
             </div>
           </div>
@@ -403,7 +401,7 @@ function StepOpportunityCost({ onComplete }: { onComplete: () => void }) {
           </Button>
         </div>
         <p className="text-sm text-gray-500">
-          🎉 Congratulations! You've unlocked the "Leak Detective" badge
+          🎉 Congratulations! You've unlocked the "Money Mindful" badge
         </p>
       </div>
     </motion.div>
@@ -414,15 +412,11 @@ function StepOpportunityCost({ onComplete }: { onComplete: () => void }) {
 export default function CoffeeShopEffectPage() {
   const [step, setStep] = useState(1)
   const [userGuess, setUserGuess] = useState(0)
-  const [loading, setLoading] = useState(false)
-  const [apiData, setApiData] = useState<any>(null)
 
   const handleComplete = async () => {
-    setLoading(true)
-    
     try {
       // Calculate score based on guess accuracy
-      const actualCost = 5.50 * 5 * 52 // $1,430
+      const actualCost = 20 * 5 * 52 // ₹5,200
       const difference = Math.abs(actualCost - userGuess)
       const accuracyPercent = Math.max(0, 100 - (difference / actualCost * 100))
       const score = Math.round(accuracyPercent)
@@ -480,33 +474,6 @@ export default function CoffeeShopEffectPage() {
       // Fallback to local completion
       alert('Simulation complete! +100 XP earned')
       window.location.href = '/dashboard'
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Optionally load data from API
-  const loadApiData = async () => {
-    try {
-      const response = await fetch('/api/v1/simulations/coffee-shop-effect', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          daily_cost: 5.50,
-          days_per_week: 5,
-          years: 30
-        })
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        setApiData(data)
-      }
-    } catch (error) {
-      console.error('Error loading API data:', error)
     }
   }
 

@@ -21,9 +21,12 @@ import {
 import { Card, StatCard } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { ProgressBar } from '@/components/ui/ProgressBar'
+import MarketWidget from '@/components/dashboard/MarketWidget'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { getUserStats, getSimulationsStatus, UserStats, SimulationStatus } from '@/lib/api/progress'
+import { userAPI, marketAPI } from '@/lib/api/client'
+import { useMarketData, useRefreshMarketCache } from '@/lib/api/hooks'
 
 // Icon mapping for simulations
 const iconMap: Record<string, any> = {
@@ -41,21 +44,36 @@ const iconMap: Record<string, any> = {
   'tax-optimizer': Briefcase,
 }
 
+interface FinanceProfile {
+  finance_iq_score: number
+  money_personality: string
+  recommended_first_sim: string
+}
+
 export default function DashboardPage() {
   const [selectedLevel, setSelectedLevel] = useState<number | 'all'>('all')
   const [userStats, setUserStats] = useState<UserStats | null>(null)
   const [simulations, setSimulations] = useState<SimulationStatus[]>([])
-  
+  const [financeProfile, setFinanceProfile] = useState<FinanceProfile | null>(null)
+
+  // Fetch market data
+  const { data: marketData, isLoading: marketLoading, error: marketError, refetch: refetchMarket } = useMarketData(8)
+  const { mutateAsync: refreshMarketCache } = useRefreshMarketCache()
+
   // Fetch user stats and simulations on mount
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [stats, simulationsData] = await Promise.all([
+        const [stats, simulationsData, profile] = await Promise.all([
           getUserStats(),
-          getSimulationsStatus()
+          getSimulationsStatus(),
+          userAPI.getFinancialProfile().catch(() => null) // Don't fail if profile doesn't exist
         ])
         setUserStats(stats)
         setSimulations(simulationsData)
+        if (profile) {
+          setFinanceProfile(profile)
+        }
       } catch (err) {
         console.error('Error fetching dashboard data:', err)
       }
@@ -129,6 +147,43 @@ export default function DashboardPage() {
         />
       </div>
 
+      {/* Finance IQ Card */}
+      {financeProfile && (
+        <Card className="bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Finance IQ Score</p>
+              <h3 className="text-2xl font-bold text-gray-900">{Math.round(financeProfile.finance_iq_score)}/100</h3>
+              <p className="text-xs text-gray-500 mt-1">Grows with every challenge you complete</p>
+            </div>
+            <div className="relative w-24 h-24">
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="54" fill="none" stroke="#e0e7ff" strokeWidth="4" />
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="54"
+                  fill="none"
+                  stroke="url(#grad)"
+                  strokeWidth="4"
+                  strokeDasharray={`${(financeProfile.finance_iq_score / 100) * 339.29} 339.29`}
+                  strokeLinecap="round"
+                />
+                <defs>
+                  <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#a78bfa" />
+                    <stop offset="100%" stopColor="#60a5fa" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-sm font-semibold text-purple-600">{Math.round((financeProfile.finance_iq_score / 100) * 100)}%</span>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Progress to Next Level */}
       <Card>
         <div className="flex items-center justify-between mb-3">
@@ -151,6 +206,16 @@ export default function DashboardPage() {
           height="h-4"
         />
       </Card>
+
+      {/* Market Widget */}
+      <MarketWidget
+        data={marketData}
+        loading={marketLoading}
+        error={marketError instanceof Error ? marketError.message : null}
+        onRefresh={async () => {
+          await refreshMarketCache()
+        }}
+      />
 
       {/* Level Filter */}
       <div className="flex gap-2 overflow-x-auto pb-2">

@@ -2,26 +2,13 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Zap, TrendingUp, Clock, DollarSign, ArrowRight, Users, AlertCircle } from 'lucide-react'
+import { Zap, TrendingUp, DollarSign, ArrowRight, AlertCircle } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Slider } from '@/components/ui/Slider'
-import { formatCurrency, formatNumber } from '@/lib/utils'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Area, AreaChart } from 'recharts'
+import { formatCurrency } from '@/lib/utils'
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Area, AreaChart } from 'recharts'
 
-// Character profiles
-interface Character {
-  name: string
-  age: number
-  startAge: number
-  endAge: number
-  monthlyInvestment: number
-  totalInvested: number
-  finalValue: number
-  color: string
-  emoji: string
-  strategy: string
-}
 
 // Step 1: Meet the Characters
 function StepIntro({ onNext }: { onNext: () => void }) {
@@ -65,9 +52,9 @@ function StepIntro({ onNext }: { onNext: () => void }) {
             <h3 className="text-xl font-bold text-gray-900 mb-2">Early Bird Emma</h3>
             <div className="space-y-1 text-sm text-gray-700">
               <p><strong>Starts:</strong> Age 25</p>
-              <p><strong>Invests:</strong> $300/month</p>
+              <p><strong>Invests:</strong> ₹25,000/month (SIP)</p>
               <p><strong>Stops:</strong> Age 35</p>
-              <p className="text-green-600 font-semibold">10 years total</p>
+              <p className="text-green-600 font-semibold">₹30 Lakhs invested total</p>
             </div>
           </div>
         </Card>
@@ -78,9 +65,9 @@ function StepIntro({ onNext }: { onNext: () => void }) {
             <h3 className="text-xl font-bold text-gray-900 mb-2">Steady Steven</h3>
             <div className="space-y-1 text-sm text-gray-700">
               <p><strong>Starts:</strong> Age 35</p>
-              <p><strong>Invests:</strong> $300/month</p>
+              <p><strong>Invests:</strong> ₹25,000/month (SIP)</p>
               <p><strong>Stops:</strong> Age 65</p>
-              <p className="text-blue-600 font-semibold">30 years total</p>
+              <p className="text-blue-600 font-semibold">₹90 Lakhs invested total</p>
             </div>
           </div>
         </Card>
@@ -91,9 +78,9 @@ function StepIntro({ onNext }: { onNext: () => void }) {
             <h3 className="text-xl font-bold text-gray-900 mb-2">Late Larry</h3>
             <div className="space-y-1 text-sm text-gray-700">
               <p><strong>Starts:</strong> Age 45</p>
-              <p><strong>Invests:</strong> $500/month</p>
+              <p><strong>Invests:</strong> ₹42,000/month (SIP)</p>
               <p><strong>Stops:</strong> Age 65</p>
-              <p className="text-purple-600 font-semibold">20 years total</p>
+              <p className="text-purple-600 font-semibold">₹100.8 Lakhs invested total</p>
             </div>
           </div>
         </Card>
@@ -119,7 +106,6 @@ function StepRace({ onNext }: { onNext: () => void }) {
   const calculateValue = (startAge: number, endAge: number, monthlyAmount: number, currentAge: number) => {
     if (currentAge < startAge || currentAge > endAge) {
       const yearsInvesting = Math.max(0, Math.min(endAge, currentAge) - startAge)
-      const yearsGrowing = Math.max(0, currentAge - startAge)
       
       if (yearsInvesting === 0) return { balance: 0, invested: 0 }
       
@@ -152,8 +138,8 @@ function StepRace({ onNext }: { onNext: () => void }) {
     }
   }
 
-  const emma = calculateValue(25, 35, 300, currentAge)
-  const steven = calculateValue(35, 65, 300, currentAge)
+  const emma = calculateValue(25, 35, 25000, currentAge)
+  const steven = calculateValue(35, 65, 25000, currentAge)
   const larry = calculateValue(45, 65, 500, currentAge)
 
   const maxValue = Math.max(emma.balance, steven.balance, larry.balance, 100000)
@@ -351,12 +337,10 @@ function StepRace({ onNext }: { onNext: () => void }) {
 
 // Step 3: Final Results & Key Insights
 function StepResults({ onNext }: { onNext: () => void }) {
-  const returnRate = 0.08
-
   // Final calculations
   const emma = {
     name: 'Emma',
-    totalInvested: 300 * 12 * 10,
+    totalInvested: 25000 * 12 * 10,
     finalValue: 518000,
     years: 10,
     color: 'green',
@@ -365,7 +349,7 @@ function StepResults({ onNext }: { onNext: () => void }) {
 
   const steven = {
     name: 'Steven',
-    totalInvested: 300 * 12 * 30,
+    totalInvested: 25000 * 12 * 30,
     finalValue: 446000,
     years: 30,
     color: 'blue',
@@ -528,14 +512,13 @@ function StepResults({ onNext }: { onNext: () => void }) {
 // Step 4: Personal Calculator
 function StepCalculator({ onComplete }: { onComplete: () => void }) {
   const [age, setAge] = useState(25)
-  const [monthlyAmount, setMonthlyAmount] = useState(300)
+  const [monthlyAmount, setMonthlyAmount] = useState(25000)
   const [yearsInvesting, setYearsInvesting] = useState(10)
   const returnRate = 0.08
 
   // Calculate values
   const retirementAge = 65
   const endInvestingAge = age + yearsInvesting
-  const yearsGrowing = retirementAge - age
 
   const monthlyRate = returnRate / 12
   const months = yearsInvesting * 12
@@ -718,11 +701,25 @@ function StepCalculator({ onComplete }: { onComplete: () => void }) {
           <p className="text-xl text-gray-700 mb-4 font-semibold">
             "Time in the market beats timing the market"
           </p>
-          <p className="text-lg text-gray-700">
+          <p className="text-lg text-gray-700 mb-6">
             Starting early is MORE important than investing large amounts.
             <br />
-            Even small monthly investments can grow into life-changing wealth.
+            Even small monthly investments (SIP) can grow into life-changing wealth.
           </p>
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="bg-white rounded-lg p-3">
+              <div className="font-bold text-blue-600 mb-1">📈 SIP / Mutual Funds</div>
+              <div className="text-sm text-gray-600">₹500-50,000/month</div>
+            </div>
+            <div className="bg-white rounded-lg p-3">
+              <div className="font-bold text-green-600 mb-1">🏛️ PPF / NPS</div>
+              <div className="text-sm text-gray-600">Tax benefits, steady growth</div>
+            </div>
+            <div className="bg-white rounded-lg p-3">
+              <div className="font-bold text-purple-600 mb-1">🎯 FD / Bonds</div>
+              <div className="text-sm text-gray-600">Safe, predictable returns</div>
+            </div>
+          </div>
         </div>
       </Card>
 

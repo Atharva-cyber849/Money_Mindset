@@ -1,95 +1,150 @@
 """
 AI Tutor Service using OpenAI + LangChain
 Context-aware financial tutoring with Socratic method
+Integrates with AIPersonalizationEngine for rich context
 """
 from typing import Dict, List, Optional
 from langchain_openai import ChatOpenAI
-from langchain.chains import ConversationChain
-from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
 from app.core.config import settings
+from sqlalchemy.orm import Session
 
 
 class AITutorService:
     """AI-powered financial tutor with personality and context"""
-    
-    def __init__(self):
-        self.llm = ChatOpenAI(
-            model=settings.OPENAI_MODEL,
-            temperature=0.7,
-            openai_api_key=settings.OPENAI_API_KEY
-        )
-        
+
+    def __init__(self, personalization_engine=None):
+        self.personalization_engine = personalization_engine
+        self._llm = None
+        self._chain = None
+
         self.system_prompt = """You are an empathetic, knowledgeable financial AI tutor for "Money Mindset" app.
 
 Your teaching philosophy:
 1. Use the Socratic method - ask questions that lead to insights
 2. Never shame or judge - money habits are learned, not innate
 3. Celebrate small wins and progress
-4. Explain concepts using the user's actual data
+4. Explain concepts using the user's actual data and personality
 5. Break down complex topics into digestible pieces
-6. Adapt your language to the user's financial knowledge level
+6. Adapt your language to the user's financial knowledge level and learning style
 
 Your personality:
 - Warm, encouraging, but honest
 - Use metaphors and storytelling
 - Provide actionable advice, not just theory
 - Reference behavioral psychology and cognitive biases when relevant
+- Tailor advice to the user's personality type and dimensions
 
-Context you have access to:
+Context about this user:
 {context}
 
 User's question: {input}
 
-Respond as their trusted financial mentor."""
+Respond as their trusted financial mentor, incorporating their personality profile."""
 
-        self.prompt = PromptTemplate(
+        self.prompt_template = PromptTemplate(
             input_variables=["context", "input"],
             template=self.system_prompt
         )
-        
-        self.memory = ConversationBufferMemory()
-        
-        self.chain = ConversationChain(
-            llm=self.llm,
-            memory=self.memory,
-            prompt=self.prompt,
-            verbose=True
-        )
-    
+
+    @property
+    def llm(self):
+        """Lazy initialization of LLM"""
+        if self._llm is None:
+            if not settings.OPENAI_API_KEY:
+                raise ValueError(
+                    "OPENAI_API_KEY is not set. Please add your OpenRouter API key to .env file.\n"
+                    "Get a key at: https://openrouter.ai"
+                )
+            self._llm = ChatOpenAI(
+                model=settings.OPENAI_MODEL,
+                temperature=0.7,
+                api_key=settings.OPENAI_API_KEY,
+                base_url=settings.OPENAI_BASE_URL
+            )
+        return self._llm
+
+    @property
+    def chain(self):
+        """Create LLM chain with prompt"""
+        return self.prompt_template | self.llm
+
     async def get_response(
         self,
         message: str,
+        user_id: Optional[int] = None,
+        session_id: Optional[str] = None,
+        db: Optional[Session] = None,
         user_context: Optional[Dict] = None
     ) -> Dict:
-        """Get AI tutor response with context"""
-        
-        # Build context string from user data
-        context_str = self._build_context_string(user_context)
-        
+        """
+        Get AI tutor response with rich personalized context
+
+        Args:
+            message: User's message/question
+            user_id: User ID (for retrieving profile and saving conversation)
+            session_id: Conversation session ID
+            db: Database session
+            user_context: Legacy context dict (deprecated, use personalization engine)
+        """
+        import asyncio
+
+        # Build context string - prefer personalization engine if available
+        if self.personalization_engine and user_id and db:
+            context_str = self.personalization_engine.build_ai_tutor_context(db, user_id)
+        else:
+            context_str = self._build_context_string(user_context)
+
         try:
-            # Get response from LangChain
-            response = await self.chain.apredict(
-                context=context_str,
-                input=message
+            # Run LangChain invoke in a thread pool to avoid blocking
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(
+                None,
+                self.chain.invoke,
+                {"context": context_str, "input": message}
             )
-            
+            # Extract response text from the LLM output
+            response = result.content if hasattr(result, 'content') else str(result)
+
             # Extract insights and suggestions
             insights = self._extract_insights(user_context)
             suggestions = self._generate_suggestions(message, user_context)
-            
+
+            # Detect biases if personalization engine available
+            detected_biases = []
+            if self.personalization_engine:
+                detected_biases = self.personalization_engine.detect_biases(message, None)
+
+            # Save conversation if we have user_id and session_id
+            if user_id and session_id and db and self.personalization_engine:
+                await self.personalization_engine.save_conversation(
+                    db=db,
+                    user_id=user_id,
+                    session_id=session_id,
+                    user_message=message,
+                    ai_response=response,
+                    suggestions=suggestions,
+                    detected_biases=detected_biases
+                )
+
             return {
                 "response": response,
                 "suggestions": suggestions,
-                "insights": insights
+                "insights": insights,
+                "detected_biases": detected_biases
             }
-            
+
         except Exception as e:
+            # Log error for debugging
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"AI Tutor error for user {user_id}: {str(e)}", exc_info=True)
             # Fallback response
             return {
                 "response": self._get_fallback_response(message),
                 "suggestions": [],
-                "insights": {}
+                "insights": {},
+                "detected_biases": []
             }
     
     def _build_context_string(self, context: Optional[Dict]) -> str:
@@ -280,5 +335,5 @@ class BehavioralAnalyzer:
         return biases
 
 
-# Export service instance
+# Export service instance (personalization engine injected at runtime in API)
 ai_tutor_service = AITutorService()
