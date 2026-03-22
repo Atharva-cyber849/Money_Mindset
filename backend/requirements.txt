@@ -2,8 +2,8 @@
 
 # FastAPI
 fastapi==0.109.0
-uvicorn[standard]==0.27.0
-pydantic==2.5.3
+uvicorn[standard]==0.30.0
+pydantic==2.7.4
 pydantic-settings==2.1.0
 
 # Database
@@ -17,23 +17,20 @@ passlib[bcrypt]==1.7.4
 bcrypt==3.2.2
 python-multipart==0.0.6
 
-# AI & ML (Temporarily disabled - requires pydantic>=2.7.4 for Python 3.12)
-# openai==1.10.0
-# langchain==0.1.20
-# langchain-openai==0.0.8
-# langchain-community==0.0.38
-# langsmith==0.1.85
+# AI & ML
+openai==1.10.0
+langchain==0.1.20
+langchain-openai==0.0.8
+langchain-community==0.0.38
+langsmith==0.1.85
+anthropic==0.37.0
 
-# Data Science
+# Data Science & Market Data
 numpy==1.26.3
 pandas==2.2.0
-
-# Caching (optional)
-redis==5.0.1
+yfinance==0.2.35
 
 # Utilities
 python-dotenv==1.0.0
 httpx==0.26.0
-
-bcrypt==3.2.2
-passlib==1.7.4
+requests==2.31.0
