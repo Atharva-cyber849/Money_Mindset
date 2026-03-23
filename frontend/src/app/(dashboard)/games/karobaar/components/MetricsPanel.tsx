@@ -1,6 +1,7 @@
 'use client';
 
 import { Card } from '@/components/ui/Card';
+import { PolarAngleAxis, PolarGrid, Radar, RadarChart, ResponsiveContainer } from 'recharts';
 
 interface MetricsPanelProps {
   state: {
@@ -60,14 +61,21 @@ export default function MetricsPanel({ state }: MetricsPanelProps) {
   const happinessScore = (state.family_happiness + state.work_life_balance + state.health_score) / 3;
 
   const overallScore = careerScore * 0.35 + financialScore * 0.40 + happinessScore * 0.25;
+  const radarData = [
+    { metric: 'Career', score: careerScore },
+    { metric: 'Finance', score: financialScore },
+    { metric: 'Family', score: state.family_happiness },
+    { metric: 'Balance', score: state.work_life_balance },
+    { metric: 'Health', score: state.health_score },
+  ];
 
   return (
     <div className="space-y-6">
       {/* Overall Score Card */}
-      <Card className="p-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white space-y-3">
+      <Card className="p-6 bg-gradient-to-br from-cyan-500 to-cyan-600 text-white space-y-3">
         <h3 className="font-semibold text-lg">Life Score</h3>
         <div className="text-5xl font-bold">{Math.round(overallScore)}</div>
-        <div className="text-blue-100">
+        <div className="text-cyan-100">
           <p className="text-sm">Overall well-being index</p>
           <p className="text-xs mt-1">
             Based on career, finances & happiness
@@ -83,7 +91,7 @@ export default function MetricsPanel({ state }: MetricsPanelProps) {
           label="Career Satisfaction"
           value={careerScore}
           emoji="💼"
-          barColor="bg-blue-600"
+          barColor="bg-cyan-600"
           description="Job satisfaction and career growth"
         />
 
@@ -120,8 +128,28 @@ export default function MetricsPanel({ state }: MetricsPanelProps) {
         />
       </Card>
 
+      <Card className="p-6 space-y-4">
+        <div>
+          <h3 className="font-semibold text-lg">Life Radar</h3>
+          <p className="text-xs text-gray-600">Balanced progress across dimensions is more durable than one-dimensional growth.</p>
+        </div>
+        <ResponsiveContainer width="100%" height={240}>
+          <RadarChart data={radarData}>
+            <PolarGrid />
+            <PolarAngleAxis dataKey="metric" tick={{ fontSize: 12 }} />
+            <Radar
+              name="Score"
+              dataKey="score"
+              stroke="#0891b2"
+              fill="#06b6d4"
+              fillOpacity={0.5}
+            />
+          </RadarChart>
+        </ResponsiveContainer>
+      </Card>
+
       {/* Tips Card */}
-      <Card className="p-4 bg-blue-50 border border-blue-200 space-y-2">
+      <Card className="p-4 bg-cyan-50 border border-cyan-200 space-y-2">
         <p className="font-semibold text-sm">💡 Pro Tip</p>
         <p className="text-sm text-gray-700">
           Balance all three dimensions. A high career score but low happiness indicates burnout.

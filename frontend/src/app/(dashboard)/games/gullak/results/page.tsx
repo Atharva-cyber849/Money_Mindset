@@ -2,7 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { api } from '@/lib/api/client';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
@@ -71,7 +71,7 @@ export default function GullakResults() {
         }
 
         // Get session details
-        const sessionResponse = await axios.get(`/api/v1/games/gullak/${sessionId}`);
+        const sessionResponse = await api.get(`/games/gullak/${sessionId}`);
         const data = sessionResponse.data;
 
         // Parse stored JSON data
@@ -190,7 +190,7 @@ export default function GullakResults() {
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600';
-    if (score >= 70) return 'text-blue-600';
+    if (score >= 70) return 'text-cyan-600';
     if (score >= 60) return 'text-yellow-600';
     return 'text-orange-600';
   };
@@ -206,7 +206,7 @@ export default function GullakResults() {
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       {/* Final Score */}
-      <Card className="p-8 bg-gradient-to-r from-blue-50 to-indigo-50">
+      <Card className="p-8 bg-gradient-to-r from-blue-50 to-cyan-50">
         <div className="text-center space-y-4">
           <div className="text-7xl">{getScoreEmoji(results.resilience_score)}</div>
           <h1 className="text-4xl font-bold">Game Complete!</h1>
@@ -220,7 +220,7 @@ export default function GullakResults() {
             <p className="text-xl font-semibold">Financial Wellbeing Index</p>
           </div>
 
-          <div className="bg-blue-100 text-blue-900 p-4 rounded mt-4">
+          <div className="bg-cyan-100 text-cyan-900 p-4 rounded mt-4">
             {results.resilience_score >= 80 && (
               <p>Excellent work! Your balanced approach to financial planning sets you up for long-term success.</p>
             )}
@@ -341,7 +341,7 @@ export default function GullakResults() {
               </p>
               <div className="bg-gray-300 h-2 rounded mt-2 overflow-hidden">
                 <div
-                  className="bg-blue-500 h-full"
+                  className="bg-cyan-500 h-full"
                   style={{ width: `${(item.score / item.max) * 100}%` }}
                 />
               </div>

@@ -155,6 +155,54 @@ class SimulationResponse(BaseModel):
     recommendations: List[str]
 
 
+# Paper Trading schemas
+class PaperTradingCreateRequest(BaseModel):
+    market: str = Field(..., description="Market type: india, us, or both")
+    strategy: str = Field(..., description="Trading strategy")
+    initial_capital: float = Field(..., gt=0, description="Initial capital amount")
+    start_date: str = Field(..., description="Start date in YYYY-MM-DD format")
+    end_date: str = Field(..., description="End date in YYYY-MM-DD format")
+    symbols: Optional[List[str]] = None
+
+
+class PaperTradingTradeRequest(BaseModel):
+    symbol: str = Field(..., min_length=1, description="Stock symbol")
+    quantity: int = Field(..., gt=0, description="Number of shares")
+    price: float = Field(..., gt=0, description="Execution price per share")
+    side: str = Field(..., description="BUY or SELL")
+
+
+# Gullak schemas
+class GullakCreateRequest(BaseModel):
+    income_type: str = Field(default="salaried", description="Income type: salaried or freelance")
+    state_location: str = Field(default="other", description="State location")
+
+
+# SIP Chronicles schemas
+class SIPCreateRequest(BaseModel):
+    sip_type: str = Field(default="nifty_50", description="SIP type")
+
+
+# Karobaar schemas
+class KarobarCreateRequest(BaseModel):
+    gender: str = Field(default="male", description="Gender: male or female")
+    city: str = Field(default="bangalore", description="City")
+    education: str = Field(default="ug", description="Education level")
+    starting_job: str = Field(default="salaried", description="Starting job type")
+
+
+# Dalal Street schemas
+class DalalCreateRequest(BaseModel):
+    era: str = Field(..., description="Market era")
+
+
+# Black Swan schemas
+class BlackSwanCreateRequest(BaseModel):
+    crisis_type: str = Field(..., description="Crisis type")
+    profile_type: str = Field(..., description="Profile type")
+    difficulty: str = Field(default="medium", description="Difficulty level")
+
+
 # Analytics schemas
 class SpendingAnalysis(BaseModel):
     total_spending: float

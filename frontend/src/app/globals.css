@@ -6,25 +6,32 @@
 
 @layer base {
   :root {
-    /* Primary Colors */
+    /* Primary Colors - Teal Focus */
+    --primary-teal: #0891B2;
+    --primary-teal-light: #CFFAFE;
+    --primary-teal-dark: #0E7490;
+
     --wealth-green: #10B981;
     --wealth-green-light: #D1FAE5;
     --wealth-green-dark: #047857;
-    
+
+    --secondary-purple: #8B5CF6;
+    --secondary-purple-light: #EDE9FE;
+
     --warning-amber: #F59E0B;
     --warning-amber-light: #FEF3C7;
-    
+
     --danger-red: #EF4444;
     --danger-red-light: #FEE2E2;
-    
+
     --info-blue: #3B82F6;
     --info-blue-light: #DBEAFE;
-    
+
     /* Neutral Colors */
     --background: #F9FAFB;
     --surface: #FFFFFF;
     --border: #E5E7EB;
-    --text-primary: #111827;
+    --text-primary: #1F2937;
     --text-secondary: #6B7280;
     --text-muted: #9CA3AF;
     
@@ -177,4 +184,168 @@
 
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out;
+}
+
+/* Dashboard card animations */
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cardHover {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(8, 145, 178, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(8, 145, 178, 0.05);
+  }
+}
+
+.animate-fade-slide-up {
+  animation: fadeSlideUp 0.5s ease-out;
+}
+
+.animate-fade-slide-up-1 {
+  animation: fadeSlideUp 0.5s 0.05s ease-out both;
+}
+
+.animate-fade-slide-up-2 {
+  animation: fadeSlideUp 0.5s 0.1s ease-out both;
+}
+
+.animate-fade-slide-up-3 {
+  animation: fadeSlideUp 0.5s 0.15s ease-out both;
+}
+
+.animate-fade-slide-up-4 {
+  animation: fadeSlideUp 0.5s 0.2s ease-out both;
+}
+
+.animate-fade-slide-up-5 {
+  animation: fadeSlideUp 0.5s 0.25s ease-out both;
+}
+
+.card-hover-animation {
+  @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+}
+
+.card-glow {
+  animation: glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Analytics Chart Animations */
+@keyframes chartDrawLine {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes chartFillArea {
+  from {
+    opacity: 0;
+    filter: blur(10px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes gaugeFlow {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: var(--gauge-value, 100%);
+  }
+}
+
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ringRotate {
+  from {
+    stroke-dashoffset: 0;
+    transform: rotate(0deg);
+  }
+  to {
+    stroke-dashoffset: 282.7px;
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes barSlideIn {
+  from {
+    width: 0%;
+    opacity: 0;
+  }
+  to {
+    width: 100%;
+    opacity: 1;
+  }
+}
+
+@keyframes donutSegmentScale {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-chart-line {
+  animation: chartDrawLine 1.2s ease-out forwards;
+}
+
+.animate-chart-area {
+  animation: chartFillArea 1s ease-out forwards;
+}
+
+.animate-gauge {
+  animation: gaugeFlow 1.2s ease-out forwards;
+}
+
+.animate-count-up {
+  animation: countUp 0.6s ease-out forwards;
+}
+
+.animate-ring-rotate {
+  animation: ringRotate 1.5s ease-out forwards;
+}
+
+.animate-bar-slide-in {
+  animation: barSlideIn 1s ease-out forwards;
+}
+
+.animate-donut-segment {
+  animation: donutSegmentScale 0.5s ease-out forwards;
 }

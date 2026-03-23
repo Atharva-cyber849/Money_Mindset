@@ -2,7 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, TrendingUp, DollarSign, Target } from 'lucide-react';
+import { ArrowLeft, TrendingUp, DollarSign, Target, BarChart3 } from 'lucide-react';
+import { api } from '@/lib/api/client';
+import {
+  TradeExecutor,
+  PortfolioOverview,
+  HoldingsTable,
+  PerformanceAnalytics,
+  PortfolioAllocation,
+  TradeHistory,
+  LearningPanel,
+} from './components';
 
 const STRATEGIES = [
   { id: 'portfolio_builder', label: 'Portfolio Builder', description: 'Focus on diversification' },
@@ -34,24 +44,15 @@ export default function PaperTradingSetup() {
     setError('');
 
     try {
-      const response = await fetch('/api/games/paper-trading/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          market,
-          strategy,
-          initial_capital: capital,
-          start_date: isHistorical ? startDate : new Date().toISOString().split('T')[0],
-          end_date: isHistorical ? endDate : new Date().toISOString().split('T')[0],
-        }),
+      const response = await api.post('/games/paper-trading/create', {
+        market,
+        strategy,
+        initial_capital: capital,
+        start_date: isHistorical ? startDate : new Date().toISOString().split('T')[0],
+        end_date: isHistorical ? endDate : new Date().toISOString().split('T')[0],
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to create session');
-      }
-
-      const data = await response.json();
-      setSessionId(data.session_id);
+      setSessionId(response.data.session_id);
       setStage('game');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -72,8 +73,8 @@ export default function PaperTradingSetup() {
 
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-12">
-          <div className="inline-block p-3 bg-blue-100 rounded-full mb-4">
-            <TrendingUp className="w-8 h-8 text-blue-600" />
+          <div className="inline-block p-3 bg-cyan-100 rounded-full mb-4">
+            <TrendingUp className="w-8 h-8 text-cyan-600" />
           </div>
           <h1 className="text-4xl font-bold text-slate-900 mb-2">Paper Trading</h1>
           <p className="text-lg text-slate-600">
@@ -81,11 +82,11 @@ export default function PaperTradingSetup() {
           </p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-8 space-y-8">
+        <div className="bg-white rounded-lg shadow border border-slate-200 p-8 space-y-8">
           {/* Market Selection */}
           <div>
             <h2 className="text-xl font-semibold text-slate-900 mb-4 flex items-center gap-2">
-              <span className="bg-blue-100 text-blue-600 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">1</span>
+              <span className="bg-cyan-100 text-cyan-600 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">1</span>
               Choose Market
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -95,11 +96,11 @@ export default function PaperTradingSetup() {
                   onClick={() => setMarket(m.id)}
                   className={`p-4 rounded-lg border-2 transition ${
                     market === m.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-slate-200 hover:border-blue-300'
+                      ? 'border-cyan-500 bg-cyan-50'
+                      : 'border-slate-200 bg-white hover:border-cyan-300'
                   }`}
                 >
-                  <div className="text-lg font-semibold">{m.label}</div>
+                  <div className="text-lg font-semibold text-slate-900">{m.label}</div>
                   <div className="text-sm text-slate-600">{m.description}</div>
                 </button>
               ))}
@@ -109,7 +110,7 @@ export default function PaperTradingSetup() {
           {/* Strategy Selection */}
           <div>
             <h2 className="text-xl font-semibold text-slate-900 mb-4 flex items-center gap-2">
-              <span className="bg-blue-100 text-blue-600 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">2</span>
+              <span className="bg-cyan-100 text-cyan-600 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">2</span>
               Choose Strategy
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -120,7 +121,7 @@ export default function PaperTradingSetup() {
                   className={`p-4 rounded-lg border-2 text-left transition ${
                     strategy === s.id
                       ? 'border-green-500 bg-green-50'
-                      : 'border-slate-200 hover:border-green-300'
+                      : 'border-slate-200 bg-white hover:border-green-300'
                   }`}
                 >
                   <div className="font-semibold text-slate-900">{s.label}</div>
@@ -143,7 +144,7 @@ export default function PaperTradingSetup() {
                 onChange={e => setCapital(Number(e.target.value))}
                 min="10000"
                 max="1000000"
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
               />
               <p className="text-xs text-slate-500 mt-1">
                 {market === 'india' ? '₹' : '$'}
@@ -191,7 +192,7 @@ export default function PaperTradingSetup() {
           <button
             onClick={handleStartGame}
             disabled={stage === 'loading'}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2"
+            className="w-full bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-400 text-white font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2"
           >
             <Target size={20} />
             {stage === 'loading' ? 'Starting Game...' : 'Start Trading'}
@@ -200,19 +201,19 @@ export default function PaperTradingSetup() {
 
         {/* Info Section */}
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white p-6 rounded-lg shadow">
+          <div className="bg-white p-6 rounded-lg shadow border border-slate-200 hover:border-cyan-300 transition">
             <h3 className="font-semibold text-slate-900 mb-2">📊 Real Market Data</h3>
             <p className="text-sm text-slate-600">
               Live stock prices from yfinance or historical data for backtesting
             </p>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
+          <div className="bg-white p-6 rounded-lg shadow border border-slate-200 hover:border-cyan-300 transition">
             <h3 className="font-semibold text-slate-900 mb-2">🎯 Multi-Dimensional Scoring</h3>
             <p className="text-sm text-slate-600">
               Scores on wealth, diversification, risk management, timing, and strategy
             </p>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
+          <div className="bg-white p-6 rounded-lg shadow border border-slate-200 hover:border-cyan-300 transition">
             <h3 className="font-semibold text-slate-900 mb-2">🌍 Global Markets</h3>
             <p className="text-sm text-slate-600">
               Trade Indian stocks, US stocks, or both for comparative learning
@@ -227,24 +228,27 @@ export default function PaperTradingSetup() {
 function PaperTradingGame({ sessionId }: { sessionId: string }) {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [tradeMode, setTradeMode] = useState<'buy' | 'sell' | null>(null);
+  const [activeTab, setActiveTab] = useState<'portfolio' | 'holdings' | 'performance' | 'market'>('portfolio');
+
+  // Trade executor state
   const [selectedSymbol, setSelectedSymbol] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [price, setPrice] = useState(0);
+  const [tradeLoading, setTradeLoading] = useState(false);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteError, setQuoteError] = useState('');
+  const [lastQuotedSymbol, setLastQuotedSymbol] = useState('');
 
   useEffect(() => {
     fetchSession();
-    const interval = setInterval(fetchSession, 30000); // Refresh every 30s
+    const interval = setInterval(fetchSession, 30000);
     return () => clearInterval(interval);
   }, []);
 
   const fetchSession = async () => {
     try {
-      const response = await fetch(`/api/games/paper-trading/${sessionId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setSession(data);
-      }
+      const response = await api.get(`/games/paper-trading/${sessionId}`);
+      setSession(response.data);
     } catch (err) {
       console.error('Failed to fetch session:', err);
     } finally {
@@ -252,228 +256,289 @@ function PaperTradingGame({ sessionId }: { sessionId: string }) {
     }
   };
 
-  const handleTrade = async () => {
-    if (!session || !selectedSymbol) return;
+  const fetchQuote = async (symbolInput?: string) => {
+    const symbol = (symbolInput ?? selectedSymbol).trim().toUpperCase();
+    if (!symbol) {
+      setQuoteError('');
+      return;
+    }
+
+    setQuoteLoading(true);
+    setQuoteError('');
 
     try {
-      const response = await fetch(`/api/games/paper-trading/${sessionId}/trade`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          symbol: selectedSymbol,
-          quantity,
-          price,
-          side: tradeMode?.toUpperCase(),
-        }),
+      const response = await api.get(`/games/paper-trading/${sessionId}/quote`, {
+        params: { symbol },
       });
-
-      if (response.ok) {
-        await fetchSession();
-        setTradeMode(null);
-        setSelectedSymbol('');
-        setQuantity(1);
+      const quotePrice = Number(response.data?.price ?? 0);
+      if (quotePrice > 0) {
+        setPrice(quotePrice);
+        setLastQuotedSymbol(symbol);
+      } else {
+        setQuoteError('Price unavailable for this symbol');
       }
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail;
+      setQuoteError(typeof detail === 'string' ? detail : 'Failed to fetch live price');
+    } finally {
+      setQuoteLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const symbol = selectedSymbol.trim().toUpperCase();
+
+    if (!symbol) {
+      setQuoteError('');
+      setLastQuotedSymbol('');
+      setPrice(0);
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      fetchQuote(symbol);
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [selectedSymbol, sessionId]);
+
+  const handleBuy = async () => {
+    if (!selectedSymbol || !quantity || !price) return;
+    setTradeLoading(true);
+    try {
+      await api.post(`/games/paper-trading/${sessionId}/trade`, {
+        symbol: selectedSymbol,
+        quantity,
+        price,
+        side: 'BUY',
+      });
+      await fetchSession();
+      setSelectedSymbol('');
+      setQuantity(1);
+      setPrice(0);
     } catch (err) {
       console.error('Trade failed:', err);
+    } finally {
+      setTradeLoading(false);
+    }
+  };
+
+  const handleSell = async () => {
+    if (!selectedSymbol || !quantity || !price) return;
+    setTradeLoading(true);
+    try {
+      await api.post(`/games/paper-trading/${sessionId}/trade`, {
+        symbol: selectedSymbol,
+        quantity,
+        price,
+        side: 'SELL',
+      });
+      await fetchSession();
+      setSelectedSymbol('');
+      setQuantity(1);
+      setPrice(0);
+    } catch (err) {
+      console.error('Trade failed:', err);
+    } finally {
+      setTradeLoading(false);
     }
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading trading session...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!session) {
-    return <div className="flex items-center justify-center min-h-screen">Failed to load session</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="text-center">
+          <p className="text-red-600">Failed to load session</p>
+        </div>
+      </div>
+    );
   }
 
   const portfolio = session.portfolio || {};
   const cash = portfolio.cash || 0;
   const totalValue = portfolio.total_value || 0;
+  const pnl = (session.metrics?.total_pnl || 0);
   const holdings = portfolio.holdings || {};
+  const holdingsCount = Object.keys(holdings).length;
+  const winRate = session.metrics?.win_rate || 0;
+  const maxDrawdown = session.metrics?.max_drawdown || 0;
+  const sharpeRatio = session.metrics?.sharpe_ratio || 0;
+  const trades = session.trades || [];
+
+  const tabs = [
+    { id: 'portfolio', label: '💼 Portfolio', icon: <TrendingUp size={18} /> },
+    { id: 'holdings', label: '📊 Holdings', icon: <BarChart3 size={18} /> },
+    { id: 'performance', label: '📈 Performance', icon: <TrendingUp size={18} /> },
+    { id: 'market', label: '📝 Trade History', icon: <TrendingUp size={18} /> },
+  ];
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6 flex justify-between items-center">
+        <div className="mb-6 flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold">{session.market.toUpperCase()} Trading - {session.strategy}</h1>
-            <p className="text-slate-400">Status: {session.status}</p>
+            <Link href="/dashboard/games" className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4">
+              <ArrowLeft size={18} />
+              Back to Games
+            </Link>
+            <h1 className="text-3xl font-bold text-slate-900">{session.market.toUpperCase()} Trading</h1>
+            <p className="text-slate-600">Strategy: {session.strategy} • Status: {session.status}</p>
           </div>
-          <Link href="/dashboard/games/paper-trading/results" className="px-4 py-2 bg-slate-600 rounded-lg hover:bg-slate-700">
+          <Link href="/dashboard/games/paper-trading/results" className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-semibold">
             View Results
           </Link>
         </div>
 
-        {/* Portfolio Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-slate-800 p-4 rounded-lg">
-            <span className="text-slate-400">Cash Available</span>
-            <p className="text-2xl font-bold">{cash.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+        {/* Top Metrics Bar */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white rounded-lg shadow p-4 border-l-4 border-cyan-500">
+            <p className="text-sm text-slate-600">Cash</p>
+            <p className="text-2xl font-bold text-slate-900">{(cash / 1000).toFixed(1)}k</p>
           </div>
-          <div className="bg-slate-800 p-4 rounded-lg">
-            <span className="text-slate-400">Portfolio Value</span>
-            <p className="text-2xl font-bold">{totalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+          <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
+            <p className="text-sm text-slate-600">Portfolio Value</p>
+            <p className="text-2xl font-bold text-slate-900">{(totalValue / 1000).toFixed(1)}k</p>
           </div>
-          <div className="bg-slate-800 p-4 rounded-lg">
-            <span className="text-slate-400">P&L</span>
-            <p className={`text-2xl font-bold ${(session.metrics?.total_pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {(session.metrics?.total_pnl || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+          <div className={`bg-white rounded-lg shadow p-4 border-l-4 ${pnl >= 0 ? 'border-green-500' : 'border-red-500'}`}>
+            <p className="text-sm text-slate-600">P&L</p>
+            <p className={`text-2xl font-bold ${pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {pnl >= 0 ? '+' : ''}{(pnl / 1000).toFixed(1)}k
             </p>
           </div>
-          <div className="bg-slate-800 p-4 rounded-lg">
-            <span className="text-slate-400">Holdings</span>
-            <p className="text-2xl font-bold">{Object.keys(holdings).length}</p>
+          <div className="bg-white rounded-lg shadow p-4 border-l-4 border-purple-500">
+            <p className="text-sm text-slate-600">Holdings</p>
+            <p className="text-2xl font-bold text-slate-900">{holdingsCount}</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Trade Executor */}
-            <div className="bg-slate-800 p-6 rounded-lg">
-              <h2 className="text-xl font-bold mb-4">Execute Trade</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm text-slate-400 mb-2">Symbol</label>
-                  <input
-                    type="text"
-                    placeholder="e.g., RELIANCE.NS or AAPL"
-                    value={selectedSymbol}
-                    onChange={e => setSelectedSymbol(e.target.value.toUpperCase())}
-                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded text-white"
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm text-slate-400 mb-2">Qty</label>
-                    <input
-                      type="number"
-                      value={quantity}
-                      onChange={e => setQuantity(Math.max(1, Number(e.target.value)))}
-                      className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-slate-400 mb-2">Price</label>
-                    <input
-                      type="number"
-                      value={price}
-                      onChange={e => setPrice(Math.max(0, Number(e.target.value)))}
-                      step="0.01"
-                      className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-slate-400 mb-2">Total</label>
-                    <div className="px-4 py-2 bg-slate-700 border border-slate-600 rounded">
-                      {(quantity * price).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                    </div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    onClick={() => setTradeMode('buy')}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded font-semibold"
-                  >
-                    BUY
-                  </button>
-                  <button
-                    onClick={() => setTradeMode('sell')}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded font-semibold"
-                  >
-                    SELL
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Holdings Table */}
-            {Object.keys(holdings).length > 0 && (
-              <div className="bg-slate-800 p-6 rounded-lg">
-                <h2 className="text-xl font-bold mb-4">Your Holdings</h2>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="border-b border-slate-600">
-                      <tr>
-                        <th className="text-left py-2">Symbol</th>
-                        <th className="text-right py-2">Qty</th>
-                        <th className="text-right py-2">Entry</th>
-                        <th className="text-right py-2">Current</th>
-                        <th className="text-right py-2">P&L</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(holdings).map(([symbol, holding]: [string, any]) => (
-                        <tr key={symbol} className="border-b border-slate-700">
-                          <td className="py-2">{symbol}</td>
-                          <td className="text-right">{holding.quantity}</td>
-                          <td className="text-right">{holding.entry_price.toFixed(2)}</td>
-                          <td className="text-right">{holding.current_price.toFixed(2)}</td>
-                          <td className={`text-right ${holding.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {holding.pnl_percentage.toFixed(2)}%
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Trade Modal */}
-            {tradeMode && (
-              <div className="bg-slate-800 p-6 rounded-lg border-2 border-yellow-500">
-                <h3 className="text-lg font-bold mb-4">Confirm {tradeMode.toUpperCase()}</h3>
-                <div className="space-y-2 text-sm mb-4">
-                  <p>Symbol: <span className="font-semibold">{selectedSymbol}</span></p>
-                  <p>Quantity: <span className="font-semibold">{quantity}</span></p>
-                  <p>Price: <span className="font-semibold">{price.toFixed(2)}</span></p>
-                  <p className="border-t border-slate-600 pt-2 mt-2">
-                    Total: <span className="font-bold text-lg">{(quantity * price).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleTrade}
-                    className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 rounded font-semibold"
-                  >
-                    Confirm
-                  </button>
-                  <button
-                    onClick={() => setTradeMode(null)}
-                    className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded font-semibold"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Quick Stats */}
-            <div className="bg-slate-800 p-6 rounded-lg">
-              <h3 className="font-bold mb-4">Quick Stats</h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span>Max Drawdown:</span>
-                  <span className="font-semibold">{(session.metrics?.max_drawdown || 0).toFixed(2)}%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Win Rate:</span>
-                  <span className="font-semibold">{(session.metrics?.win_rate || 0).toFixed(1)}%</span>
-                </div>
-              </div>
-            </div>
+        {/* Tabs Navigation */}
+        <div className="bg-white rounded-lg shadow mb-6 border-b border-slate-200">
+          <div className="flex overflow-x-auto">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex-1 px-6 py-4 font-semibold border-b-2 transition flex items-center justify-center gap-2 ${
+                  activeTab === tab.id
+                    ? 'text-cyan-600 border-cyan-600'
+                    : 'text-slate-600 border-transparent hover:text-slate-900'
+                }`}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Help Text */}
-        <div className="mt-8 bg-slate-800 p-4 rounded-lg text-sm text-slate-300">
-          💡 <strong>Tip:</strong> Use real stock symbols (RELIANCE.NS, TCS.NS for India or AAPL, MSFT for US).
-          Enter current prices from live market data for realistic trading experience.
+        {/* Tab Content */}
+        <div className="space-y-6">
+          {activeTab === 'portfolio' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
+                <PortfolioOverview
+                  cash={cash}
+                  totalValue={totalValue}
+                  pnl={pnl}
+                  holdingsCount={holdingsCount}
+                  winRate={winRate}
+                  maxDrawdown={maxDrawdown}
+                  currency="INR"
+                />
+                {holdingsCount > 0 && (
+                  <PortfolioAllocation holdings={holdings} cashValue={cash} currency="INR" />
+                )}
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow">
+                <TradeExecutor
+                  selectedSymbol={selectedSymbol}
+                  onSymbolChange={setSelectedSymbol}
+                  quantity={quantity}
+                  onQuantityChange={setQuantity}
+                  price={price}
+                  onPriceChange={setPrice}
+                  onRefreshQuote={() => fetchQuote()}
+                  onBuy={handleBuy}
+                  onSell={handleSell}
+                  loading={tradeLoading}
+                  quoteLoading={quoteLoading}
+                  quoteError={quoteError}
+                  lastQuotedSymbol={lastQuotedSymbol}
+                  availableCash={cash}
+                />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'holdings' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <HoldingsTable holdings={holdings} currency="INR" />
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow">
+                <TradeExecutor
+                  selectedSymbol={selectedSymbol}
+                  onSymbolChange={setSelectedSymbol}
+                  quantity={quantity}
+                  onQuantityChange={setQuantity}
+                  price={price}
+                  onPriceChange={setPrice}
+                  onRefreshQuote={() => fetchQuote()}
+                  onBuy={handleBuy}
+                  onSell={handleSell}
+                  loading={tradeLoading}
+                  quoteLoading={quoteLoading}
+                  quoteError={quoteError}
+                  lastQuotedSymbol={lastQuotedSymbol}
+                  availableCash={cash}
+                />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'performance' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <PerformanceAnalytics
+                  winRate={winRate}
+                  maxDrawdown={maxDrawdown}
+                  sharpeRatio={sharpeRatio}
+                  totalTrades={session.metrics?.total_trades || 0}
+                  profitableTrades={session.metrics?.profitable_trades || 0}
+                />
+              </div>
+              <LearningPanel
+                winRate={winRate}
+                maxDrawdown={maxDrawdown}
+                totalTrades={session.metrics?.total_trades || 0}
+              />
+            </div>
+          )}
+
+          {activeTab === 'market' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <TradeHistory trades={trades} currency="INR" />
+              </div>
+              <LearningPanel
+                winRate={winRate}
+                maxDrawdown={maxDrawdown}
+                totalTrades={session.metrics?.total_trades || 0}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

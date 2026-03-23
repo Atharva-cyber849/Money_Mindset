@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import { api } from '@/lib/api/client';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import GameHeader from '../_lib/GameHeader';
@@ -48,6 +48,7 @@ export default function KarobarGame() {
   const [currentDecision, setCurrentDecision] = useState<Decision | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [activeStage, setActiveStage] = useState<'overview' | 'decisions' | 'metrics'>('overview');
 
   // Setup form state
   const [gender, setGender] = useState('female');
@@ -61,13 +62,13 @@ export default function KarobarGame() {
 
   const loadSession = async () => {
     try {
-      const response = await axios.get('/api/v1/games/karobaar/user/sessions');
+      const response = await api.get('/games/karobaar/user/sessions');
       const sessions = response.data.sessions;
 
       if (sessions.length > 0) {
         const lastSession = sessions[0];
         if (lastSession.status === 'active') {
-          const sessionDetails = await axios.get(`/api/v1/games/karobaar/${lastSession.session_id}`);
+          const sessionDetails = await api.get(`/games/karobaar/${lastSession.session_id}`);
           setSession(sessionDetails.data);
           setGameStarted(true);
           setSetupScreen(false);
@@ -84,7 +85,7 @@ export default function KarobarGame() {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.post('/api/v1/games/karobaar/create', {
+      const response = await api.post('/games/karobaar/create', {
         gender,
         city,
         education,
@@ -105,7 +106,7 @@ export default function KarobarGame() {
     if (!session) return;
     setSubmitting(true);
     try {
-      const response = await axios.post(`/api/v1/games/karobaar/${session.session_id}/progress`);
+      const response = await api.post(`/games/karobaar/${session.session_id}/progress`);
       setSession(response.data);
 
       // If there's a pending decision, show modal
@@ -124,8 +125,8 @@ export default function KarobarGame() {
     if (!session || !currentDecision) return;
     setSubmitting(true);
     try {
-      const response = await axios.post(
-        `/api/v1/games/karobaar/${session.session_id}/decide`,
+      const response = await api.post(
+        `/games/karobaar/${session.session_id}/decide`,
         {
           decision_id: currentDecision.id,
           choice_index: choiceIndex,
@@ -153,7 +154,7 @@ export default function KarobarGame() {
     if (!session) return;
     setSubmitting(true);
     try {
-      await axios.post(`/api/v1/games/karobaar/${session.session_id}/complete`);
+      await api.post(`/games/karobaar/${session.session_id}/complete`);
       router.push(`/games/karobaar/results/${session.session_id}`);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to complete game');
@@ -200,7 +201,7 @@ export default function KarobarGame() {
                   onClick={() => setGender(g)}
                   className={`p-4 border-2 rounded-lg transition ${
                     gender === g
-                      ? 'border-blue-500 bg-blue-50'
+                      ? 'border-cyan-500 bg-cyan-50'
                       : 'border-gray-300 hover:border-gray-400'
                   }`}
                 >
@@ -228,7 +229,7 @@ export default function KarobarGame() {
                   onClick={() => setCity(c.id)}
                   className={`p-4 border-2 rounded-lg transition ${
                     city === c.id
-                      ? 'border-blue-500 bg-blue-50'
+                      ? 'border-cyan-500 bg-cyan-50'
                       : 'border-gray-300 hover:border-gray-400'
                   }`}
                 >
@@ -253,7 +254,7 @@ export default function KarobarGame() {
                   onClick={() => setEducation(e.id)}
                   className={`p-4 border-2 rounded-lg transition ${
                     education === e.id
-                      ? 'border-blue-500 bg-blue-50'
+                      ? 'border-cyan-500 bg-cyan-50'
                       : 'border-gray-300 hover:border-gray-400'
                   }`}
                 >
@@ -277,7 +278,7 @@ export default function KarobarGame() {
                   onClick={() => setStartingJob(j.id)}
                   className={`p-4 border-2 rounded-lg transition text-sm ${
                     startingJob === j.id
-                      ? 'border-blue-500 bg-blue-50'
+                      ? 'border-cyan-500 bg-cyan-50'
                       : 'border-gray-300 hover:border-gray-400'
                   }`}
                 >
@@ -290,7 +291,7 @@ export default function KarobarGame() {
           <Button
             onClick={handleCreateGame}
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3"
+            className="w-full bg-cyan-600 hover:bg-blue-700 text-white py-3"
           >
             {loading ? (
               <>
@@ -330,68 +331,85 @@ export default function KarobarGame() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Game Area */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Life State Overview */}
-          {session.current_state && (
-            <LifeState state={session.current_state} />
-          )}
+      <div className="bg-white rounded-lg border border-slate-200 p-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <button
+          onClick={() => setActiveStage('overview')}
+          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
+            activeStage === 'overview' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          Stage 1: Life Overview
+        </button>
+        <button
+          onClick={() => setActiveStage('decisions')}
+          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
+            activeStage === 'decisions' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          Stage 2: Decisions
+        </button>
+        <button
+          onClick={() => setActiveStage('metrics')}
+          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
+            activeStage === 'metrics' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          Stage 3: Metrics
+        </button>
+      </div>
 
-          {/* Career Path */}
-          {session.current_state && (
-            <CareerPathPanel state={session.current_state} />
-          )}
+      {activeStage === 'overview' && session.current_state && (
+        <div className="space-y-6">
+          <LifeState state={session.current_state} />
+          <CareerPathPanel state={session.current_state} />
+        </div>
+      )}
 
-          {/* Action Buttons */}
-          <Card className="p-6 space-y-4">
-            <h3 className="font-semibold text-lg">What's Next?</h3>
-            <div className="space-y-3">
+      {activeStage === 'decisions' && (
+        <Card className="p-6 space-y-4">
+          <h3 className="font-semibold text-lg">What's Next?</h3>
+          <div className="space-y-3">
+            <Button
+              onClick={handleProgress}
+              disabled={submitting || session.status !== 'active'}
+              className="w-full bg-green-600 hover:bg-green-700 text-white"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Progressing...
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 mr-2" />
+                  Continue to Next Year
+                </>
+              )}
+            </Button>
+
+            {session.current_age >= 65 && (
               <Button
-                onClick={handleProgress}
-                disabled={submitting || session.status !== 'active'}
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                onClick={handleComplete}
+                disabled={submitting}
+                className="w-full bg-cyan-600 hover:bg-blue-700 text-white"
               >
                 {submitting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Progressing...
+                    Completing...
                   </>
                 ) : (
-                  <>
-                    <Play className="w-4 h-4 mr-2" />
-                    Continue to Next Year
-                  </>
+                  'See Final Results'
                 )}
               </Button>
+            )}
+          </div>
+        </Card>
+      )}
 
-              {session.current_age >= 65 && (
-                <Button
-                  onClick={handleComplete}
-                  disabled={submitting}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Completing...
-                    </>
-                  ) : (
-                    'See Final Results'
-                  )}
-                </Button>
-              )}
-            </div>
-          </Card>
-        </div>
-
-        {/* Sidebar - Metrics */}
-        <div className="space-y-6">
-          {session.current_state && (
-            <MetricsPanel state={session.current_state} />
-          )}
-        </div>
-      </div>
+      {activeStage === 'metrics' && session.current_state && (
+        <MetricsPanel state={session.current_state} />
+      )}
 
       {/* Decision Modal */}
       {showDecisionModal && currentDecision && (

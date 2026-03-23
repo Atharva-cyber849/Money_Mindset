@@ -120,7 +120,7 @@ export default function PersonalityQuizPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 flex items-center justify-center">
         <div className="text-center">
           <Brain className="w-16 h-16 mx-auto mb-4 text-purple-600 animate-pulse" />
           <p className="text-lg text-gray-600">Loading personality quiz...</p>
@@ -131,7 +131,7 @@ export default function PersonalityQuizPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 flex items-center justify-center">
         <Card className="max-w-md text-center">
           <p className="text-red-600 mb-4">{error}</p>
           <Button onClick={() => window.location.reload()}>Try Again</Button>
@@ -144,7 +144,7 @@ export default function PersonalityQuizPage() {
   const question = questions[currentQuestion]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 py-12 px-4">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">

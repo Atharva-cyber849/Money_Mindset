@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { TrendingUp, ExternalLink, RefreshCw, AlertCircle, Loader2 } from 'lucide-react'
-import Collapsible from '@/components/ui/Collapsible'
+import { useState } from 'react'
+import { ExternalLink, RefreshCw, AlertCircle, Loader2 } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
@@ -59,12 +58,6 @@ export default function MarketWidget({
     if (change > 0) return 'text-green-600'
     if (change < 0) return 'text-red-600'
     return 'text-gray-600'
-  }
-
-  const getChangeBg = (change: number) => {
-    if (change > 0) return 'bg-green-50'
-    if (change < 0) return 'bg-red-50'
-    return 'bg-gray-50'
   }
 
   const formatTime = (isoString: string) => {
@@ -128,104 +121,99 @@ export default function MarketWidget({
   }
 
   return (
-    <Collapsible title="📈 Market Overview" icon={<TrendingUp className="w-5 h-5" />} defaultOpen={true}>
-      <div className="space-y-6">
-        {/* Indices Section */}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="font-semibold text-gray-900">India Indices</h4>
-            <div className="flex items-center gap-2">
-              {data.indices_cached && (
-                <span className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded-full">Cached</span>
-              )}
-              {onRefresh && (
-                <Button
-                  onClick={handleRefresh}
-                  disabled={isRefreshing}
-                  variant="outline"
-                  size="sm"
-                  className="px-2 py-1"
-                >
-                  <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                </Button>
-              )}
-            </div>
-          </div>
+          <h2 className="text-2xl font-bold text-gray-900">📈 Market Overview</h2>
+          <p className="text-sm text-gray-600 mt-1">Real-time Indian market indices and financial news</p>
+        </div>
+        {onRefresh && (
+          <Button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing' : 'Refresh'}
+          </Button>
+        )}
+      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {data.indices.map((index) => (
-              <div
-                key={index.symbol}
-                className={`p-4 rounded-lg border ${getChangeBg(index.percentage_change)} border-gray-200`}
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">{index.name}</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">
-                      {index.current_price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                  <div className={`text-right ${getChangeColor(index.percentage_change)}`}>
-                    <p className="font-semibold">
-                      {index.percentage_change > 0 ? '+' : ''}
-                      {index.percentage_change.toFixed(2)}%
-                    </p>
-                    <p className="text-xs text-gray-600 mt-1">
-                      {index.percentage_change > 0 ? '↑' : index.percentage_change < 0 ? '↓' : '→'}{' '}
-                      {Math.abs(index.previous_close).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                    </p>
-                  </div>
-                </div>
+      {/* Indices Section */}
+      <div>
+        <div className="mb-3 flex items-center justify-between px-1">
+          <h3 className="font-semibold text-gray-900">India Indices</h3>
+          {data.indices_cached && (
+            <span className="text-xs px-2 py-1 bg-cyan-100 text-cyan-700 rounded-full">From Cache</span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {data.indices.map((index) => (
+            <div
+              key={index.symbol}
+              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-300 hover:-translate-y-1"
+            >
+              <div className="p-4">
+                <p className="text-xs text-gray-600 mb-2 font-medium">{index.name}</p>
+                <p className="text-2xl font-bold text-gray-900 mb-1">
+                  {index.current_price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                </p>
+                <p className={`text-sm font-semibold ${getChangeColor(index.percentage_change)}`}>
+                  {index.percentage_change > 0 ? '↑ +' : index.percentage_change < 0 ? '↓ ' : '→ '}
+                  {Math.abs(index.percentage_change).toFixed(2)}%
+                </p>
                 <p className="text-xs text-gray-500 mt-2">{formatTime(index.last_updated)}</p>
               </div>
+              <div className={`h-1 ${index.percentage_change > 0 ? 'bg-green-400' : index.percentage_change < 0 ? 'bg-red-400' : 'bg-gray-300'}`} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* News Section */}
+      {data.news && data.news.length > 0 && (
+        <div>
+          <div className="mb-3 flex items-center justify-between px-1">
+            <h3 className="font-semibold text-gray-900">Financial News</h3>
+            {data.news_cached && (
+              <span className="text-xs px-2 py-1 bg-cyan-100 text-cyan-700 rounded-full">From Cache</span>
+            )}
+          </div>
+
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {data.news.map((article, index) => (
+              <a
+                key={index}
+                href={article.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block bg-white rounded-xl shadow-sm border border-gray-100 p-3 hover:shadow-md hover:border-cyan-200 transition-all duration-300 group"
+              >
+                <div className="flex gap-3">
+                  {article.image && (
+                    <img
+                      src={article.image}
+                      alt={article.title}
+                      className="w-14 h-14 rounded-lg object-cover flex-shrink-0 bg-gray-100"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-xs text-gray-900 line-clamp-2 group-hover:text-cyan-600">{article.title}</p>
+                    <p className="text-xs text-gray-600 mt-1">{article.source}</p>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-xs text-gray-500">{formatTime(article.published_date)}</span>
+                      <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-cyan-600" />
+                    </div>
+                  </div>
+                </div>
+              </a>
             ))}
           </div>
         </div>
-
-        {/* News Section */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="font-semibold text-gray-900">Financial News</h4>
-            {data.news_cached && (
-              <span className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded-full">Cached</span>
-            )}
-          </div>
-
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {data.news && data.news.length > 0 ? (
-              data.news.map((article, index) => (
-                <a
-                  key={index}
-                  href={article.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors"
-                >
-                  <div className="flex gap-3">
-                    {article.image && (
-                      <img
-                        src={article.image}
-                        alt={article.title}
-                        className="w-16 h-16 rounded object-cover flex-shrink-0 bg-gray-100"
-                      />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm text-gray-900 line-clamp-2">{article.title}</p>
-                      <p className="text-xs text-gray-600 mt-1">{article.source}</p>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-xs text-gray-500">{formatTime(article.published_date)}</span>
-                        <ExternalLink className="w-3 h-3 text-gray-400" />
-                      </div>
-                    </div>
-                  </div>
-                </a>
-              ))
-            ) : (
-              <p className="text-center py-8 text-gray-500">No news articles available</p>
-            )}
-          </div>
-        </div>
-      </div>
-    </Collapsible>
+      )}
+    </div>
   )
 }

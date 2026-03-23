@@ -30,7 +30,7 @@ export default function LifeState({ state }: LifeStateProps) {
         {/* Salary */}
         <div className="space-y-1">
           <p className="text-sm text-gray-600">Annual Salary</p>
-          <p className="text-2xl font-bold text-blue-600">{formatCurrency(state.current_salary)}</p>
+          <p className="text-2xl font-bold text-cyan-600">{formatCurrency(state.current_salary)}</p>
           <p className="text-xs text-gray-500">{state.job_title}</p>
         </div>
 

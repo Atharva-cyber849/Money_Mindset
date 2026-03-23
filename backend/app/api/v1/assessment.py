@@ -4,7 +4,7 @@ Consolidates AI Analysis + Personality Assessment
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import uuid
 
 from app.core.security import get_current_active_user
@@ -27,18 +27,18 @@ class ComprehensiveAssessmentRequest(BaseModel):
 
 
 class AssessmentResult(BaseModel):
-    money_personality: str
+    money_personality: Optional[str] = None
     finance_iq_score: float
-    learning_gaps: List[str]
-    recommended_first_sim: str
-    personality_type: str
-    personality_name: str
-    personality_description: str
+    learning_gaps: Optional[List[str]] = None
+    recommended_first_sim: Optional[str] = None
+    personality_type: Optional[str] = None
+    personality_name: Optional[str] = None
+    personality_description: Optional[str] = None
     dimension_scores: Dict[str, float]
     confidence_score: float
-    strengths: List[str]
-    challenges: List[str]
-    learning_focus: List[str]
+    strengths: Optional[List[str]] = None
+    challenges: Optional[List[str]] = None
+    learning_focus: Optional[List[str]] = None
 
 
 @router.post("/comprehensive-submit", response_model=AssessmentResult)

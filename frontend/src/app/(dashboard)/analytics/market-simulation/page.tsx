@@ -5,7 +5,8 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { simulateInvestment, getAssetClasses } from '@/lib/api/analytics';
-import { Loader2, TrendingUp, DollarSign } from 'lucide-react';
+import { Loader2, TrendingUp, DollarSign, TrendingDown, BarChart3, Zap, TrendingUpIcon, PieChart } from 'lucide-react';
+import { DistributionBellCurve, StatisticsPulse, ExplanationCard, HowItWorks, ExampleShowcase, ConceptInfographic } from '@/components/analytics';
 
 export default function MarketSimulationPage() {
   const [assetClasses, setAssetClasses] = useState<any>({});
@@ -65,6 +66,115 @@ export default function MarketSimulationPage() {
         <p className="text-muted-foreground">
           Historical data-based Monte Carlo simulations to visualize risk vs return
         </p>
+      </div>
+
+      {/* Educational Infographics */}
+      <div className="mb-12 space-y-6">
+        {/* Explanation */}
+        <ExplanationCard
+          icon={TrendingUpIcon}
+          title="What is Market Simulation?"
+          description="Monte Carlo simulations run 1000+ virtual market scenarios using historical asset class data to show possible investment outcomes. This helps you see the range of possible results and understand investment risk vs. reward."
+          keyPoints={[
+            'Based on 20+ years of historical market data',
+            'Runs 1000 simulations to cover market scenarios',
+            'Shows percentile ranges (P10 to P90) of possible outcomes',
+            'Calculates probability of profit, loss, and wealth doubling',
+            'Helps set realistic expectations for your investments',
+          ]}
+          color="purple"
+          example="Investing $10K initial + $500/month for 10 years typically results in $85K-$220K depending on market conditions"
+        />
+
+        {/* How It Works */}
+        <HowItWorks
+          title="How Market Simulation Works"
+          steps={[
+            {
+              number: 1,
+              title: 'Enter Investment Parameters',
+              description: 'Specify your initial investment, monthly contribution, investment time horizon (years), and asset class (stocks, bonds, balanced).',
+              icon: DollarSign,
+            },
+            {
+              number: 2,
+              title: 'Run 1000 Simulations',
+              description: 'Our algorithm randomly samples historical returns to simulate 1000 potential market scenarios over your time period.',
+              icon: Zap,
+            },
+            {
+              number: 3,
+              title: 'Calculate Distribution',
+              description: 'We analyze all 1000 outcomes to determine percentiles (10th, 25th, 50th, 75th, 90th) showing the range of possible results.',
+              icon: BarChart3,
+            },
+            {
+              number: 4,
+              title: 'Compute Probabilities',
+              description: 'We calculate the likelihood of profit, doubling your investment, and experiencing losses. See your risk profile clearly.',
+              icon: TrendingUp,
+            },
+          ]}
+          color="purple"
+        />
+
+        {/* Visual Concept */}
+        <ConceptInfographic
+          title="Understanding Bell Curve Distribution"
+          subtitle="What the percentiles mean for your investment"
+          type="bars"
+          segments={[
+            {
+              label: 'P10 (Pessimistic)',
+              percentage: 10,
+              color: '#EF4444',
+              description: 'Worst 10% case',
+            },
+            {
+              label: 'P25',
+              percentage: 25,
+              color: '#F59E0B',
+              description: 'Below average',
+            },
+            {
+              label: 'P50 (Median)',
+              percentage: 50,
+              color: '#0891B2',
+              description: 'Most likely outcome',
+            },
+            {
+              label: 'P75',
+              percentage: 75,
+              color: '#06B6D4',
+              description: 'Above average',
+            },
+            {
+              label: 'P90 (Optimistic)',
+              percentage: 90,
+              color: '#10B981',
+              description: 'Best 10% case',
+            },
+          ]}
+        />
+
+        {/* Example */}
+        <ExampleShowcase
+          title="Market Simulation Example"
+          description="See possible outcomes for your investment strategy"
+          inputExample={[
+            { label: 'Initial Investment', value: '$10,000', highlight: true },
+            { label: 'Monthly Contribution', value: '$500' },
+            { label: 'Time Horizon', value: '10 years' },
+            { label: 'Asset Class', value: 'Balanced' },
+          ]}
+          outputExample={[
+            { label: 'P50 (Median)', value: '$125,000', highlight: true },
+            { label: 'P10 (Pessimistic)', value: '$85,000' },
+            { label: 'P90 (Optimistic)', value: '$180,000' },
+            { label: 'Profit Probability', value: '87%', highlight: true },
+          ]}
+          color="purple"
+        />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -151,110 +261,72 @@ export default function MarketSimulationPage() {
             {/* Summary Cards */}
             <div className="grid sm:grid-cols-2 gap-4">
               <Card className="p-6">
-                <div className="text-sm font-medium text-muted-foreground mb-3">
+                <div className="text-sm font-medium text-gray-600 mb-3">
                   Total Invested
                 </div>
-                <div className="text-2xl font-bold">
+                <div className="text-2xl font-bold text-gray-900">
                   {formatCurrency(result.total_invested)}
                 </div>
               </Card>
 
               <Card className="p-6">
-                <div className="text-sm font-medium text-muted-foreground mb-3">
-                  Expected Value
+                <div className="text-sm font-medium text-gray-600 mb-3">
+                  Expected Value (Median)
                 </div>
                 <div className="text-2xl font-bold text-green-600">
                   {formatCurrency(result.statistics.median)}
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-sm text-gray-600 mt-1">
                   {formatCurrency(result.returns.expected_gain)} gain
                 </p>
               </Card>
             </div>
 
-            {/* Percentile Ranges */}
-            <Card className="p-6">
-              <h3 className="text-lg font-bold mb-2">Potential Outcomes</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Distribution of {result.simulations_run.toLocaleString()} simulations
-              </p>
-              <div className="space-y-4">
-                {[
-                  { label: '10th Percentile (Pessimistic)', value: result.percentiles.p10, percent: 10 },
-                  { label: '25th Percentile', value: result.percentiles.p25, percent: 25 },
-                  { label: '50th Percentile (Median)', value: result.percentiles.p50, percent: 50 },
-                  { label: '75th Percentile', value: result.percentiles.p75, percent: 75 },
-                  { label: '90th Percentile (Optimistic)', value: result.percentiles.p90, percent: 90 },
-                ].map((item, idx) => (
-                  <div key={idx}>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>{item.label}</span>
-                      <span className="font-semibold">{formatCurrency(item.value)}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-primary h-2 rounded-full" style={{width: `${item.percent}%`}}></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* Probability Analysis */}
-            <Card className="p-6">
-              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
-                Probability Analysis
-              </h3>
-                <div className="grid sm:grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-3xl font-bold text-green-600">
-                      {result.probability_analysis.prob_profit}%
-                    </div>
-                    <div className="text-sm text-muted-foreground mt-1">Chance of Profit</div>
-                  </div>
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-3xl font-bold text-blue-600">
-                      {result.probability_analysis.prob_double}%
-                    </div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      Chance to Double
-                    </div>
-                  </div>
-                  <div className="text-center p-4 bg-red-50 rounded-lg">
-                    <div className="text-3xl font-bold text-red-600">
-                      {result.probability_analysis.prob_loss}%
-                    </div>
-                    <div className="text-sm text-muted-foreground mt-1">Risk of Loss</div>
-                  </div>
-                </div>
-            </Card>
+            {/* Distribution Bell Curve */}
+            <DistributionBellCurve
+              percentiles={{
+                p10: result.percentiles.p10,
+                p25: result.percentiles.p25,
+                p50: result.percentiles.p50,
+                p75: result.percentiles.p75,
+                p90: result.percentiles.p90,
+              }}
+              probability={{
+                profit: result.probability_analysis.prob_profit,
+                double: result.probability_analysis.prob_double,
+                loss: result.probability_analysis.prob_loss,
+              }}
+            />
 
             {/* Key Statistics */}
-            <Card className="p-6">
-              <h3 className="text-lg font-bold mb-4">Statistical Summary</h3>
-                <dl className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <dt className="text-sm text-muted-foreground">Mean Outcome</dt>
-                    <dd className="text-lg font-semibold">{formatCurrency(result.statistics.mean)}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-muted-foreground">Standard Deviation</dt>
-                    <dd className="text-lg font-semibold">{formatCurrency(result.statistics.std_dev)}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-muted-foreground">Best Case</dt>
-                    <dd className="text-lg font-semibold text-green-600">
-                      {formatCurrency(result.statistics.max)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-muted-foreground">Worst Case</dt>
-                    <dd className="text-lg font-semibold text-red-600">
-                      {formatCurrency(result.statistics.min)}
-                    </dd>
-                  </div>
-                </dl>
-            </Card>
+            <StatisticsPulse
+              stats={[
+                {
+                  label: 'Mean Outcome',
+                  value: Math.round(result.statistics.mean),
+                  icon: BarChart3,
+                  color: 'teal',
+                },
+                {
+                  label: 'Std Dev',
+                  value: Math.round(result.statistics.std_dev),
+                  icon: BarChart3,
+                  color: 'cyan',
+                },
+                {
+                  label: 'Best Case',
+                  value: Math.round(result.statistics.max),
+                  icon: TrendingUp,
+                  color: 'green',
+                },
+                {
+                  label: 'Worst Case',
+                  value: Math.round(result.statistics.min),
+                  icon: TrendingDown,
+                  color: 'red',
+                },
+              ]}
+            />
           </div>
         )}
 

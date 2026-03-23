@@ -2,7 +2,7 @@ export default function DashboardLoading() {
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-pulse">
       {/* Banner Skeleton */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 h-48"></div>
+      <div className="bg-gradient-to-r from-cyan-600 to-purple-600 rounded-2xl p-8 h-48"></div>
       
       {/* Stats Skeleton */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

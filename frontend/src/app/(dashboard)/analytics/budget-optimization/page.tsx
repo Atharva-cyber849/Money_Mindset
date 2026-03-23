@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Pill';
 import { analyzeBudget } from '@/lib/api/analytics';
-import { Loader2, AlertTriangle, CheckCircle, TrendingUp, Target } from 'lucide-react';
+import { Loader2, AlertTriangle, CheckCircle, TrendingUp, Target, Wallet, PiggyBank, Zap, DollarSign, BarChart3, Lightbulb } from 'lucide-react';
+import { BudgetBreakdownDonut, CircularHealthScore, StatisticsPulse, InsightCard, ExplanationCard, HowItWorks, ExampleShowcase, ConceptInfographic } from '@/components/analytics';
 
 export default function BudgetOptimizationPage() {
   const [income, setIncome] = useState('5000');
@@ -49,7 +50,7 @@ export default function BudgetOptimizationPage() {
 
   const getScoreColor = (score: number) => {
     if (score >= 90) return 'text-green-600';
-    if (score >= 75) return 'text-blue-600';
+    if (score >= 75) return 'text-cyan-600';
     if (score >= 60) return 'text-yellow-600';
     if (score >= 40) return 'text-orange-600';
     return 'text-red-600';
@@ -68,6 +69,111 @@ export default function BudgetOptimizationPage() {
         <p className="text-muted-foreground">
           Rule-based heuristics to analyze savings and expense ratios
         </p>
+      </div>
+
+      {/* Educational Infographics Section */}
+      <div className="mb-12 space-y-6">
+        {/* Explanation */}
+        <ExplanationCard
+          icon={Target}
+          title="What is Budget Optimization?"
+          description="The 50/30/20 rule is a proven budgeting framework that helps you allocate income across three categories: needs, wants, and savings. Our AI analyzes your spending to show how well you're aligned with this proven financial strategy."
+          keyPoints={[
+            '50% of income should go to needs (housing, food, utilities)',
+            '30% should go to wants (entertainment, dining, hobbies)',
+            '20% should go to savings and debt repayment',
+            'Helps identify overspending areas and savings opportunities',
+          ]}
+          color="teal"
+          example="If you earn $5,000/month: $2,500 needs, $1,500 wants, $1,000 savings"
+        />
+
+        {/* How It Works */}
+        <HowItWorks
+          title="How Budget Analysis Works"
+          steps={[
+            {
+              number: 1,
+              title: 'Enter Your Income & Expenses',
+              description: 'Input your monthly income and breakdown your expenses by category (housing, food, entertainment, etc.)',
+              icon: DollarSign,
+            },
+            {
+              number: 2,
+              title: 'AI Categorizes Your Spending',
+              description: 'Our algorithm automatically categorizes your expenses into Needs (50%), Wants (30%), and Savings (20%)',
+              icon: BarChart3,
+            },
+            {
+              number: 3,
+              title: 'Health Score Analysis',
+              description: 'We calculate your Budget Health Score (0-100) based on how well you follow the 50/30/20 rule',
+              icon: Target,
+            },
+            {
+              number: 4,
+              title: 'Get Recommendations',
+              description: 'Receive personalized recommendations to optimize your budget and increase savings potential',
+              icon: Lightbulb,
+            },
+          ]}
+          color="teal"
+        />
+
+        {/* Visual Concept */}
+        <ConceptInfographic
+          title="The 50/30/20 Budget Rule Explained"
+          subtitle="How your ideal budget should be allocated"
+          type="50-30-20"
+          segments={[
+            {
+              label: 'Needs',
+              percentage: 50,
+              color: '#0891B2',
+              description: 'Essential expenses',
+            },
+            {
+              label: 'Wants',
+              percentage: 30,
+              color: '#8B5CF6',
+              description: 'Lifestyle choices',
+            },
+            {
+              label: 'Savings',
+              percentage: 20,
+              color: '#10B981',
+              description: 'Financial security',
+            },
+          ]}
+        />
+
+        {/* Example */}
+        <ExampleShowcase
+          title="Budget Optimization Example"
+          description="See how our analysis helps you understand your spending"
+          inputExample={[
+            { label: 'Monthly Income', value: '$5,000', highlight: true },
+            { label: 'Housing Expenses', value: '$1,250' },
+            { label: 'Food & Groceries', value: '$400' },
+            { label: 'Entertainment', value: '$400' },
+            { label: 'Current Savings', value: '$800' },
+          ]}
+          outputExample={[
+            {
+              label: 'Health Score',
+              value: '78/100',
+              highlight: true,
+            },
+            { label: 'Needs Allocation', value: '52%' },
+            { label: 'Savings Rate', value: '18%' },
+            {
+              label: 'Optimization Potential',
+              value: '+$200/month',
+              highlight: true,
+            },
+          ]}
+          color="teal"
+        />
       </div>
 
       <div className="grid lg:grid-cols-5 gap-6">
@@ -131,107 +237,67 @@ export default function BudgetOptimizationPage() {
         {/* Results Panel */}
         {result && (
           <div className="lg:col-span-3 space-y-6">
-            {/* Health Score */}
-            <Card className="p-6">
-              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                <Target className="w-5 h-5" />
-                Budget Health Score
-              </h3>
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <div className={`text-5xl font-bold ${getScoreColor(result.health_score.score)}`}>
-                      {result.health_score.score}
-                    </div>
-                    <div className="text-2xl font-semibold text-muted-foreground mt-1">
-                      {result.health_score.rating}
-                    </div>
-                  </div>
-                  <div className="text-right space-y-2">
-                    <div className="text-sm text-muted-foreground">Savings Rate</div>
-                    <div className="text-2xl font-bold">
-                      {result.health_score.factors.savings_rate}%
-                    </div>
-                  </div>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div className="bg-primary h-3 rounded-full" style={{width: `${result.health_score.score}%`}}></div>
-                </div>
-              </div>
-            </Card>
+            {/* Health Score - Circular Visualization */}
+            <CircularHealthScore
+              score={result.health_score.score}
+              rating={result.health_score.rating}
+              factors={result.health_score.factors}
+            />
 
-            {/* 50/30/20 Analysis */}
-            <Card className="p-6">
-              <h3 className="text-lg font-bold mb-2">50/30/20 Rule Analysis</h3>
-              <p className="text-sm text-muted-foreground mb-4">Recommended budget framework</p>
-              <div className="space-y-4">
-                {Object.entries(result.fifty_thirty_twenty).map(([key, data]: [string, any]) => {
-                  if (key === 'overall_compliance') return null;
-                  
-                  const percentage = data.percentage;
-                  const target = data.target;
-                  const status = data.status;
-                  
-                  return (
-                    <div key={key} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <span className="font-semibold capitalize">{key}</span>
-                          <span className="text-sm text-muted-foreground ml-2">
-                            ${data.amount.toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={status === 'on_track' ? 'success' : 'danger'}>
-                            {percentage}% / {target}%
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="relative">
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div className="bg-primary h-2 rounded-full" style={{width: `${percentage}%`}}></div>
-                        </div>
-                        <div
-                          className="absolute top-0 h-2 w-0.5 bg-primary"
-                          style={{ left: `${target}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-                
-                {result.fifty_thirty_twenty.overall_compliance && (
-                  <div className="pt-4 border-t">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold">Overall Score</span>
-                      <Badge variant="neutral" className="text-lg">
-                        {result.fifty_thirty_twenty.overall_compliance.grade}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {result.fifty_thirty_twenty.overall_compliance.message}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </Card>
+            {/* Budget Breakdown Donut */}
+            <BudgetBreakdownDonut
+              budget_breakdown={{ needs: 50, wants: 30, savings: 20 }}
+              actual={{
+                needs: result.fifty_thirty_twenty.needs?.percentage || 0,
+                wants: result.fifty_thirty_twenty.wants?.percentage || 0,
+                savings: result.fifty_thirty_twenty.savings?.percentage || 0,
+              }}
+              compliance={result.fifty_thirty_twenty.overall_compliance?.compliance == true}
+            />
+
+            {/* Key Statistics */}
+            <StatisticsPulse
+              stats={[
+                {
+                  label: 'Savings Rate',
+                  value: result.health_score.factors.savings_rate,
+                  icon: PiggyBank,
+                  color: 'green',
+                },
+                {
+                  label: 'Current Score',
+                  value: result.health_score.score,
+                  icon: Target,
+                  color: 'teal',
+                },
+                {
+                  label: 'Monthly Income',
+                  value: parseFloat(income) || 0,
+                  icon: TrendingUp,
+                  color: 'cyan',
+                },
+                {
+                  label: 'Monthly Savings',
+                  value: parseFloat(savings) || 0,
+                  icon: Wallet,
+                  color: 'purple',
+                },
+              ]}
+            />
 
             {/* Recommendations */}
             {result.recommendations && result.recommendations.length > 0 && (
               <Card className="p-6">
-                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
-                  Optimization Recommendations
-                </h3>
+                <h3 className="text-lg font-bold mb-4">Optimization Recommendations</h3>
                 <div className="space-y-3">
                   {result.recommendations.map((rec: any, idx: number) => (
-                    <div key={idx} className="flex gap-3 p-3 border rounded-lg">
-                      {getPriorityIcon(rec.priority)}
-                      <div className="flex-1">
-                        <div className="font-semibold text-sm mb-1">{rec.issue}</div>
-                        <div className="text-sm text-muted-foreground">{rec.suggestion}</div>
-                      </div>
-                    </div>
+                    <InsightCard
+                      key={idx}
+                      icon={rec.priority === 'high' ? AlertTriangle : CheckCircle}
+                      title={rec.issue}
+                      description={rec.suggestion}
+                      color={rec.priority === 'high' ? 'red' : rec.priority === 'medium' ? 'yellow' : 'green'}
+                    />
                   ))}
                 </div>
               </Card>
@@ -241,30 +307,28 @@ export default function BudgetOptimizationPage() {
             {result.optimization_potential && (
               <Card className="p-6">
                 <h3 className="text-lg font-bold mb-4">Optimization Potential</h3>
-                <div>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="text-center p-4 bg-muted rounded-lg">
-                      <div className="text-2xl font-bold">
-                        ${result.optimization_potential.potential_additional_savings.toLocaleString()}
-                      </div>
-                      <div className="text-sm text-muted-foreground mt-1">
-                        Potential Monthly Savings
-                      </div>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+                    <div className="text-2xl font-bold text-green-600">
+                      ${result.optimization_potential.potential_additional_savings.toLocaleString()}
                     </div>
-                    <div className="text-center p-4 bg-muted rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">
-                        {result.optimization_potential.potential_savings_rate}%
-                      </div>
-                      <div className="text-sm text-muted-foreground mt-1">
-                        Potential Savings Rate
-                      </div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      Potential Monthly Savings
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-4">
-                    By optimizing expenses to recommended levels, you could increase your savings
-                    rate by {result.optimization_potential.improvement}%.
-                  </p>
+                  <div className="text-center p-4 bg-cyan-50 rounded-lg border border-cyan-200">
+                    <div className="text-2xl font-bold text-cyan-600">
+                      {result.optimization_potential.potential_savings_rate}%
+                    </div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      Potential Savings Rate
+                    </div>
+                  </div>
                 </div>
+                <p className="text-sm text-gray-600 mt-4">
+                  By optimizing expenses to recommended levels, you could increase your savings
+                  rate by {result.optimization_potential.improvement}%.
+                </p>
               </Card>
             )}
           </div>

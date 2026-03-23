@@ -73,7 +73,7 @@ export default function RegisterPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-gradient-to-br from-cyan-600 to-purple-600 rounded-xl flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-white" />
             </div>
             <span className="text-2xl font-bold">Money Mindset</span>
@@ -186,15 +186,15 @@ export default function RegisterPage() {
               <input 
                 type="checkbox" 
                 required
-                className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
+                className="mt-1 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500" 
               />
               <span className="ml-2 text-sm text-gray-600">
                 I agree to the{' '}
-                <Link href="/terms" className="text-blue-600 hover:text-blue-700">
+                <Link href="/terms" className="text-cyan-600 hover:text-cyan-700">
                   Terms of Service
                 </Link>
                 {' '}and{' '}
-                <Link href="/privacy" className="text-blue-600 hover:text-blue-700">
+                <Link href="/privacy" className="text-cyan-600 hover:text-cyan-700">
                   Privacy Policy
                 </Link>
               </span>
@@ -214,7 +214,7 @@ export default function RegisterPage() {
         {/* Login Link */}
         <p className="text-center mt-6 text-gray-600">
           Already have an account?{' '}
-          <Link href="/login" className="text-blue-600 hover:text-blue-700 font-medium">
+          <Link href="/login" className="text-cyan-600 hover:text-cyan-700 font-medium">
             Sign in
           </Link>
         </p>

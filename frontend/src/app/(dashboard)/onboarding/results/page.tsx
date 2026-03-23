@@ -22,7 +22,7 @@ const PERSONALITY_EMOJIS: Record<string, string> = {
 }
 
 const PERSONALITY_COLORS: Record<string, string> = {
-  'The Careful Builder': 'from-blue-600 to-blue-800',
+  'The Careful Builder': 'from-cyan-600 to-blue-800',
   'The Ambitious Investor': 'from-purple-600 to-pink-600',
   'The Overwhelmed Earner': 'from-orange-600 to-red-600',
   'The Smart Saver': 'from-emerald-600 to-teal-600',
@@ -80,7 +80,7 @@ Ready to master my finances with Money Mindset! 🚀`
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
+          <Loader2 className="w-12 h-12 text-cyan-500 animate-spin mx-auto mb-4" />
           <p className="text-slate-300">Analysing your financial fingerprint...</p>
         </div>
       </div>
@@ -98,7 +98,7 @@ Ready to master my finances with Money Mindset! 🚀`
   }
 
   const personalityEmoji = PERSONALITY_EMOJIS[profile.money_personality] || '💎'
-  const personalityColor = PERSONALITY_COLORS[profile.money_personality] || 'from-blue-600 to-purple-600'
+  const personalityColor = PERSONALITY_COLORS[profile.money_personality] || 'from-cyan-600 to-purple-600'
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
@@ -238,7 +238,7 @@ Ready to master my finances with Money Mindset! 🚀`
           </Button>
           <Button
             onClick={handleStart}
-            className="flex-1 h-12 bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg flex items-center justify-center gap-2"
+            className="flex-1 h-12 bg-gradient-to-r from-cyan-600 to-purple-600 text-white hover:shadow-lg flex items-center justify-center gap-2"
           >
             <CheckCircle2 className="w-4 h-4" />
             Let's Get Started

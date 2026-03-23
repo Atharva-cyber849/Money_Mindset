@@ -18,7 +18,7 @@ export function Badge({ children, variant = 'neutral', size = 'md', icon: Icon, 
     success: 'bg-wealth-green-light text-wealth-green-dark border-wealth-green',
     warning: 'bg-warning-amber-light text-amber-800 border-warning-amber',
     danger: 'bg-danger-red-light text-red-800 border-danger-red',
-    info: 'bg-info-blue-light text-blue-800 border-info-blue',
+    info: 'bg-info-blue-light text-cyan-800 border-info-blue',
     neutral: 'bg-gray-100 text-text-secondary border-border',
   }
 
@@ -70,7 +70,7 @@ export function PillButton({
       : 'bg-danger-red-light text-red-800 hover:bg-danger-red/20',
     info: active
       ? 'bg-info-blue text-white'
-      : 'bg-info-blue-light text-blue-800 hover:bg-info-blue/20',
+      : 'bg-info-blue-light text-cyan-800 hover:bg-info-blue/20',
     neutral: active
       ? 'bg-text-primary text-white'
       : 'bg-gray-100 text-text-secondary hover:bg-gray-200',
@@ -81,7 +81,7 @@ export function PillButton({
       className={cn(
         'inline-flex items-center gap-2 px-4 py-2 font-medium text-sm rounded-full',
         'transition-all duration-base hover:shadow-md active:scale-98',
-        'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-info-blue',
+        'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500',
         'disabled:opacity-50 disabled:cursor-not-allowed',
         variants[variant],
         className

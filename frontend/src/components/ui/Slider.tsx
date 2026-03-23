@@ -11,7 +11,7 @@ interface SliderProps {
   onChange: (value: number) => void
   label?: string
   format?: (value: number) => string
-  color?: 'blue' | 'green' | 'purple' | 'yellow'
+  color?: 'blue' | 'green' | 'purple' | 'yellow' | 'red' | 'amber' | 'cyan'
 }
 
 export function Slider({
@@ -27,17 +27,23 @@ export function Slider({
   const [isDragging, setIsDragging] = useState(false)
 
   const colorClasses = {
-    blue: 'bg-blue-500',
+    blue: 'bg-cyan-500',
     green: 'bg-green-500',
     purple: 'bg-purple-500',
     yellow: 'bg-yellow-500',
+    red: 'bg-red-500',
+    amber: 'bg-amber-500',
+    cyan: 'bg-cyan-500',
   }
 
   const thumbColorClasses = {
-    blue: 'bg-blue-600 ring-blue-200',
+    blue: 'bg-cyan-600 ring-blue-200',
     green: 'bg-green-600 ring-green-200',
     purple: 'bg-purple-600 ring-purple-200',
     yellow: 'bg-yellow-600 ring-yellow-200',
+    red: 'bg-red-600 ring-red-200',
+    amber: 'bg-amber-600 ring-amber-200',
+    cyan: 'bg-cyan-600 ring-cyan-200',
   }
 
   const percent = ((value - min) / (max - min)) * 100

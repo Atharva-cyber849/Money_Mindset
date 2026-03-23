@@ -2,7 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { api } from '@/lib/api/client';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
@@ -36,11 +36,11 @@ export default function SIPChronclesResults() {
           return;
         }
 
-        const response = await axios.get(`/api/v1/games/sip/${sessionId}`);
+        const response = await api.get(`/games/sip/${sessionId}`);
         const data = response.data;
 
         // Need to get the complete results - call completion endpoint instead
-        const completeResponse = await axios.post(`/api/v1/games/sip/${sessionId}/complete`);
+        const completeResponse = await api.post(`/games/sip/${sessionId}/complete`);
         setResults(completeResponse.data);
       } catch (err) {
         setError('Failed to load results');
@@ -85,7 +85,7 @@ export default function SIPChronclesResults() {
 
   const getMultiplierColor = (multiplier: number) => {
     if (multiplier >= 4) return 'text-green-600';
-    if (multiplier >= 3) return 'text-blue-600';
+    if (multiplier >= 3) return 'text-cyan-600';
     if (multiplier >= 2) return 'text-amber-600';
     return 'text-gray-600';
   };
@@ -149,9 +149,9 @@ export default function SIPChronclesResults() {
 
       {/* Tax Benefit (ELSS) */}
       {results.tax_savings > 0 && (
-        <Card className="p-6 bg-blue-50">
+        <Card className="p-6 bg-cyan-50">
           <h3 className="font-bold mb-2">💰 Tax Savings (ELSS Benefit)</h3>
-          <p className="text-2xl font-bold text-blue-600">₹{results.tax_savings.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-cyan-600">₹{results.tax_savings.toLocaleString()}</p>
           <p className="text-sm text-gray-600 mt-2">Additional savings from 80C deduction</p>
         </Card>
       )}

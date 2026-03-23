@@ -67,7 +67,7 @@ export default function VerifyEmailPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-gradient-to-br from-cyan-600 to-purple-600 rounded-xl flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-white" />
             </div>
             <span className="text-2xl font-bold">Money Mindset</span>
@@ -98,9 +98,9 @@ export default function VerifyEmailPage() {
               )}
 
               {/* Email Display */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
-                <Mail className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-blue-800">{email}</p>
+              <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-4 flex items-start gap-3">
+                <Mail className="w-5 h-5 text-cyan-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-cyan-800">{email}</p>
               </div>
 
               {/* OTP Input */}
@@ -127,7 +127,7 @@ export default function VerifyEmailPage() {
               <Button
                 type="submit"
                 disabled={loading || otp.length !== 6}
-                className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg disabled:opacity-50"
+                className="w-full h-12 bg-gradient-to-r from-cyan-600 to-purple-600 text-white hover:shadow-lg disabled:opacity-50"
               >
                 {loading ? (
                   <>
@@ -150,7 +150,7 @@ export default function VerifyEmailPage() {
         {/* Login Link */}
         <p className="text-center text-sm text-gray-600 mt-8">
           Already have an account?{' '}
-          <Link href="/login" className="font-semibold text-blue-600 hover:text-blue-700">
+          <Link href="/login" className="font-semibold text-cyan-600 hover:text-cyan-700">
             Sign in
           </Link>
         </p>

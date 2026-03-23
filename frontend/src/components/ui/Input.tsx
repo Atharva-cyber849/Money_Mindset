@@ -40,7 +40,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             type={type}
             className={cn(
               'w-full h-12 px-4 text-base border-2 rounded-lg transition-all',
-              'focus:outline-none focus:border-info-blue focus:ring-4 focus:ring-info-blue/10',
+              'focus:outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10',
               'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-background',
               error ? 'border-danger-red focus:border-danger-red focus:ring-danger-red/10' : 'border-border',
               Icon && 'pl-12',
@@ -114,7 +114,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           ref={ref}
           className={cn(
             'w-full min-h-[120px] px-4 py-3 text-base border-2 rounded-lg transition-all resize-none',
-            'focus:outline-none focus:border-info-blue focus:ring-4 focus:ring-info-blue/10',
+            'focus:outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10',
             'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-background',
             error ? 'border-danger-red focus:border-danger-red focus:ring-danger-red/10' : 'border-border',
             className

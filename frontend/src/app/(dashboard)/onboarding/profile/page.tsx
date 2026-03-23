@@ -62,7 +62,7 @@ export default function ProfileSetupPage() {
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm font-medium text-slate-400">Step 1 of 3</span>
             <div className="w-32 h-1 bg-slate-700 rounded-full overflow-hidden">
-              <div className="w-1/3 h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full"></div>
+              <div className="w-1/3 h-full bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full"></div>
             </div>
           </div>
         </div>
@@ -112,7 +112,7 @@ export default function ProfileSetupPage() {
                 name="age_group"
                 value={formData.age_group}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={loading}
               >
                 <option value="">Select an age group...</option>
@@ -133,7 +133,7 @@ export default function ProfileSetupPage() {
                 name="language"
                 value={formData.language}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={loading}
               >
                 <option value="en">English</option>
@@ -147,7 +147,7 @@ export default function ProfileSetupPage() {
             <Button
               type="submit"
               disabled={loading || !formData.name.trim() || !formData.age_group}
-              className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full h-12 bg-gradient-to-r from-cyan-600 to-purple-600 text-white hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>

@@ -52,9 +52,14 @@ class Settings(BaseSettings):
     # yfinance Fallback
     YFINANCE_ENABLED: bool = True
 
+    # News API
+    NEWSAPI_KEY: str = ""
+    NEWSAPI_ENABLED: bool = False
+
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"
 
 
 settings = Settings()

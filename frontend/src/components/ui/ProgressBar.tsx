@@ -5,15 +5,15 @@ import gsap from 'gsap'
 
 interface ProgressBarProps {
   percent: number
-  color?: 'blue' | 'green' | 'purple' | 'yellow' | 'red'
+  color?: 'cyan' | 'blue' | 'green' | 'purple' | 'yellow' | 'red'
   height?: string
   showLabel?: boolean
   animate?: boolean
 }
 
-export function ProgressBar({ 
-  percent, 
-  color = 'blue', 
+export function ProgressBar({
+  percent,
+  color = 'cyan',
   height = 'h-3',
   showLabel = false,
   animate = true
@@ -52,7 +52,8 @@ export function ProgressBar({
   }, [percent, animate, showLabel])
 
   const colorClasses = {
-    blue: 'bg-blue-500',
+    cyan: 'bg-cyan-500',
+    blue: 'bg-cyan-500',
     green: 'bg-green-500',
     purple: 'bg-purple-500',
     yellow: 'bg-yellow-500',

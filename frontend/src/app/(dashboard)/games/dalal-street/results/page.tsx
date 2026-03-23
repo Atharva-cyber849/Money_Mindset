@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import axios from 'axios';
+import { api } from '@/lib/api/client';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -33,7 +33,7 @@ interface ResultsData {
 
 const getScoreBadge = (score: number) => {
   if (score >= 90) return { emoji: '🏆', label: 'Expert', color: 'from-yellow-400 to-yellow-600' };
-  if (score >= 80) return { emoji: '⭐', label: 'Proficient', color: 'from-blue-400 to-blue-600' };
+  if (score >= 80) return { emoji: '⭐', label: 'Proficient', color: 'from-cyan-400 to-cyan-600' };
   if (score >= 70) return { emoji: '✨', label: 'Competent', color: 'from-purple-400 to-purple-600' };
   if (score >= 60) return { emoji: '👍', label: 'Adequate', color: 'from-green-400 to-green-600' };
   return { emoji: '📚', label: 'Novice', color: 'from-gray-400 to-gray-600' };
@@ -56,7 +56,7 @@ export default function DalalStreetResults({ searchParams }: { searchParams?: Re
 
   const loadResults = async () => {
     try {
-      const response = await axios.get(`/api/v1/games/dalal/${sessionId}`);
+      const response = await api.get(`/games/dalal/${sessionId}`);
       // Parse the data from the session
       const quarterly = JSON.parse(response.data.quarterly_snapshots || '[]');
 
@@ -139,7 +139,7 @@ export default function DalalStreetResults({ searchParams }: { searchParams?: Re
           <div className="text-5xl">⏱️</div>
           <div>
             <p className="text-gray-600 mb-1">Timing Score</p>
-            <p className="text-4xl font-bold text-blue-600">{Math.round(results.final_scores.timing)}</p>
+            <p className="text-4xl font-bold text-cyan-600">{Math.round(results.final_scores.timing)}</p>
             <p className="text-sm text-gray-600 mt-1">{getScoreBadge(results.final_scores.timing).label}</p>
           </div>
           <div className="bg-gray-100 p-3 rounded text-sm text-gray-700">
@@ -179,7 +179,7 @@ export default function DalalStreetResults({ searchParams }: { searchParams?: Re
         <h3 className="text-2xl font-bold">Portfolio Performance</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           <div className="text-center">
-            <p className="text-3xl font-bold text-blue-600">
+            <p className="text-3xl font-bold text-cyan-600">
               ₹{results.portfolio_performance.starting_value.toLocaleString()}
             </p>
             <p className="text-gray-600">Starting Value</p>
@@ -215,7 +215,7 @@ export default function DalalStreetResults({ searchParams }: { searchParams?: Re
       <Card className="p-6 space-y-4">
         <h3 className="text-2xl font-bold">Your Performance vs Market</h3>
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-blue-50 p-4 rounded">
+          <div className="bg-cyan-50 p-4 rounded">
             <p className="text-sm text-gray-600">Your Return</p>
             <p className={`text-2xl font-bold ${
               results.portfolio_performance.return_percentage >= 0 ? 'text-green-600' : 'text-red-600'
@@ -258,7 +258,7 @@ export default function DalalStreetResults({ searchParams }: { searchParams?: Re
       </Card>
 
       {/* Key Insights */}
-      <Card className="p-6 bg-blue-50 border border-blue-200 space-y-4">
+      <Card className="p-6 bg-cyan-50 border border-cyan-200 space-y-4">
         <h3 className="text-lg font-bold">💡 Key Insights</h3>
         <ul className="space-y-2 text-sm">
           <li>
@@ -280,7 +280,7 @@ export default function DalalStreetResults({ searchParams }: { searchParams?: Re
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Button
           onClick={() => router.push('/games')}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
+          className="bg-cyan-600 hover:bg-blue-700 text-white"
         >
           <Home className="w-4 h-4 mr-2" />
           Back to Games

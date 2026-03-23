@@ -31,10 +31,10 @@ class QuizSubmissionRequest(BaseModel):
 
 
 class FinancialProfileResponse(BaseModel):
-    money_personality: str
+    money_personality: Optional[str] = None
     finance_iq_score: float
-    learning_gaps: Optional[List[str]]
-    recommended_first_sim: str
+    learning_gaps: Optional[List[str]] = None
+    recommended_first_sim: Optional[str] = None
 
     class Config:
         from_attributes = True

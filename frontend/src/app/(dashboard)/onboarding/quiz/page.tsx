@@ -152,7 +152,7 @@ export default function QuizPage() {
             <span className="text-sm font-medium text-slate-400">Question {currentStep + 1} of {QUESTIONS.length}</span>
             <div className="w-32 h-1 bg-slate-700 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full transition-all duration-300"
+                className="h-full bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full transition-all duration-300"
                 style={{ width: `${((currentStep + 1) / QUESTIONS.length) * 100}%` }}
               ></div>
             </div>
@@ -182,7 +182,7 @@ export default function QuizPage() {
                 onClick={() => handleSelect(index)}
                 className={`w-full p-4 rounded-lg border-2 transition-all text-left font-medium text-base ${
                   answers[question.key] === index
-                    ? 'bg-blue-600/20 border-blue-500 text-white'
+                    ? 'bg-cyan-600/20 border-cyan-500 text-white'
                     : 'bg-slate-700/50 border-slate-600 text-slate-200 hover:border-slate-500'
                 }`}
               >
@@ -229,7 +229,7 @@ export default function QuizPage() {
                 type="button"
                 onClick={handleNext}
                 disabled={!isAnswered}
-                className="flex-1 h-12 bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 h-12 bg-gradient-to-r from-cyan-600 to-purple-600 text-white hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 Next
                 <ChevronRight className="w-4 h-4" />

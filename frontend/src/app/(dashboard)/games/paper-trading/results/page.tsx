@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Trophy, TrendingUp, Award } from 'lucide-react';
+import { api } from '@/lib/api/client';
 
 export default function PaperTradingResults({ params }: { params: { sessionId: string } }) {
   const [session, setSession] = useState<any>(null);
@@ -14,11 +15,8 @@ export default function PaperTradingResults({ params }: { params: { sessionId: s
 
   const fetchSession = async () => {
     try {
-      const response = await fetch(`/api/games/paper-trading/${params.sessionId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setSession(data);
-      }
+      const response = await api.get(`/games/paper-trading/${params.sessionId}`);
+      setSession(response.data);
     } catch (err) {
       console.error('Failed to fetch session:', err);
     } finally {
@@ -82,13 +80,13 @@ export default function PaperTradingResults({ params }: { params: { sessionId: s
           </div>
 
           {/* Total Score */}
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-lg shadow-lg">
+          <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 text-white p-6 rounded-lg shadow-lg">
             <div className="flex items-center justify-between mb-2">
               <span className="font-medium">Trading Score</span>
               <Award />
             </div>
             <p className="text-3xl font-bold">{Math.round(scores.total_score || 0)}/100</p>
-            <p className="text-sm mt-2 text-blue-100">Your performance rating</p>
+            <p className="text-sm mt-2 text-cyan-100">Your performance rating</p>
           </div>
         </div>
 
@@ -130,9 +128,9 @@ export default function PaperTradingResults({ params }: { params: { sessionId: s
         </div>
 
         {/* Recommendations */}
-        <div className="bg-blue-50 border border-blue-200 p-6 rounded-lg mb-8">
-          <h3 className="font-bold text-blue-900 mb-4">📚 Learning Recommendations</h3>
-          <ul className="space-y-2 text-blue-800 text-sm">
+        <div className="bg-cyan-50 border border-cyan-200 p-6 rounded-lg mb-8">
+          <h3 className="font-bold text-cyan-900 mb-4">📚 Learning Recommendations</h3>
+          <ul className="space-y-2 text-cyan-800 text-sm">
             {pnl < 0 && <li>• Focus on risk management: Consider using stop-losses to limit downside</li>}
             {scores.diversification_score < 15 && <li>• Improve diversification: Spread across more sectors and asset classes</li>}
             {scores.timing_score < 10 && <li>• Work on entry/exit timing: Study market patterns and technical analysis</li>}
@@ -151,7 +149,7 @@ export default function PaperTradingResults({ params }: { params: { sessionId: s
           </Link>
           <Link
             href="/dashboard/games/paper-trading"
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-center"
+            className="px-6 py-3 bg-cyan-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-center"
           >
             Try Again
           </Link>

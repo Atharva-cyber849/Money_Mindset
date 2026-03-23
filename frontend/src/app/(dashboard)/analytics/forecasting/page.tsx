@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Pill';
 import { forecastCategory } from '@/lib/api/analytics';
-import { Loader2, TrendingUp, TrendingDown, Minus, BarChart3 } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, Minus, BarChart3, TrendingUpIcon, Lightbulb, Calendar, Clock, AlertCircle } from 'lucide-react';
+import { ForecastLineChart, StatisticsPulse, InsightCard, ExplanationCard, HowItWorks, ExampleShowcase } from '@/components/analytics';
 
 export default function ForecastingPage() {
   const [category, setCategory] = useState('groceries');
@@ -58,6 +59,76 @@ export default function ForecastingPage() {
         <p className="text-muted-foreground">
           Time-series analysis to predict future spending trends
         </p>
+      </div>
+
+      {/* Educational Infographics */}
+      <div className="mb-12 space-y-6">
+        {/* Explanation */}
+        <ExplanationCard
+          icon={TrendingUp}
+          title="What is Spending Forecasting?"
+          description="Forecasting predicts future spending patterns by analyzing your historical spending data. Using time-series analysis, we identify trends and project what you'll likely spend in upcoming months."
+          keyPoints={[
+            'Analyzes your historical spending data across months',
+            'Identifies increasing or decreasing trends in your expenses',
+            'Projects future spending with confidence intervals',
+            'Helps you plan budgets and anticipate financial needs',
+            'More data points = more accurate predictions',
+          ]}
+          color="blue"
+          example="If you spent $500, $520, $480, $510 on groceries, we predict next month will be around $505 ± $25"
+        />
+
+        {/* How It Works */}
+        <HowItWorks
+          title="How Spending Forecast Works"
+          steps={[
+            {
+              number: 1,
+              title: 'Input Historical Data',
+              description: 'Enter your monthly spending amounts for a specific category (e.g., groceries, entertainment). More months of data = better accuracy.',
+              icon: Calendar,
+            },
+            {
+              number: 2,
+              title: 'Analyze Trends',
+              description: 'Our algorithm identifies if your spending is increasing, decreasing, or staying stable over time.',
+              icon: TrendingUp,
+            },
+            {
+              number: 3,
+              title: 'Calculate Statistics',
+              description: 'We compute average spending, variation (std dev), and identify minimum/maximum spending months.',
+              icon: BarChart3,
+            },
+            {
+              number: 4,
+              title: 'Generate Forecast',
+              description: 'We project future spending for your chosen months with confidence intervals showing likely range.',
+              icon: Clock,
+            },
+          ]}
+          color="blue"
+        />
+
+        {/* Example */}
+        <ExampleShowcase
+          title="Forecasting Example"
+          description="See how we predict your future spending based on history"
+          inputExample={[
+            { label: 'Category', value: 'Restaurants' },
+            { label: 'Historical Data (6 months)', value: '$300-400', highlight: true },
+            { label: 'Months to Forecast', value: '3 months' },
+            { label: 'Average Monthly', value: '$350' },
+          ]}
+          outputExample={[
+            { label: 'Month 1 Prediction', value: '$355' },
+            { label: 'Confidence Range', value: '$320-390', highlight: true },
+            { label: 'Trend Direction', value: 'Stable' },
+            { label: 'Recommendation', value: 'Budget $380' },
+          ]}
+          color="blue"
+        />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -118,127 +189,68 @@ export default function ForecastingPage() {
         {/* Results Panel */}
         {result && (
           <div className="lg:col-span-2 space-y-6">
-            {/* Trend Analysis */}
-            <Card className="p-6">
-              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                {getTrendIcon(result.trend.trend)}
-                Trend Analysis
-              </h3>
-              <div>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className={`p-4 rounded-lg ${getTrendColor(result.trend.trend)}`}>
-                    <div className="text-sm font-medium mb-1">Trend Direction</div>
-                    <div className="text-2xl font-bold capitalize">{result.trend.trend}</div>
-                  </div>
-                  <div className="p-4 rounded-lg bg-muted">
-                    <div className="text-sm font-medium mb-1">Monthly Change</div>
-                    <div className="text-2xl font-bold">
-                      ${Math.abs(result.trend.monthly_change).toFixed(2)}
-                      {result.trend.monthly_change >= 0 ? ' ↑' : ' ↓'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
+            {/* Forecast Line Chart */}
+            <ForecastLineChart
+              historicalData={result.historical_data?.map((val: number, idx: number) => ({
+                month: `Month ${idx + 1}`,
+                value: Math.round(val),
+              })) || []}
+              predictions={result.predictions?.map((pred: any) => ({
+                month: `M${pred.month}`,
+                value: Math.round(pred.predicted),
+                low: Math.round(pred.confidence_low),
+                high: Math.round(pred.confidence_high),
+              })) || []}
+              months={result.predictions?.length || 0}
+            />
 
-            {/* Historical Stats */}
-            <Card className="p-6">
-              <h3 className="text-lg font-bold mb-2">Historical Statistics</h3>
-              <p className="text-sm text-muted-foreground mb-4">Based on {result.historical_stats.data_points} months</p>
-              <div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Average</div>
-                    <div className="text-xl font-bold">
-                      ${result.historical_stats.average.toLocaleString()}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Std Dev</div>
-                    <div className="text-xl font-bold">
-                      ${result.historical_stats.std_dev.toLocaleString()}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Min</div>
-                    <div className="text-xl font-bold text-green-600">
-                      ${result.historical_stats.min.toLocaleString()}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Max</div>
-                    <div className="text-xl font-bold text-red-600">
-                      ${result.historical_stats.max.toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
+            {/* Key Statistics */}
+            <StatisticsPulse
+              stats={[
+                {
+                  label: 'Average',
+                  value: Math.round(result.historical_stats.average),
+                  icon: BarChart3,
+                  color: 'teal',
+                },
+                {
+                  label: 'Min',
+                  value: Math.round(result.historical_stats.min),
+                  icon: TrendingDown,
+                  color: 'green',
+                },
+                {
+                  label: 'Max',
+                  value: Math.round(result.historical_stats.max),
+                  icon: TrendingUp,
+                  color: 'red',
+                },
+                {
+                  label: 'Std Dev',
+                  value: Math.round(result.historical_stats.std_dev),
+                  icon: BarChart3,
+                  color: 'cyan',
+                },
+              ]}
+            />
 
-            {/* Predictions */}
-            <Card className="p-6">
-              <h3 className="text-lg font-bold mb-2">Forecast Predictions</h3>
-              <p className="text-sm text-muted-foreground mb-4">Predicted spending with confidence intervals</p>
-              <div>
-                <div className="space-y-4">
-                  {result.predictions.map((pred: any, idx: number) => (
-                    <div key={idx} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <span className="text-sm text-muted-foreground">Month {pred.month}</span>
-                        </div>
-                        <Badge variant="neutral">{pred.confidence_level}</Badge>
-                      </div>
-                      
-                      <div className="text-center mb-3">
-                        <div className="text-3xl font-bold">
-                          ${pred.predicted.toLocaleString()}
-                        </div>
-                        <div className="text-sm text-muted-foreground">Predicted Amount</div>
-                      </div>
-
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="text-green-600">
-                          Low: ${pred.confidence_low.toLocaleString()}
-                        </div>
-                        <div className="text-red-600">
-                          High: ${pred.confidence_high.toLocaleString()}
-                        </div>
-                      </div>
-                      
-                      <div className="relative mt-3 h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div
-                          className="absolute h-full bg-green-300"
-                          style={{
-                            left: '0%',
-                            width: `${((pred.predicted - pred.confidence_low) / (pred.confidence_high - pred.confidence_low)) * 100}%`,
-                          }}
-                        />
-                        <div
-                          className="absolute h-full bg-primary"
-                          style={{
-                            left: `${((pred.predicted - pred.confidence_low) / (pred.confidence_high - pred.confidence_low)) * 100}%`,
-                            width: '2px',
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Card>
+            {/* Trend Analysis with Insight */}
+            <InsightCard
+              icon={result.trend.trend === 'increasing' ? TrendingUp : result.trend.trend === 'decreasing' ? TrendingDown : Minus}
+              title={`Spending Trend: ${result.trend.trend.charAt(0).toUpperCase() + result.trend.trend.slice(1)}`}
+              description={`Monthly change: ${result.trend.monthly_change >= 0 ? '+' : ''}$${Math.abs(result.trend.monthly_change).toFixed(2)}`}
+              color={result.trend.trend === 'increasing' ? 'red' : result.trend.trend === 'decreasing' ? 'green' : 'yellow'}
+            />
 
             {/* Recommendation */}
             {result.recommendation && (
-              <Card className="p-6">
-                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" />
-                  Recommendation
-                </h3>
-                <div>
-                  <p className="text-muted-foreground">{result.recommendation}</p>
-                </div>
-              </Card>
+              <InsightCard
+                icon={Lightbulb}
+                title="Forecast Insight"
+                description={result.recommendation}
+                color="cyan"
+                featured
+              />
             )}
           </div>
         )}

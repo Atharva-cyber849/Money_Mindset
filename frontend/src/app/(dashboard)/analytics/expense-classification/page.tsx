@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Pill';
 import { classifyTransaction } from '@/lib/api/analytics';
-import { Loader2, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, TrendingUp, Info, Brain, Zap, Shield } from 'lucide-react';
+import { ConfidenceGauge, ComparisonBar, InsightCard, ExplanationCard, HowItWorks, ExampleShowcase } from '@/components/analytics';
 
 export default function ExpenseClassificationPage() {
   const [description, setDescription] = useState('');
@@ -51,6 +52,75 @@ export default function ExpenseClassificationPage() {
         <p className="text-muted-foreground">
           AI-powered automatic categorization using supervised learning
         </p>
+      </div>
+
+      {/* Educational Infographics */}
+      <div className="mb-12 space-y-6">
+        {/* Explanation */}
+        <ExplanationCard
+          icon={Brain}
+          title="What is Expense Classification?"
+          description="Our AI system automatically categorizes your transactions (e.g., 'Starbucks' → Entertainment) using machine learning trained on millions of transactions. It analyzes descriptions, amounts, and patterns to classify with high accuracy."
+          keyPoints={[
+            'Uses supervised learning from millions of labeled transactions',
+            'Analyzes transaction descriptions and amounts',
+            'Provides confidence scores (0-100%) for each classification',
+            'Flags low-confidence classifications for manual review',
+            'Continuously improves with feedback',
+          ]}
+          color="green"
+          example="'Starbucks Coffee' → Entertainment (95% confidence), 'Shell Gas' → Transportation (98% confidence)"
+        />
+
+        {/* How It Works */}
+        <HowItWorks
+          title="How Expense Classification Works"
+          steps={[
+            {
+              number: 1,
+              title: 'Enter Transaction Details',
+              description: 'Type in your transaction description (e.g., merchant name) and optionally the amount. More details help improve accuracy.',
+              icon: Zap,
+            },
+            {
+              number: 2,
+              title: 'AI Analyzes Pattern',
+              description: 'Our machine learning model analyzes keywords, amounts, and patterns from millions of similar transactions.',
+              icon: Brain,
+            },
+            {
+              number: 3,
+              title: 'Generate Prediction',
+              description: 'The AI suggests the most likely expense category with a confidence score showing how certain it is.',
+              icon: CheckCircle,
+            },
+            {
+              number: 4,
+              title: 'Review & Verify',
+              description: 'Low confidence predictions are flagged for manual review. You can accept or change the suggested category.',
+              icon: Shield,
+            },
+          ]}
+          color="green"
+        />
+
+        {/* Example */}
+        <ExampleShowcase
+          title="Classification Example"
+          description="See how AI predicts transaction categories"
+          inputExample={[
+            { label: 'Description', value: 'Whole Foods Market', highlight: true },
+            { label: 'Amount', value: '$45.50' },
+            { label: 'Text Analysis', value: 'Keywords: food, market' },
+          ]}
+          outputExample={[
+            { label: 'Primary Category', value: 'Groceries', highlight: true },
+            { label: 'Confidence Score', value: '92%' },
+            { label: 'Alternative', value: 'Dining (5%)' },
+            { label: 'Review Status', value: 'Auto-approved' },
+          ]}
+          color="green"
+        />
       </div>
 
       <div className="grid gap-6">
@@ -105,69 +175,54 @@ export default function ExpenseClassificationPage() {
 
         {/* Results Card */}
         {result && (
-          <Card className="p-6">
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              Classification Result
-            </h3>
-            <div className="space-y-4">
-              {/* Primary Category */}
-              <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+          <div className="space-y-6">
+            {/* Confidence Gauge */}
+            <ConfidenceGauge
+              confidence={Math.round(result.confidence * 100)}
+              showWarning={result.needs_review}
+            />
+
+            {/* Primary Category with Icon */}
+            <Card className="p-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm text-muted-foreground mb-1">Primary Category</div>
-                  <div className="text-2xl font-bold capitalize">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-1">Primary Category</h3>
+                  <p className="text-2xl font-bold capitalize text-teal-600">
                     {result.category.replace('_', ' ')}
-                  </div>
+                  </p>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm text-muted-foreground mb-1">Confidence</div>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`h-2 w-20 rounded-full ${getConfidenceColor(result.confidence)}`}
-                    />
-                    <span className="text-xl font-semibold">
-                      {(result.confidence * 100).toFixed(0)}%
-                    </span>
-                  </div>
-                </div>
+                <CheckCircle className="w-12 h-12 text-green-600" />
               </div>
+            </Card>
 
-              {/* Review Status */}
-              {result.needs_review && (
-                <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
-                  <div className="text-sm">
-                    <div className="font-semibold text-yellow-900">Review Recommended</div>
-                    <div className="text-yellow-700">
-                      Confidence is below 70%. Please verify the suggested category.
-                    </div>
-                  </div>
-                </div>
-              )}
+            {/* Alternative Suggestions */}
+            {result.alternatives && result.alternatives.length > 0 && (
+              <ComparisonBar
+                title="Alternative Categories"
+                items={[
+                  {
+                    label: 'Classification Alternatives',
+                    values: result.alternatives.map((alt: any, idx: number) => ({
+                      label: alt.category.replace('_', ' '),
+                      value: Math.round(alt.confidence * 100),
+                      color: idx === 0 ? '#0891B2' : idx === 1 ? '#06B6D4' : '#93C5FD',
+                    })),
+                  },
+                ]}
+                maxValue={100}
+              />
+            )}
 
-              {/* Alternative Suggestions */}
-              {result.alternatives && result.alternatives.length > 0 && (
-                <div>
-                  <div className="text-sm font-medium mb-2">Alternative Suggestions</div>
-                  <div className="space-y-2">
-                    {result.alternatives.map((alt: any, idx: number) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted transition-colors"
-                      >
-                        <span className="capitalize">
-                          {alt.category.replace('_', ' ')}
-                        </span>
-                        <Badge variant="neutral">
-                          {(alt.confidence * 100).toFixed(0)}%
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </Card>
+            {/* Review Insight */}
+            {result.needs_review && (
+              <InsightCard
+                icon={AlertCircle}
+                title="Review Recommended"
+                description="Confidence is below 70%. Please verify the suggested category manually."
+                color="yellow"
+              />
+            )}
+          </div>
         )}
 
         {/* Info Card */}

@@ -21,7 +21,7 @@ export default function GameHeader({
   const yearsTotal = totalMonths / 12;
 
   return (
-    <Card className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50">
+    <Card className="p-6 bg-gradient-to-r from-blue-50 to-cyan-50">
       <div className="flex justify-between items-start mb-4">
         <div>
           <h1 className="text-3xl font-bold mb-2">{title}</h1>
@@ -39,7 +39,7 @@ export default function GameHeader({
 
       <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
         <div
-          className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full transition-all duration-300"
+          className="bg-gradient-to-r from-cyan-500 to-indigo-600 h-full transition-all duration-300"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -50,7 +50,7 @@ export default function GameHeader({
         <span>Retirement (Age 32)</span>
       </div>
 
-      <div className="mt-4 p-3 bg-blue-100 text-blue-900 rounded text-sm">
+      <div className="mt-4 p-3 bg-cyan-100 text-cyan-900 rounded text-sm">
         <p>Month {gameMonth + 1} of {totalMonths} • Navigate your financial journey with smart decisions</p>
       </div>
     </Card>

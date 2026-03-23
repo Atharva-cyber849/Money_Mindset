@@ -59,7 +59,7 @@ export default function FinancialMetricsPanel({
 
       <Card className="p-4">
         <p className="text-sm text-gray-600 mb-1">Savings Rate</p>
-        <p className="text-3xl font-bold text-blue-600">
+        <p className="text-3xl font-bold text-cyan-600">
           {calculatedSavingsRate.toFixed(0)}%
         </p>
         <p className="text-xs text-gray-500 mt-2">

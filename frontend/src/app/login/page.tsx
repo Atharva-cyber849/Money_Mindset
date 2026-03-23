@@ -43,7 +43,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-gradient-to-br from-cyan-600 to-purple-600 rounded-xl flex items-center justify-center">
               <Sparkles className="w-6 h-6 text-white" />
             </div>
             <span className="text-2xl font-bold">Money Mindset</span>
@@ -100,10 +100,10 @@ export default function LoginPage() {
 
             <div className="flex items-center justify-between">
               <label className="flex items-center">
-                <input type="checkbox" className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                <input type="checkbox" className="rounded border-gray-300 text-cyan-600 focus:ring-cyan-500" />
                 <span className="ml-2 text-sm text-gray-600">Remember me</span>
               </label>
-              <Link href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700">
+              <Link href="/forgot-password" className="text-sm text-cyan-600 hover:text-cyan-700">
                 Forgot password?
               </Link>
             </div>
@@ -119,9 +119,9 @@ export default function LoginPage() {
           </form>
 
           {/* Demo Account Info */}
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-800 font-medium mb-2">Demo Account</p>
-            <p className="text-xs text-blue-600">
+          <div className="mt-6 p-4 bg-cyan-50 rounded-lg">
+            <p className="text-sm text-cyan-800 font-medium mb-2">Demo Account</p>
+            <p className="text-xs text-cyan-600">
               Email: demo@moneymindset.com<br />
               Password: demo123
             </p>
@@ -131,7 +131,7 @@ export default function LoginPage() {
         {/* Register Link */}
         <p className="text-center mt-6 text-gray-600">
           Don't have an account?{' '}
-          <Link href="/register" className="text-blue-600 hover:text-blue-700 font-medium">
+          <Link href="/register" className="text-cyan-600 hover:text-cyan-700 font-medium">
             Create one now
           </Link>
         </p>

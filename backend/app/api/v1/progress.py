@@ -1,7 +1,7 @@
 """
 User Progress and Gamification API Endpoints
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from pydantic import BaseModel
@@ -9,6 +9,7 @@ from datetime import datetime
 
 from app.models.database import get_db
 from app.models.user import User
+from app.models.finance import UserProgress
 from app.core.security import get_current_user
 
 router = APIRouter()
@@ -49,24 +50,30 @@ async def get_user_stats(
 ):
     """Get user's gamification stats and progress"""
     
-    # TODO: Get actual data from database
-    # For now, return mock data that can be customized per user
+    # Get or create user progress
+    user_progress = db.query(UserProgress).filter(UserProgress.user_id == current_user.id).first()
     
-    # Calculate level from XP (every 1000 XP = 1 level)
-    total_xp = getattr(current_user, 'total_xp', 1250)
-    current_level = (total_xp // 1000) + 1
+    if not user_progress:
+        # Create new progress for new user
+        user_progress = UserProgress(user_id=current_user.id)
+        db.add(user_progress)
+        db.commit()
+        db.refresh(user_progress)
+    
+    # Calculate next level XP threshold
+    current_level = user_progress.current_level
     next_level_xp = current_level * 1000
     
     return {
-        "total_xp": total_xp,
+        "total_xp": user_progress.total_xp,
         "current_level": current_level,
         "next_level_xp": next_level_xp,
-        "simulations_completed": 5,
+        "simulations_completed": user_progress.simulations_completed,
         "total_simulations": 15,
-        "current_streak": 7,
-        "longest_streak": 12,
-        "badges_earned": 3,
-        "achievements_unlocked": 8
+        "current_streak": user_progress.current_streak,
+        "longest_streak": user_progress.current_streak,  # Use current streak as longest for now
+        "badges_earned": 0,  # TODO: Implement badge system
+        "achievements_unlocked": 0  # TODO: Implement achievement system
     }
 
 

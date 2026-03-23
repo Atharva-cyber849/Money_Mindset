@@ -153,8 +153,8 @@ export default function AITutorPage() {
               {messages.map((msg, idx) => (
                 <div key={idx} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-xs lg:max-w-2xl px-4 py-2 rounded-lg ${
-                    msg.type === 'user' 
-                      ? 'bg-blue-500 text-white rounded-br-none' 
+                    msg.type === 'user'
+                      ? 'bg-cyan-500 text-white rounded-br-none'
                       : 'bg-gray-100 text-gray-900 rounded-bl-none'
                   }`}>
                     {msg.type === 'ai' ? (
@@ -238,7 +238,7 @@ export default function AITutorPage() {
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             disabled={isLoading}
-            className="flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+            className="flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:bg-gray-50 disabled:text-gray-500"
           />
           <Button 
             onClick={handleSend}
@@ -265,11 +265,11 @@ export default function AITutorPage() {
                   onClick={() => handleQuestionClick(item.question)}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-5 h-5 text-blue-600" />
+                    <div className="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-5 h-5 text-cyan-600" />
                     </div>
                     <div className="flex-1">
-                      <div className="text-xs text-blue-600 font-semibold mb-1">{item.category}</div>
+                      <div className="text-xs text-cyan-600 font-semibold mb-1">{item.category}</div>
                       <p className="text-sm font-medium">{item.question}</p>
                     </div>
                   </div>

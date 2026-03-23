@@ -3,85 +3,8 @@
 import React from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { BookOpen, ArrowRight, PlayCircle, FileText, Video, Headphones } from 'lucide-react';
-
-const courses = [
-  {
-    title: 'Budgeting Basics',
-    description: 'Master the fundamentals of creating and sticking to a budget',
-    lessons: 8,
-    duration: '2 hours',
-    level: 'Beginner',
-    color: 'bg-blue-500'
-  },
-  {
-    title: 'Investing 101',
-    description: 'Learn how to grow your wealth through smart investments',
-    lessons: 12,
-    duration: '3 hours',
-    level: 'Beginner',
-    color: 'bg-green-500'
-  },
-  {
-    title: 'Debt Management',
-    description: 'Strategies to eliminate debt and stay debt-free',
-    lessons: 6,
-    duration: '1.5 hours',
-    level: 'Intermediate',
-    color: 'bg-red-500'
-  },
-  {
-    title: 'Credit Score Mastery',
-    description: 'Understanding and improving your credit score',
-    lessons: 5,
-    duration: '1 hour',
-    level: 'Beginner',
-    color: 'bg-purple-500'
-  },
-  {
-    title: 'Retirement Planning',
-    description: 'Secure your financial future with smart retirement strategies',
-    lessons: 10,
-    duration: '2.5 hours',
-    level: 'Intermediate',
-    color: 'bg-orange-500'
-  },
-  {
-    title: 'Real Estate Investing',
-    description: 'Build wealth through property investments',
-    lessons: 15,
-    duration: '4 hours',
-    level: 'Advanced',
-    color: 'bg-indigo-500'
-  },
-];
-
-const resources = [
-  {
-    title: 'Financial Glossary',
-    description: 'Essential terms every investor should know',
-    icon: FileText,
-    type: 'Article'
-  },
-  {
-    title: 'Budgeting Templates',
-    description: 'Ready-to-use spreadsheets and tools',
-    icon: FileText,
-    type: 'Download'
-  },
-  {
-    title: 'Expert Interviews',
-    description: 'Learn from successful investors',
-    icon: Video,
-    type: 'Video'
-  },
-  {
-    title: 'Money Mindset Podcast',
-    description: 'Financial wisdom on the go',
-    icon: Headphones,
-    type: 'Podcast'
-  },
-];
+import { BookOpen, ArrowRight, ExternalLink } from 'lucide-react';
+import { khanAcademyFinanceCourses } from '@/lib/data/khanAcademyFinancialLiteracy';
 
 export default function LearnPage() {
   return (
@@ -95,9 +18,9 @@ export default function LearnPage() {
 
       {/* Courses */}
       <section className="mb-12">
-        <h2 className="text-2xl font-bold mb-6">Featured Courses</h2>
+        <h2 className="text-2xl font-bold mb-6">Khan Academy Financial Literacy</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map((course, idx) => (
+          {khanAcademyFinanceCourses.map((course, idx) => (
             <Card key={idx} hover className="p-6">
               <div className={`w-12 h-12 ${course.color} rounded-lg flex items-center justify-center mb-4`}>
                 <BookOpen className="w-6 h-6 text-white" />
@@ -107,53 +30,56 @@ export default function LearnPage() {
               </div>
               <h3 className="text-xl font-bold mb-2">{course.title}</h3>
               <p className="text-sm text-muted-foreground mb-4">{course.description}</p>
-              <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
-                <span>{course.lessons} lessons</span>
-                <span>•</span>
-                <span>{course.duration}</span>
+
+              <div className="space-y-2 mb-4">
+                {course.lessons.map((lesson) => (
+                  <a
+                    key={lesson.href}
+                    href={lesson.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between text-sm rounded border border-gray-200 px-3 py-2 hover:bg-gray-50"
+                  >
+                    <span className="pr-2">{lesson.title}</span>
+                    <ExternalLink className="w-4 h-4 text-gray-500" />
+                  </a>
+                ))}
               </div>
-              <Button className="w-full group">
-                <PlayCircle className="w-4 h-4 mr-2" />
-                Start Course
-                <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
+
+              <a href={course.lessons[0].href} target="_blank" rel="noopener noreferrer">
+                <Button className="w-full group">
+                  Open Course
+                  <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </a>
             </Card>
           ))}
         </div>
       </section>
 
-      {/* Resources */}
-      <section>
-        <h2 className="text-2xl font-bold mb-6">Free Resources</h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {resources.map((resource, idx) => {
-            const Icon = resource.icon;
-            return (
-              <Card key={idx} hover className="p-6 text-center">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Icon className="w-8 h-8 text-blue-600" />
-                </div>
-                <div className="text-xs font-semibold text-blue-600 mb-2">{resource.type}</div>
-                <h3 className="font-bold mb-2">{resource.title}</h3>
-                <p className="text-sm text-muted-foreground mb-4">{resource.description}</p>
-                <Button variant="outline" size="sm" className="w-full">
-                  Access
-                </Button>
-              </Card>
-            );
-          })}
-        </div>
-      </section>
+      <Card className="p-6 bg-cyan-50 border border-cyan-200">
+        <h2 className="text-xl font-bold mb-2">Why these links</h2>
+        <p className="text-sm text-cyan-900">
+          These are direct Khan Academy paths for personal finance, investing, taxes, retirement, and debt so learners can jump straight
+          to structured lessons instead of placeholder content tiles.
+        </p>
+      </Card>
 
       {/* CTA Banner */}
-      <div className="mt-12 p-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg text-white text-center">
+      <div className="mt-12 p-8 bg-gradient-to-r from-cyan-600 to-purple-600 rounded-lg text-white text-center">
         <h2 className="text-3xl font-bold mb-3">Ready to Master Your Finances?</h2>
         <p className="text-lg opacity-90 mb-6 max-w-2xl mx-auto">
-          Join thousands of learners who have transformed their financial futures with our comprehensive courses.
+          Use the lesson links above to build a full financial literacy journey, one concept at a time.
         </p>
-        <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100">
-          Browse All Courses
-        </Button>
+        <a
+          href="https://www.khanacademy.org/college-careers-more/personal-finance"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Button size="lg" className="bg-white text-cyan-600 hover:bg-gray-100">
+            Explore Khan Academy Finance
+          </Button>
+        </a>
       </div>
     </div>
   );

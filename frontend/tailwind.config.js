@@ -8,11 +8,22 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Wealth colors (primary)
+        // Primary Teal accent
+        primary: {
+          teal: '#0891B2',
+          'teal-light': '#CFFAFE',
+          'teal-dark': '#0E7490',
+        },
+        // Wealth colors (secondary)
         wealth: {
           green: '#10B981',
           'green-light': '#D1FAE5',
           'green-dark': '#047857',
+        },
+        // Secondary Purple
+        secondary: {
+          purple: '#8B5CF6',
+          'purple-light': '#EDE9FE',
         },
         // Warning colors
         warning: {

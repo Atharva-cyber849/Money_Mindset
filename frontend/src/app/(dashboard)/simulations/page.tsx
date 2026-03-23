@@ -26,7 +26,7 @@ const simulations = [
     description: 'Build financial resilience step by step',
     href: '/simulations/emergency-fund',
     icon: PiggyBank,
-    color: 'bg-blue-500',
+    color: 'bg-cyan-500',
   },
   {
     title: 'Credit Card Debt',
@@ -89,7 +89,7 @@ export default function SimulationsPage() {
         })}
       </div>
 
-      <div className="mt-12 p-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg text-white">
+      <div className="mt-12 p-6 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-lg text-white">
         <div className="flex items-center gap-4">
           <Gamepad2 className="w-12 h-12" />
           <div className="flex-1">

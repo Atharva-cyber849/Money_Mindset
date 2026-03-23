@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -51,13 +51,31 @@ export default function JarAllocation({
     gold: surplus * 0.10,
   };
 
+  const roundedOptimal = {
+    emergency: Math.round(optimalAllocation.emergency),
+    insurance: Math.round(optimalAllocation.insurance),
+    short_term: Math.round(optimalAllocation.short_term),
+    long_term: Math.round(optimalAllocation.long_term),
+    gold: Math.round(optimalAllocation.gold),
+  };
+
   const [allocation, setAllocation] = useState({
-    emergency: currentJars.emergency || 25000,
-    insurance: currentJars.insurance || 15000,
-    short_term: currentJars.short_term || 15000,
-    long_term: currentJars.long_term || 35000,
-    gold: currentJars.gold || 10000,
+    emergency: roundedOptimal.emergency,
+    insurance: roundedOptimal.insurance,
+    short_term: roundedOptimal.short_term,
+    long_term: roundedOptimal.long_term,
+    gold: roundedOptimal.gold,
   });
+
+  useEffect(() => {
+    setAllocation(roundedOptimal);
+  }, [
+    roundedOptimal.emergency,
+    roundedOptimal.insurance,
+    roundedOptimal.short_term,
+    roundedOptimal.long_term,
+    roundedOptimal.gold,
+  ]);
 
   const totalAllocated = Object.values(allocation).reduce((a, b) => a + b, 0);
 
@@ -88,13 +106,7 @@ export default function JarAllocation({
   };
 
   const useOptimalAllocation = () => {
-    setAllocation({
-      emergency: Math.round(optimalAllocation.emergency),
-      insurance: Math.round(optimalAllocation.insurance),
-      short_term: Math.round(optimalAllocation.short_term),
-      long_term: Math.round(optimalAllocation.long_term),
-      gold: Math.round(optimalAllocation.gold),
-    });
+    setAllocation(roundedOptimal);
   };
 
   const handleSubmit = () => {
@@ -117,9 +129,9 @@ export default function JarAllocation({
           </div>
         </div>
 
-        <div className="bg-blue-50 p-4 rounded mb-6">
+        <div className="bg-cyan-50 p-4 rounded mb-6">
           <p className="text-lg font-semibold">Available Surplus</p>
-          <p className="text-3xl font-bold text-blue-600">₹{surplus.toLocaleString()}</p>
+          <p className="text-3xl font-bold text-cyan-600">₹{surplus.toLocaleString()}</p>
           <p className="text-sm text-gray-600 mt-2">
             Allocate your surplus across 5 jars to teach your money where to go
           </p>
@@ -136,7 +148,11 @@ export default function JarAllocation({
               <input
                 type="range"
                 min="0"
-                max={surplus * 2}
+                max={Math.max(
+                  Math.round(surplus),
+                  Math.round((surplus / 2)),
+                  1000
+                )}
                 value={amount}
                 onChange={(e) => handleJarChange(jar, Number(e.target.value))}
                 className="w-full"
@@ -150,13 +166,24 @@ export default function JarAllocation({
         </div>
 
         <div className="bg-gray-50 p-4 rounded mt-6">
-          <p className="text-sm text-gray-600">Total Allocated</p>
+          <p className="text-sm text-gray-600">Total Monthly Allocation</p>
           <p className="text-2xl font-bold">₹{totalAllocated.toLocaleString()}</p>
           <p className="text-xs text-gray-500 mt-1">
             {totalAllocated > surplus
               ? `⚠️ Over allocation by ₹${(totalAllocated - surplus).toLocaleString()}`
               : `✓ Allocation healthy`}
           </p>
+        </div>
+
+        <div className="bg-slate-50 border border-slate-200 p-4 rounded mt-4">
+          <p className="text-sm font-semibold text-slate-800 mb-2">Current Jar Balances</p>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs text-slate-700">
+            <div>Emergency: ₹{Math.round(currentJars.emergency).toLocaleString()}</div>
+            <div>Insurance: ₹{Math.round(currentJars.insurance).toLocaleString()}</div>
+            <div>Short-term: ₹{Math.round(currentJars.short_term).toLocaleString()}</div>
+            <div>Long-term: ₹{Math.round(currentJars.long_term).toLocaleString()}</div>
+            <div>Gold: ₹{Math.round(currentJars.gold).toLocaleString()}</div>
+          </div>
         </div>
 
         <div className="flex gap-3 mt-6">

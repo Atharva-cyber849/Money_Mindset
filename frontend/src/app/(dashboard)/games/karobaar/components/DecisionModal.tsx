@@ -50,18 +50,23 @@ export default function DecisionModal({
     return `${num}`;
   };
 
+  const formatPercent = (num: number) => {
+    const prefix = num >= 0 ? '+' : '';
+    return `${prefix}${(Math.round(num * 100) / 100).toFixed(2)}%`;
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 space-y-2">
+        <div className="bg-gradient-to-r from-cyan-600 to-cyan-700 text-white p-6 space-y-2">
           <div className="text-4xl mb-2">{emoji}</div>
           <h2 className="text-2xl font-bold">Important Decision Ahead</h2>
-          <p className="text-blue-100">Age {decision.age}</p>
+          <p className="text-cyan-100">Age {decision.age}</p>
         </div>
 
         {/* Decision Description */}
-        <div className="p-6 bg-blue-50 border-b border-blue-200">
+        <div className="p-6 bg-cyan-50 border-b border-cyan-200">
           <p className="text-lg text-gray-800">{decision.description}</p>
         </div>
 
@@ -74,7 +79,7 @@ export default function DecisionModal({
               <button
                 onClick={() => onChoose(idx)}
                 disabled={isLoading}
-                className="w-full text-left p-4 border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full text-left p-4 border-2 border-gray-300 rounded-lg hover:border-cyan-500 hover:bg-cyan-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <div className="font-semibold text-lg text-gray-900 mb-3">
                   {option.text}
@@ -90,9 +95,7 @@ export default function DecisionModal({
                           option.salary_impact > 0 ? 'text-green-600 font-semibold' : 'text-red-600'
                         }
                       >
-                        {formatNumber(option.salary_impact > 0 ? '+' : '')}
-                        {option.salary_impact > 0 ? '+' : ''}
-                        {Math.round(option.salary_impact * 100) / 100}%
+                        {formatPercent(option.salary_impact)}
                       </span>
                     </div>
                   )}
@@ -157,6 +160,9 @@ export default function DecisionModal({
         <div className="p-6 bg-gray-50 border-t border-gray-200">
           <p className="text-sm text-gray-600">
             💡 Each decision affects your future opportunities and outcomes. Think carefully about the long-term consequences.
+          </p>
+          <p className="text-xs text-gray-500 mt-2">
+            Better trade-offs usually balance salary, happiness, and optionality instead of maximizing only one metric.
           </p>
         </div>
       </div>

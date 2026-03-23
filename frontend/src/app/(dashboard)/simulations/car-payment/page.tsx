@@ -2,543 +2,333 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Car, DollarSign, TrendingDown, AlertCircle, CheckCircle, ArrowRight, Calculator } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Slider } from '@/components/ui/Slider'
 import { formatCurrency } from '@/lib/utils'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { IntroSlide } from '@/components/simulations/IntroSlide'
+import { ExampleCardsPanel } from '@/components/simulations/ExampleCardsPanel'
+import { InsightsPanel } from '@/components/simulations/InsightsPanel'
+import { StepProgressBar } from '@/components/simulations/StepProgressBar'
+import { CarPathsInfographic } from './components/CarPathsInfographic'
+import { carPaymentConfig } from './config'
 
-// Step 1: Car Purchase
-function StepCarChoice({ onNext }: { onNext: (carPrice: number, downPayment: number, interestRate: number, term: number) => void }) {
-  const [carPrice, setCarPrice] = useState(800000)
-  const [downPayment, setDownPayment] = useState(200000)
-  const [interestRate, setInterestRate] = useState(8.5)
-  const [term, setTerm] = useState(60) // months
+const steps = [
+  { number: 1, label: 'Introduction' },
+  { number: 2, label: '3 Paths' },
+  { number: 3, label: 'Examples' },
+  { number: 4, label: 'Your Budget' },
+  { number: 5, label: 'Recommendation' }
+]
 
-  const loanAmount = carPrice - downPayment
-  const monthlyRate = (interestRate / 100) / 12
-  const monthlyPayment = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, term)) / (Math.pow(1 + monthlyRate, term) - 1)
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="space-y-6"
-    >
-      <div className="text-center">
-        <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-red-400 to-pink-500 rounded-full flex items-center justify-center">
-          <Car className="w-12 h-12 text-white" />
-        </div>
-        <h2 className="text-3xl font-bold text-gray-900 mb-4">
-          The True Cost of a Car Loan in India
-        </h2>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          That EMI is just the tip of the iceberg. Factor in insurance, maintenance, fuel, and taxes.
-          <br />
-          <span className="font-semibold text-gray-900">Let's calculate the REAL cost of car ownership.</span>
-        </p>
-      </div>
-
-      <Card className="max-w-4xl mx-auto">
-        <div className="space-y-6">
-          <Slider
-            min={500000}
-            max={2500000}
-            step={100000}
-            value={carPrice}
-            onChange={setCarPrice}
-            label="Car Price (Maruti, Hyundai, Tata, etc.)"
-            format={(v) => formatCurrency(v)}
-            color="red"
-          />
-          <Slider
-            min={0}
-            max={carPrice * 0.4}
-            step={50000}
-            value={downPayment}
-            onChange={setDownPayment}
-            label="Down Payment"
-            format={(v) => formatCurrency(v)}
-            color="green"
-          />
-          <Slider
-            min={5}
-            max={10}
-            step={0.5}
-            value={interestRate}
-            onChange={setInterestRate}
-            label="Loan Interest Rate (Current: 7-9%)"
-            format={(v) => `${v.toFixed(1)}%`}
-            color="orange"
-          />
-          <Slider
-            min={24}
-            max={84}
-            step={12}
-            value={term}
-            onChange={setTerm}
-            label="Loan Term"
-            format={(v) => `${v} months (${(v / 12).toFixed(0)} years)`}
-            color="blue"
-          />
-        </div>
-
-        <div className="mt-6 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg">
-          <div className="text-center">
-            <div className="text-sm text-gray-600 mb-1">Your Monthly Payment</div>
-            <div className="text-4xl font-bold text-blue-600">
-              {formatCurrency(monthlyPayment)}
-            </div>
-            <div className="text-sm text-gray-500 mt-2">
-              for {term} months
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6 text-center">
-          <Button onClick={() => onNext(carPrice, downPayment, interestRate, term)} size="lg">
-            Calculate True Cost
-            <ArrowRight className="w-5 h-5" />
-          </Button>
-        </div>
-      </Card>
-    </motion.div>
-  )
-}
-
-// Step 2: True Cost Breakdown
-function StepTrueCost({ carPrice, downPayment, interestRate, term, onNext }: {
-  carPrice: number
-  downPayment: number
-  interestRate: number
-  term: number
-  onNext: () => void
-}) {
-  const loanAmount = carPrice - downPayment
-  const monthlyRate = (interestRate / 100) / 12
-  const monthlyPayment = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, term)) / (Math.pow(1 + monthlyRate, term) - 1)
-  
-  const totalPaid = monthlyPayment * term + downPayment
-  const totalInterest = totalPaid - carPrice
-  
-  // Additional costs
-  const insurance = 12000 * term // ₹12,000/month
-  const maintenance = 8000 * term // ₹8,000/month
-  const gas = 12000 * term // ₹12,000/month
-  const registration = 15000 * (term / 12) // ₹15,000/year
-  const depreciation = carPrice * 0.60 // 60% depreciation
-  
-  const totalOwnershipCost = totalPaid + insurance + maintenance + gas + registration
-  const finalCarValue = carPrice - depreciation
-
-  // Opportunity cost - what if invested instead
-  const monthlyInvestment = monthlyPayment + 12000 + 8000 + 12000 // payment + insurance + maintenance + gas
-  const investmentYears = term / 12
-  const investmentReturn = 0.08
-  const futureValue = monthlyInvestment * (((Math.pow(1 + investmentReturn / 12, term) - 1) / (investmentReturn / 12)))
-
-  const costsBreakdown = [
-    { name: 'Principal', value: carPrice, color: '#3b82f6' },
-    { name: 'Interest', value: totalInterest, color: '#ef4444' },
-    { name: 'Insurance', value: insurance, color: '#f59e0b' },
-    { name: 'Maintenance', value: maintenance, color: '#10b981' },
-    { name: 'Gas', value: gas, color: '#8b5cf6' },
-    { name: 'Registration', value: registration, color: '#ec4899' },
-  ]
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      className="space-y-6"
-    >
-      <div className="text-center">
-        <h2 className="text-3xl font-bold text-gray-900 mb-4">
-          The Shocking Reality 😱
-        </h2>
-      </div>
-
-      {/* Main Cost Comparison */}
-      <div className="max-w-4xl mx-auto grid md:grid-cols-3 gap-4">
-        <Card className="text-center">
-          <div className="text-sm text-gray-600 mb-2">Car Sticker Price</div>
-          <div className="text-3xl font-bold text-blue-600">{formatCurrency(carPrice)}</div>
-        </Card>
-        <Card className="text-center bg-red-50">
-          <div className="text-sm text-gray-600 mb-2">Total You'll Pay</div>
-          <div className="text-3xl font-bold text-red-600">{formatCurrency(totalOwnershipCost)}</div>
-        </Card>
-        <Card className="text-center bg-yellow-50">
-          <div className="text-sm text-gray-600 mb-2">Car's Value After</div>
-          <div className="text-3xl font-bold text-yellow-600">{formatCurrency(finalCarValue)}</div>
-        </Card>
-      </div>
-
-      {/* Interest Paid */}
-      <Card className="max-w-4xl mx-auto bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-200">
-        <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">
-            You'll Pay {formatCurrency(totalInterest)} in Interest Alone!
-          </h3>
-          <p className="text-gray-700">
-            That's {((totalInterest / carPrice) * 100).toFixed(0)}% extra on top of the car price
-          </p>
-        </div>
-      </Card>
-
-      {/* Cost Breakdown */}
-      <Card className="max-w-4xl mx-auto">
-        <h3 className="text-lg font-semibold mb-4 text-center">Complete Cost Breakdown</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={costsBreakdown}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis tickFormatter={(value) => `₹${(value / 100000).toFixed(0)}L`} />
-            <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-            <Bar dataKey="value" fill="#8884d8">
-              {costsBreakdown.map((entry, index) => (
-                <Bar key={`bar-${index}`} dataKey="value" fill={entry.color} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </Card>
-
-      {/* Opportunity Cost */}
-      <Card className="max-w-4xl mx-auto bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200">
-        <div className="text-center">
-          <TrendingDown className="w-12 h-12 text-green-500 mx-auto mb-4" />
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">
-            The Opportunity Cost
-          </h3>
-          <p className="text-gray-700 mb-4">
-            If you invested {formatCurrency(monthlyInvestment)}/month instead (8% return):
-          </p>
-          <div className="text-5xl font-bold text-green-600 mb-2">
-            {formatCurrency(futureValue)}
-          </div>
-          <p className="text-sm text-gray-600">
-            You'd have this much after {investmentYears.toFixed(0)} years!
-          </p>
-        </div>
-      </Card>
-
-      {/* Breakdown Table */}
-      <Card className="max-w-4xl mx-auto">
-        <h3 className="text-lg font-semibold mb-4">Monthly Costs</h3>
-        <div className="space-y-2">
-          <div className="flex justify-between p-2 bg-blue-50 rounded">
-            <span>Loan Payment</span>
-            <span className="font-bold">{formatCurrency(monthlyPayment)}</span>
-          </div>
-          <div className="flex justify-between p-2 bg-orange-50 rounded">
-            <span>Insurance</span>
-            <span className="font-bold">₹12,000</span>
-          </div>
-          <div className="flex justify-between p-2 bg-green-50 rounded">
-            <span>Maintenance</span>
-            <span className="font-bold">₹8,000</span>
-          </div>
-          <div className="flex justify-between p-2 bg-purple-50 rounded">
-            <span>Gas</span>
-            <span className="font-bold">₹12,000</span>
-          </div>
-          <div className="flex justify-between p-3 bg-red-50 rounded border-t-2 border-red-200">
-            <span className="font-bold">Total Monthly Cost</span>
-            <span className="font-bold text-red-600">{formatCurrency(monthlyPayment + 32000)}</span>
-          </div>
-        </div>
-      </Card>
-
-      <div className="text-center">
-        <Button onClick={onNext} size="lg">
-          See Smarter Options
-          <ArrowRight className="w-5 h-5" />
-        </Button>
-      </div>
-    </motion.div>
-  )
-}
-
-// Step 3: Better Alternatives
-function StepAlternatives({ onNext }: { onNext: () => void }) {
-  const scenarios = [
-    {
-      name: 'Buy New Budget Car with Loan',
-      carPrice: 700000,
-      downPayment: 200000,
-      loan: true,
-      interestRate: 8.5,
-      term: 60,
-      color: 'red',
-      icon: '🚗',
-      description: 'The typical approach - Maruti/Hyundai'
-    },
-    {
-      name: 'Buy Used Reliable (3-5 years)',
-      carPrice: 400000,
-      downPayment: 400000,
-      loan: false,
-      interestRate: 0,
-      term: 0,
-      color: 'yellow',
-      icon: '🚙',
-      description: 'Save first, then buy'
-    },
-    {
-      name: 'Buy Old Reliable (8+ years)',
-      carPrice: 200000,
-      downPayment: 200000,
-      loan: false,
-      interestRate: 0,
-      term: 0,
-      color: 'green',
-      icon: '🚕',
-      description: 'Maximum value'
-    },
-  ]
-
-  const calculateTotal = (scenario: typeof scenarios[0]) => {
-    const years = Math.max(scenario.term / 12, 5)
-    const insurance = 12000 * 12 * years * (scenario.name.includes('New') ? 1 : 0.7)
-    const maintenance = 8000 * 12 * years * (scenario.name.includes('New') ? 1 : 1.3)
-    const gas = 12000 * 12 * years
-    
-    if (scenario.loan) {
-      const loanAmount = scenario.carPrice - scenario.downPayment
-      const monthlyRate = (scenario.interestRate / 100) / 12
-      const monthlyPayment = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, scenario.term)) / (Math.pow(1 + monthlyRate, scenario.term) - 1)
-      const totalPaid = monthlyPayment * scenario.term + scenario.downPayment
-      return totalPaid + insurance + maintenance + gas
-    }
-    
-    return scenario.carPrice + insurance + maintenance + gas
-  }
-
-  const comparisonData = scenarios.map(s => ({
-    name: s.name,
-    cost: calculateTotal(s),
-  }))
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="space-y-6"
-    >
-      <div className="text-center">
-        <h2 className="text-3xl font-bold text-gray-900 mb-4">
-          Smarter Alternatives
-        </h2>
-        <p className="text-lg text-gray-600">
-          Compare the 5-year total cost
-        </p>
-      </div>
-
-      {/* Comparison Chart */}
-      <Card className="max-w-5xl mx-auto">
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={comparisonData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis tickFormatter={(value) => `₹${(value / 100000).toFixed(0)}L`} />
-            <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-            <Bar dataKey="cost" fill="#3b82f6" />
-          </BarChart>
-        </ResponsiveContainer>
-      </Card>
-
-      {/* Strategy Cards */}
-      <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-6">
-        {scenarios.map((scenario, index) => (
-          <Card key={index} className={`text-center ${
-            index === 0 ? 'bg-red-50' :
-            index === 1 ? 'bg-yellow-50' :
-            'bg-green-50'
-          }`}>
-            <div className="text-6xl mb-4">{scenario.icon}</div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
-              {scenario.name}
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">{scenario.description}</p>
-            <div className="text-3xl font-bold text-gray-900 mb-2">
-              {formatCurrency(calculateTotal(scenario))}
-            </div>
-            <div className="text-sm text-gray-600">5-year total cost</div>
-            {index === 2 && (
-              <div className="mt-3 p-2 bg-green-600 text-white rounded font-semibold">
-                💰 Best Value!
-              </div>
-            )}
-          </Card>
-        ))}
-      </div>
-
-      {/* Key Insights */}
-      <Card className="max-w-4xl mx-auto bg-gradient-to-br from-purple-50 to-pink-50">
-        <h3 className="text-xl font-bold mb-4 text-center">Smart Car Buying Tips</h3>
-        <div className="space-y-2">
-          <div className="flex items-start">
-            <span className="mr-2">✅</span>
-            <span>Save up and pay cash - avoid interest completely</span>
-          </div>
-          <div className="flex items-start">
-            <span className="mr-2">✅</span>
-            <span>Buy a 2-3 year old used car - let someone else take the depreciation hit</span>
-          </div>
-          <div className="flex items-start">
-            <span className="mr-2">✅</span>
-            <span>Look for reliable brands (Honda, Toyota) with good resale value</span>
-          </div>
-          <div className="flex items-start">
-            <span className="mr-2">✅</span>
-            <span>Budget for total ownership cost, not just monthly payment</span>
-          </div>
-          <div className="flex items-start">
-            <span className="mr-2">✅</span>
-            <span>Keep your car longer - drive it for 10+ years to maximize value</span>
-          </div>
-        </div>
-      </Card>
-
-      <div className="text-center">
-        <Button onClick={onNext} size="lg">
-          Complete Simulation
-          <ArrowRight className="w-5 h-5" />
-        </Button>
-      </div>
-    </motion.div>
-  )
-}
-
-// Step 4: Complete
-function StepComplete() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="text-center space-y-6 max-w-2xl mx-auto"
-    >
-      <div className="w-24 h-24 mx-auto bg-gradient-to-br from-red-400 to-pink-500 rounded-full flex items-center justify-center">
-        <CheckCircle className="w-12 h-12 text-white" />
-      </div>
-      
-      <h2 className="text-4xl font-bold text-gray-900">
-        Simulation Complete! 🎉
-      </h2>
-      
-      <Card className="bg-gradient-to-br from-red-50 to-pink-50">
-        <div className="text-center">
-          <div className="text-6xl mb-4">⭐</div>
-          <div className="text-3xl font-bold text-red-600 mb-2">+150 XP</div>
-          <div className="text-gray-600">You've uncovered the true cost of car loans!</div>
-        </div>
-      </Card>
-
-      <div className="space-y-3">
-        <h3 className="font-semibold text-lg">Remember:</h3>
-        <div className="text-left space-y-2">
-          <div className="flex items-start">
-            <span className="mr-2">🚗</span>
-            <span>A car loses 60% of its value in the first 5 years</span>
-          </div>
-          <div className="flex items-start">
-            <span className="mr-2">💸</span>
-            <span>The total cost is 2-3× the sticker price</span>
-          </div>
-          <div className="flex items-start">
-            <span className="mr-2">💰</span>
-            <span>Save and pay cash to avoid interest</span>
-          </div>
-          <div className="flex items-start">
-            <span className="mr-2">🎯</span>
-            <span>Buy used - let someone else take the depreciation hit</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="pt-4">
-        <Button size="lg" onClick={() => window.location.href = '/dashboard'}>
-          Return to Dashboard
-        </Button>
-      </div>
-    </motion.div>
-  )
-}
-
-// Main Component
 export default function CarPaymentPage() {
   const [currentStep, setCurrentStep] = useState(1)
-  const [carPrice, setCarPrice] = useState(0)
-  const [downPayment, setDownPayment] = useState(0)
-  const [interestRate, setInterestRate] = useState(0)
-  const [term, setTerm] = useState(0)
+  const [carPrice, setCarPrice] = useState(1500000)
+  const [monthlyBudget, setMonthlyBudget] = useState(30000)
+  const [xpEarned, setXpEarned] = useState(false)
+
+  // Three options
+  const lease = {
+    monthlyPayment: 25000,
+    upfront: 0,
+    duration: 36,
+    totalCost: 25000 * 36 + 10000
+  }
+
+  const finance = {
+    downPayment: carPrice * 0.20,
+    monthlyPayment: 22000,
+    duration: 84,
+    totalCost: carPrice * .20 + 22000 * 84
+  }
+
+  const cash = {
+    upfront: carPrice,
+    monthlyPayment: 0,
+    duration: 120,
+    totalCost: carPrice
+  }
+
+  const comparisonData = [
+    { option: 'Lease', totalCost: lease.totalCost },
+    { option: 'Finance', totalCost: finance.totalCost },
+    { option: 'Cash', totalCost: cash.totalCost }
+  ]
+
+  const handleNext = () => {
+    if (currentStep < 5) {
+      setCurrentStep(currentStep + 1)
+    }
+  }
+
+  const getBestOption = () => {
+    if (monthlyBudget < lease.monthlyPayment) {
+      return 'cash'
+    } else if (monthlyBudget < finance.monthlyPayment) {
+      return 'lease'
+    } else {
+      return 'finance'
+    }
+  }
+
+  const getMainInsight = () => {
+    const best = getBestOption()
+    const template = carPaymentConfig.insightTemplates.find(t => t.threshold === best)
+
+    if (!template) return { text: carPaymentConfig.fallbackInsights[0], type: 'success' as const }
+
+    const text = template.text
+      .replace('{strategy}', best === 'cash' ? 'PAY CASH' : best === 'lease' ? 'LEASE' : 'FINANCE')
+      .replace('{total_cost}', formatCurrency(best === 'cash' ? cash.totalCost : best === 'lease' ? lease.totalCost : finance.totalCost))
+      .replace('{percentage}', `${((monthlyBudget / (finance.monthlyPayment + finance.downPayment/84)) * 100).toFixed(0)}`)
+      .replace('{recommended_budget}', formatCurrency(Math.round((finance.monthlyPayment + finance.downPayment/84) * 0.15)))
+
+    return {
+      text,
+      type: 'success'
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-pink-50 py-12 px-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Progress Bar */}
-        <div className="max-w-3xl mx-auto mb-8">
-          <div className="flex items-center justify-between mb-2">
-            {[1, 2, 3, 4].map((step) => (
-              <div
-                key={step}
-                className={`flex items-center justify-center w-10 h-10 rounded-full font-bold ${
-                  currentStep >= step
-                    ? 'bg-red-600 text-white'
-                    : 'bg-gray-300 text-gray-600'
-                }`}
-              >
-                {step}
-              </div>
-            ))}
-          </div>
-          <div className="h-2 bg-gray-300 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-red-600 transition-all duration-500"
-              style={{ width: `${(currentStep / 4) * 100}%` }}
-            />
-          </div>
-        </div>
+    <motion.div className="min-h-screen bg-gradient-to-b from-gray-50 to-white p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
+        <StepProgressBar
+          currentStep={currentStep}
+          totalSteps={5}
+          steps={steps}
+          highlightColor="teal"
+        />
 
-        {/* Steps */}
-        <AnimatePresence mode="wait">
-          {currentStep === 1 && (
-            <StepCarChoice
-              key="choice"
-              onNext={(price, down, rate, months) => {
-                setCarPrice(price)
-                setDownPayment(down)
-                setInterestRate(rate)
-                setTerm(months)
-                setCurrentStep(2)
-              }}
-            />
-          )}
-          {currentStep === 2 && (
-            <StepTrueCost
-              key="cost"
-              carPrice={carPrice}
-              downPayment={downPayment}
-              interestRate={interestRate}
-              term={term}
-              onNext={() => setCurrentStep(3)}
-            />
-          )}
-          {currentStep === 3 && (
-            <StepAlternatives
-              key="alternatives"
-              onNext={() => setCurrentStep(4)}
-            />
-          )}
-          {currentStep === 4 && <StepComplete key="complete" />}
-        </AnimatePresence>
+        <div className="mt-12">
+          <AnimatePresence mode="wait">
+            {/* Step 1: Introduction */}
+            {currentStep === 1 && (
+              <motion.div
+                key="step1"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.5 }}
+              >
+                <IntroSlide
+                  title={carPaymentConfig.intro.title}
+                  description={carPaymentConfig.intro.description}
+                  icon={carPaymentConfig.intro.icon}
+                  whyItMatters={carPaymentConfig.intro.whyItMatters}
+                  onNext={handleNext}
+                  highlightColor="teal"
+                />
+              </motion.div>
+            )}
+
+            {/* Step 2: The 3 Paths */}
+            {currentStep === 2 && (
+              <motion.div
+                key="step2"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.5 }}
+              >
+                <CarPathsInfographic carPrice={carPrice} />
+                <div className="flex justify-between mt-8">
+                  <Button onClick={() => setCurrentStep(currentStep - 1)} variant="outline">
+                    ← Back
+                  </Button>
+                  <Button onClick={handleNext} variant="primary">
+                    See Examples →
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 3: Examples */}
+            {currentStep === 3 && (
+              <motion.div
+                key="step3"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.5 }}
+              >
+                <ExampleCardsPanel
+                  title="Real Car Purchase Scenarios"
+                  description="See how different choices play out over time"
+                  examples={carPaymentConfig.examples}
+                  highlightColor="teal"
+                />
+                <div className="flex justify-between mt-8">
+                  <Button onClick={() => setCurrentStep(currentStep - 1)} variant="outline">
+                    ← Back
+                  </Button>
+                  <Button onClick={handleNext} variant="primary">
+                    Find Your Best Option →
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 4: Your Budget */}
+            {currentStep === 4 && (
+              <motion.div
+                key="step4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.5 }}
+                className="space-y-6"
+              >
+                <div className="text-center mb-8">
+                  <h2 className="text-3xl font-bold text-gray-900 mb-3">Find Your Best Car Option</h2>
+                  <p className="text-lg text-gray-600">Adjust your budget and car price</p>
+                </div>
+
+                <Card className="p-8 border-2 border-teal-200 bg-teal-50">
+                  <div className="space-y-8">
+                    {/* Car Price */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-900 mb-4">
+                        Car Price: <span className="text-lg text-teal-600">{formatCurrency(carPrice)}</span>
+                      </label>
+                      <Slider
+                        min={500000}
+                        max={3000000}
+                        step={100000}
+                        value={carPrice}
+                        onChange={setCarPrice}
+                        color="blue"
+                        format={(v) => formatCurrency(v)}
+                      />
+                    </div>
+
+                    {/* Monthly Budget */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-900 mb-4">
+                        Monthly Budget: <span className="text-lg text-teal-600">{formatCurrency(monthlyBudget)}</span>
+                      </label>
+                      <Slider
+                        min={10000}
+                        max={100000}
+                        step={5000}
+                        value={monthlyBudget}
+                        onChange={setMonthlyBudget}
+                        color="blue"
+                        format={(v) => formatCurrency(v)}
+                      />
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Option Comparison */}
+                <div className="grid md:grid-cols-3 gap-6">
+                  <Card className="bg-blue-50 border-2 border-blue-200 p-6">
+                    <h3 className="font-bold text-lg text-blue-900 mb-3">LEASE</h3>
+                    <p className="text-xl font-bold text-blue-600 mb-2">{formatCurrency(lease.monthlyPayment)}/mo</p>
+                    <p className="text-sm text-blue-700">Always new car</p>
+                    <p className="text-xs text-blue-600 mt-2">Total: {formatCurrency(lease.totalCost)}</p>
+                  </Card>
+
+                  <Card className="bg-amber-50 border-2 border-amber-200 p-6">
+                    <h3 className="font-bold text-lg text-amber-900 mb-3">FINANCE</h3>
+                    <p className="text-xl font-bold text-amber-600 mb-2">{formatCurrency(finance.monthlyPayment)}/mo</p>
+                    <p className="text-sm text-amber-700">Down: {formatCurrency(finance.downPayment)}</p>
+                    <p className="text-xs text-amber-600 mt-2">Total: {formatCurrency(finance.totalCost)}</p>
+                  </Card>
+
+                  <Card className="bg-green-50 border-2 border-green-200 p-6">
+                    <h3 className="font-bold text-lg text-green-900 mb-3">CASH</h3>
+                    <p className="text-xl font-bold text-green-600 mb-2">Upfront</p>
+                    <p className="text-sm text-green-700">No EMI ever</p>
+                    <p className="text-xs text-green-600 mt-2">Total: {formatCurrency(cash.totalCost)}</p>
+                  </Card>
+                </div>
+
+                {/* Chart */}
+                <Card className="p-6 border-2 border-gray-200">
+                  <h3 className="font-bold text-lg mb-6">Total Cost Comparison</h3>
+                  <div className="w-full h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={comparisonData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <XAxis dataKey="option" />
+                        <YAxis />
+                        <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                        <Bar dataKey="totalCost" fill="#0891b2" radius={[8, 8, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+
+                <div className="flex justify-between">
+                  <Button onClick={() => setCurrentStep(currentStep - 1)} variant="outline">
+                    ← Back
+                  </Button>
+                  <Button onClick={handleNext} variant="primary">
+                    See My Recommendation →
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Step 5: Recommendation */}
+            {currentStep === 5 && (
+              <motion.div
+                key="step5"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.5 }}
+                className="space-y-6"
+              >
+                <InsightsPanel
+                  title="Your Best Car Option"
+                  mainInsight={getMainInsight()}
+                  additionalInsights={carPaymentConfig.fallbackInsights.slice(0, 3).map(text => ({
+                    text,
+                    type: 'tip' as const
+                  }))}
+                  highlightColor="teal"
+                />
+
+                <Card className="bg-gradient-to-r from-teal-50 to-cyan-50 border-2 border-teal-200 p-6 md:p-8">
+                  <h3 className="font-bold text-lg md:text-xl text-gray-900 mb-4">📋 Next Steps</h3>
+                  <ol className="space-y-3 text-gray-700">
+                    <li><strong>1. RESEARCH:</strong> Compare models within your budget</li>
+                    <li><strong>2. NEGOTIATE:</strong> Dealers often have room to negotiate</li>
+                    <li><strong>3. INSURANCE:</strong> Get quotes before committing</li>
+                    <li><strong>4. MAINTENANCE:</strong> Budget ₹1-2K/month for upkeep</li>
+                    <li><strong>5. REVIEW:</strong> Reassess after 3-5 years</li>
+                  </ol>
+                </Card>
+
+                <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-200 p-6 md:p-8">
+                  <h3 className="font-bold text-lg md:text-xl text-gray-900 mb-3">💡 Golden Rule</h3>
+                  <p className="text-gray-700 text-lg leading-relaxed">
+                    Never buy a car that costs more than 50% of your annual income. Keep total car expenses (EMI + insurance + fuel + maintenance) below 15% of monthly income for financial health.
+                  </p>
+                </Card>
+
+                <div className="text-center">
+                  <Button
+                    onClick={() => setXpEarned(true)}
+                    variant="primary"
+                    size="lg"
+                    className="mb-4"
+                  >
+                    {xpEarned ? '✓ Completed!' : 'Complete Simulation (+350 XP)'}
+                  </Button>
+                  {xpEarned && (
+                    <p className="text-sm text-green-600 font-semibold">
+                      🚗 Smart Shopper! Earned 350 XP!
+                    </p>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
-    </div>
+    </motion.div>
   )
 }

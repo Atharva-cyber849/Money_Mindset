@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import { api } from '@/lib/api/client';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import JarAllocation from './components/JarAllocation';
 import LifeEventModal from './components/LifeEventModal';
+import { TreemapChart, WaterfallChart, JarGrowthChart, ConsequencePanel, DecisionTimeline } from './components';
 import GameHeader from '../_lib/GameHeader';
 import FinancialMetricsPanel from '../_lib/FinancialMetricsPanel';
 import { Loader2 } from 'lucide-react';
@@ -24,6 +25,8 @@ interface GameSession {
   };
   income_type: string;
   state_location: string;
+  decisions_made?: Array<Record<string, any>>;
+  events_log?: Array<Record<string, any>>;
 }
 
 interface MonthlyEvent {
@@ -31,6 +34,17 @@ interface MonthlyEvent {
   type: string;
   description: string;
   impact_amount: number;
+}
+
+interface AllocationRecord {
+  month: number;
+  emergency: number;
+  insurance: number;
+  short_term: number;
+  long_term: number;
+  gold: number;
+  totalAllocated: number;
+  totalAssets: number;
 }
 
 export default function GullakGame() {
@@ -43,6 +57,8 @@ export default function GullakGame() {
   const [lifeEvent, setLifeEvent] = useState<MonthlyEvent | null>(null);
   const [showEventModal, setShowEventModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [allocationHistory, setAllocationHistory] = useState<AllocationRecord[]>([]);
+  const [activeStage, setActiveStage] = useState<'allocate' | 'insights' | 'timeline'>('allocate');
 
   // Configuration options for new game
   const [incomeType, setIncomeType] = useState('salaried');
@@ -53,17 +69,83 @@ export default function GullakGame() {
     loadSession();
   }, []);
 
+  const mapSessionHistory = (sessionData: GameSession): AllocationRecord[] => {
+    const fromDecisions = Array.isArray(sessionData.decisions_made) ? sessionData.decisions_made : [];
+
+    const parsed = fromDecisions
+      .map((entry, idx) => {
+        const jars = entry.current_jars || entry.allocation || entry.jars || {};
+        const emergency = Number(jars.emergency || 0);
+        const insurance = Number(jars.insurance || 0);
+        const short_term = Number(jars.short_term || 0);
+        const long_term = Number(jars.long_term || 0);
+        const gold = Number(jars.gold || 0);
+        const totalAllocated = emergency + insurance + short_term + long_term + gold;
+
+        return {
+          month: Number(entry.month || entry.current_month || idx + 1),
+          emergency,
+          insurance,
+          short_term,
+          long_term,
+          gold,
+          totalAllocated,
+          totalAssets: Number(entry.total_assets || totalAllocated),
+        };
+      })
+      .filter((r) => r.totalAllocated > 0);
+
+    if (parsed.length > 0) return parsed;
+
+    const jars = sessionData.current_jars;
+    const total = Object.values(jars || {}).reduce((a: number, b: number) => a + b, 0);
+    if (total <= 0) return [];
+
+    return [
+      {
+        month: sessionData.current_month || 1,
+        emergency: Number(jars.emergency || 0),
+        insurance: Number(jars.insurance || 0),
+        short_term: Number(jars.short_term || 0),
+        long_term: Number(jars.long_term || 0),
+        gold: Number(jars.gold || 0),
+        totalAllocated: total,
+        totalAssets: total,
+      },
+    ];
+  };
+
+  const estimateMonthlyBase = (incomeType: string) => {
+    if (incomeType === 'business') {
+      return { income: 50000, expenses: 36000 };
+    }
+    if (incomeType === 'gig_work') {
+      return { income: 38000, expenses: 29000 };
+    }
+    return { income: 40000, expenses: 30000 };
+  };
+
   const loadSession = async () => {
     try {
-      const response = await axios.get('/api/v1/games/gullak/user/sessions');
+      const response = await api.get('/games/gullak/user/sessions');
       const sessions = response.data.sessions;
 
       if (sessions.length > 0) {
         const lastSession = sessions[0];
         if (lastSession.status === 'active') {
           // Load active session
-          const sessionDetails = await axios.get(`/api/v1/games/gullak/${lastSession.session_id}`);
+          const sessionDetails = await api.get(`/games/gullak/${lastSession.session_id}`);
           setSession(sessionDetails.data);
+          setAllocationHistory(mapSessionHistory(sessionDetails.data));
+          const latestDecision = (sessionDetails.data?.decisions_made || []).slice(-1)[0];
+          if (latestDecision) {
+            setMonthlyIncome(Number(latestDecision.income || 0));
+            setMonthlyExpenses(Number(latestDecision.expenses || 0));
+          } else {
+            const base = estimateMonthlyBase(sessionDetails.data?.income_type || 'salaried');
+            setMonthlyIncome(base.income);
+            setMonthlyExpenses(base.expenses);
+          }
           setGameStarted(true);
         }
       }
@@ -77,7 +159,7 @@ export default function GullakGame() {
   const createNewGame = async () => {
     try {
       setSubmitting(true);
-      const response = await axios.post('/api/v1/games/gullak/create', {
+      const response = await api.post('/games/gullak/create', {
         income_type: incomeType,
         state_location: stateLocation,
       });
@@ -107,8 +189,8 @@ export default function GullakGame() {
         gold: initialSession.current_jars.gold || 10000,
       };
 
-      const response = await axios.post(
-        `/api/v1/games/gullak/${initialSession.session_id}/allocate`,
+      const response = await api.post(
+        `/games/gullak/${initialSession.session_id}/allocate`,
         allocation
       );
 
@@ -120,8 +202,9 @@ export default function GullakGame() {
         setShowEventModal(true);
       }
 
-      const updated = await axios.get(`/api/v1/games/gullak/${initialSession.session_id}`);
+      const updated = await api.get(`/games/gullak/${initialSession.session_id}`);
       setSession(updated.data);
+      setAllocationHistory(mapSessionHistory(updated.data));
 
     } catch (error) {
       console.error('Failed to simulate month:', error);
@@ -148,8 +231,8 @@ export default function GullakGame() {
         gold: jars.gold || 10000,
       };
 
-      const response = await axios.post(
-        `/api/v1/games/gullak/${session.session_id}/allocate`,
+      const response = await api.post(
+        `/games/gullak/${session.session_id}/allocate`,
         allocation
       );
 
@@ -163,8 +246,9 @@ export default function GullakGame() {
       }
 
       // Refresh session
-      const updated = await axios.get(`/api/v1/games/gullak/${session.session_id}`);
+      const updated = await api.get(`/games/gullak/${session.session_id}`);
       setSession(updated.data);
+      setAllocationHistory(mapSessionHistory(updated.data));
 
     } catch (error) {
       console.error('Failed to simulate month:', error);
@@ -177,8 +261,8 @@ export default function GullakGame() {
     try {
       setSubmitting(true);
 
-      const response = await axios.post(
-        `/api/v1/games/gullak/${session?.session_id}/allocate`,
+      const response = await api.post(
+        `/games/gullak/${session?.session_id}/allocate`,
         allocation
       );
 
@@ -192,8 +276,9 @@ export default function GullakGame() {
       }
 
       // Refresh session
-      const updated = await axios.get(`/api/v1/games/gullak/${session?.session_id}`);
+      const updated = await api.get(`/games/gullak/${session?.session_id}`);
       setSession(updated.data);
+      setAllocationHistory(mapSessionHistory(updated.data));
 
     } catch (error) {
       console.error('Failed to allocate:', error);
@@ -206,8 +291,8 @@ export default function GullakGame() {
     try {
       setSubmitting(true);
 
-      const response = await axios.post(
-        `/api/v1/games/gullak/${session?.session_id}/complete`
+      const response = await api.post(
+        `/games/gullak/${session?.session_id}/complete`
       );
 
       // Navigate to results
@@ -304,15 +389,97 @@ export default function GullakGame() {
         monthlyExpenses={monthlyExpenses}
       />
 
+      <div className="bg-white rounded-lg border border-slate-200 p-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <button
+          onClick={() => setActiveStage('allocate')}
+          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
+            activeStage === 'allocate' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          Stage 1: Allocation
+        </button>
+        <button
+          onClick={() => setActiveStage('insights')}
+          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
+            activeStage === 'insights' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          Stage 2: Insights
+        </button>
+        <button
+          onClick={() => setActiveStage('timeline')}
+          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
+            activeStage === 'timeline' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          Stage 3: Timeline
+        </button>
+      </div>
+
       {session && (
         <>
-          <JarAllocation
-            currentJars={session.current_jars}
-            monthlyIncome={monthlyIncome}
-            monthlyExpenses={monthlyExpenses}
-            onSubmitAllocation={handleAllocationSubmit}
-            disabled={submitting}
-          />
+          {activeStage === 'allocate' && (
+            <>
+              <JarAllocation
+                currentJars={session.current_jars}
+                monthlyIncome={monthlyIncome}
+                monthlyExpenses={monthlyExpenses}
+                onSubmitAllocation={handleAllocationSubmit}
+                disabled={submitting}
+              />
+
+              <Card className="p-5 bg-cyan-50 border border-cyan-200">
+                <h3 className="font-semibold text-cyan-900 mb-2">How to use this stage</h3>
+                <p className="text-sm text-cyan-800">
+                  Adjust sliders to allocate jars for the upcoming month, then submit. If income/expenses start at 0,
+                  run one month first and values will populate from simulation output.
+                </p>
+              </Card>
+            </>
+          )}
+
+          {activeStage === 'insights' && (
+            <>
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <div className="xl:col-span-2">
+                  <JarGrowthChart
+                    month={session.current_month || 1}
+                    jars={session.current_jars}
+                  />
+                </div>
+                <TreemapChart jars={session.current_jars} />
+              </div>
+
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <WaterfallChart
+                  income={monthlyIncome || 50000}
+                  expenses={monthlyExpenses || 30000}
+                  jars={session.current_jars}
+                />
+                <ConsequencePanel
+                  emergencyFund={session.current_jars.emergency || 0}
+                  monthlyExpenses={monthlyExpenses || 30000}
+                  insurance={session.current_jars.insurance || 0}
+                  totalJars={Object.values(session.current_jars || {}).reduce((a: number, b: number) => a + b, 0)}
+                />
+              </div>
+
+              <Card className="p-5 bg-indigo-50 border border-indigo-200">
+                <h3 className="font-semibold text-indigo-900 mb-2">Choice Consequences Snapshot</h3>
+                <p className="text-sm text-indigo-800">
+                  Every monthly jar split changes your resilience profile. Higher emergency and insurance allocations reduce downside risk,
+                  while long-term and gold allocations improve wealth growth and inflation protection.
+                </p>
+              </Card>
+            </>
+          )}
+
+          {activeStage === 'timeline' && (
+            <DecisionTimeline
+              allocationHistory={allocationHistory}
+              currentMonth={session.current_month || 0}
+            />
+          )}
 
           {session.current_month >= 120 && (
             <Button

@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import { api } from '@/lib/api/client';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import GameHeader from '../_lib/GameHeader';
 import FinancialMetricsPanel from '../_lib/FinancialMetricsPanel';
 import CompoundGraph from './components/CompoundGraph';
 import InterruptionModal from './components/InterruptionModal';
+import ProjectionConeChart from './components/ProjectionConeChart';
+import StrategyComparison from './components/StrategyComparison';
 import { Loader2, Play, Pause, Zap } from 'lucide-react';
 
 interface SIPSession {
@@ -30,6 +32,14 @@ interface Interruption {
   options: Array<{ action: string; description: string; consequence: string }>;
 }
 
+interface InterruptionDecision {
+  month: number;
+  age: number;
+  type: string;
+  action: string;
+  consequence: string;
+}
+
 export default function SIPChroniclesGame() {
   const router = useRouter();
   const [session, setSession] = useState<SIPSession | null>(null);
@@ -42,6 +52,8 @@ export default function SIPChroniclesGame() {
   const [showInterruptionModal, setShowInterruptionModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [sipType, setSIPType] = useState('nifty_50');
+  const [interruptionHistory, setInterruptionHistory] = useState<InterruptionDecision[]>([]);
+  const [activeStage, setActiveStage] = useState<'overview' | 'analysis' | 'actions'>('overview');
 
   useEffect(() => {
     loadSession();
@@ -60,13 +72,13 @@ export default function SIPChroniclesGame() {
 
   const loadSession = async () => {
     try {
-      const response = await axios.get('/api/v1/games/sip/user/sessions');
+      const response = await api.get('/games/sip/user/sessions');
       const sessions = response.data.sessions;
 
       if (sessions.length > 0) {
         const lastSession = sessions[0];
         if (lastSession.status === 'active') {
-          const sessionDetails = await axios.get(`/api/v1/games/sip/${lastSession.session_id}`);
+          const sessionDetails = await api.get(`/games/sip/${lastSession.session_id}`);
           setSession(sessionDetails.data);
           setGameStarted(true);
 
@@ -85,7 +97,7 @@ export default function SIPChroniclesGame() {
   const createNewGame = async () => {
     try {
       setSubmitting(true);
-      const response = await axios.post('/api/v1/games/sip/create', {
+      const response = await api.post('/games/sip/create', {
         sip_type: sipType,
       });
 
@@ -104,8 +116,8 @@ export default function SIPChroniclesGame() {
     if (!session) return;
 
     try {
-      const response = await axios.post(
-        `/api/v1/games/sip/${session.session_id}/progress`,
+      const response = await api.post(
+        `/games/sip/${session.session_id}/progress`,
         { fast_forward_months: 1 }
       );
 
@@ -152,13 +164,25 @@ export default function SIPChroniclesGame() {
 
     try {
       setSubmitting(true);
-      await axios.post(
-        `/api/v1/games/sip/${session.session_id}/progress`,
+      await api.post(
+        `/games/sip/${session.session_id}/progress`,
         {
           fast_forward_months: 1,
           interruption_response: action,
         }
       );
+
+      const selected = interruption.options.find((o) => o.action === action);
+      setInterruptionHistory((prev) => [
+        ...prev,
+        {
+          month: interruption.month,
+          age: interruption.age,
+          type: interruption.type,
+          action,
+          consequence: selected?.consequence || 'Outcome applied to your compounding path.',
+        },
+      ]);
 
       setShowInterruptionModal(false);
       setInterruption(null);
@@ -176,7 +200,7 @@ export default function SIPChroniclesGame() {
 
   const completeGame = async () => {
     try {
-      const response = await axios.post(`/api/v1/games/sip/${session?.session_id}/complete`);
+      const response = await api.post(`/games/sip/${session?.session_id}/complete`);
       router.push(`/games/sip-chronicles/results?session_id=${session?.session_id}`);
     } catch (error) {
       console.error('Failed to complete game:', error);
@@ -242,63 +266,126 @@ export default function SIPChroniclesGame() {
         savingsRate={100}
       />
 
-      {/* Wealth counter */}
-      <Card className="p-8 bg-gradient-to-r from-green-50 to-emerald-50 text-center">
-        <p className="text-sm text-gray-600 mb-2">Current Wealth (Age {session?.current_age})</p>
-        <p className="text-5xl font-bold text-green-600 mb-2">
-          ₹{((session?.accumulated_wealth || 0) / 100000).toFixed(1)}L
-        </p>
-        <p className="text-sm text-gray-600">
-          Contributed: ₹{((session?.total_contributions || 0) / 100000).toFixed(1)}L ·
-          Multiplier: {((session?.accumulated_wealth || 1) / (session?.total_contributions || 1)).toFixed(1)}x
-        </p>
-      </Card>
+      <div className="bg-white rounded-lg border border-slate-200 p-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <button
+          onClick={() => setActiveStage('overview')}
+          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
+            activeStage === 'overview' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          Stage 1: Wealth Overview
+        </button>
+        <button
+          onClick={() => setActiveStage('analysis')}
+          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
+            activeStage === 'analysis' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          Stage 2: Analysis
+        </button>
+        <button
+          onClick={() => setActiveStage('actions')}
+          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
+            activeStage === 'actions' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          Stage 3: Actions
+        </button>
+      </div>
 
-      {/* Wealth chart */}
-      {wealthHistory.length > 1 && (
-        <CompoundGraph data={wealthHistory} />
+      {/* Wealth counter */}
+      {activeStage === 'overview' && (
+        <>
+          <Card className="p-8 bg-gradient-to-r from-green-50 to-emerald-50 text-center">
+            <p className="text-sm text-gray-600 mb-2">Current Wealth (Age {session?.current_age})</p>
+            <p className="text-5xl font-bold text-green-600 mb-2">
+              ₹{((session?.accumulated_wealth || 0) / 100000).toFixed(1)}L
+            </p>
+            <p className="text-sm text-gray-600">
+              Contributed: ₹{((session?.total_contributions || 0) / 100000).toFixed(1)}L ·
+              Multiplier: {((session?.accumulated_wealth || 1) / (session?.total_contributions || 1)).toFixed(1)}x
+            </p>
+          </Card>
+
+          {wealthHistory.length > 1 && (
+            <CompoundGraph data={wealthHistory} />
+          )}
+        </>
       )}
 
-      {/* Game controls */}
-      <Card className="p-6">
-        <div className="flex gap-4 items-center justify-center">
-          <Button
-            onClick={() => setIsPlaying(!isPlaying)}
-            disabled={session?.current_month >= 456}
-            className={isPlaying ? 'bg-red-600 hover:bg-red-700' : ''}
-          >
-            {isPlaying ? (
-              <>
-                <Pause className="w-4 h-4 mr-2" />
-                Pause
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4 mr-2" />
-                Play
-              </>
-            )}
-          </Button>
+      {activeStage === 'analysis' && (
+        <>
+          {wealthHistory.length > 2 && (
+            <ProjectionConeChart
+              data={wealthHistory}
+              monthlySIP={session?.monthly_sip || 5000}
+            />
+          )}
 
-          <Button
-            onClick={() => progressMonth()}
-            disabled={session?.current_month >= 456 || isPlaying}
-            variant="outline"
-          >
-            Next Month
-          </Button>
+          <StrategyComparison monthlySIP={session?.monthly_sip || 5000} />
 
-          <select
-            value={playbackSpeed}
-            onChange={(e) => setPlaybackSpeed(e.target.value as any)}
-            className="p-2 border rounded"
-          >
-            <option value="manual">Manual</option>
-            <option value="slow">Slow (1 month / 2s)</option>
-            <option value="fast">Fast (1 month / 200ms)</option>
-          </select>
-        </div>
-      </Card>
+          {interruptionHistory.length > 0 && (
+            <Card className="p-6 space-y-4">
+              <h3 className="text-xl font-bold">Interruption Consequence Replay</h3>
+              <p className="text-sm text-gray-600">Your major decisions and how each one impacted long-term wealth compounding.</p>
+              <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+                {interruptionHistory.slice(-8).reverse().map((event, idx) => (
+                  <div key={`${event.month}-${idx}`} className="rounded border border-gray-200 bg-gray-50 p-3">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-gray-900">{event.type.replace('_', ' ').toUpperCase()} • Age {event.age}</p>
+                      <p className="text-xs text-gray-600">Month {event.month}</p>
+                    </div>
+                    <p className="text-sm text-cyan-700 mt-1">You chose: {event.action}</p>
+                    <p className="text-sm text-gray-700 mt-1">Consequence: {event.consequence}</p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+        </>
+      )}
+
+      {activeStage === 'actions' && (
+        <Card className="p-6">
+          <div className="flex gap-4 items-center justify-center">
+            <Button
+              onClick={() => setIsPlaying(!isPlaying)}
+              disabled={session?.current_month >= 456}
+              className={isPlaying ? 'bg-red-600 hover:bg-red-700' : ''}
+            >
+              {isPlaying ? (
+                <>
+                  <Pause className="w-4 h-4 mr-2" />
+                  Pause
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 mr-2" />
+                  Play
+                </>
+              )}
+            </Button>
+
+            <Button
+              onClick={() => progressMonth()}
+              disabled={session?.current_month >= 456 || isPlaying}
+              variant="outline"
+            >
+              Next Month
+            </Button>
+
+            <select
+              value={playbackSpeed}
+              onChange={(e) => setPlaybackSpeed(e.target.value as any)}
+              className="p-2 border rounded"
+            >
+              <option value="manual">Manual</option>
+              <option value="slow">Slow (1 month / 2s)</option>
+              <option value="fast">Fast (1 month / 200ms)</option>
+            </select>
+          </div>
+        </Card>
+      )}
 
       {session?.current_month >= 456 && (
         <Button onClick={completeGame} className="w-full py-4 text-lg bg-green-600 hover:bg-green-700">

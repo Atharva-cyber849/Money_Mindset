@@ -54,7 +54,7 @@ export default function PersonalityResultsPage() {
 
   if (loading || !profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 flex items-center justify-center">
         <div className="animate-pulse text-center">
           <Brain className="w-16 h-16 mx-auto mb-4 text-purple-600" />
           <p className="text-lg text-gray-600">Loading your results...</p>
@@ -99,7 +99,7 @@ export default function PersonalityResultsPage() {
 
   // Archetype colors
   const archetypeColors = {
-    'cautious_planner': 'from-blue-500 to-cyan-600',
+    'cautious_planner': 'from-cyan-500 to-cyan-600',
     'optimistic_risk_taker': 'from-orange-500 to-red-600',
     'balanced_builder': 'from-green-500 to-emerald-600',
     'anxious_avoider': 'from-purple-500 to-pink-600'
@@ -108,7 +108,7 @@ export default function PersonalityResultsPage() {
   const gradientColor = archetypeColors[profile.archetype as keyof typeof archetypeColors] || 'from-purple-500 to-indigo-600'
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 py-12 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <motion.div
@@ -240,7 +240,7 @@ export default function PersonalityResultsPage() {
 
             <div className="grid md:grid-cols-3 gap-4">
               {profile.learning_focus.map((focus, index) => (
-                <div key={index} className="p-4 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
+                <div key={index} className="p-4 bg-gradient-to-br from-purple-50 to-cyan-50 rounded-lg border border-purple-200">
                   <p className="font-semibold text-gray-900">{focus}</p>
                 </div>
               ))}

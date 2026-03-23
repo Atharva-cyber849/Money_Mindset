@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import axios from 'axios';
+import { api } from '@/lib/api/client';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -27,7 +27,7 @@ interface Results {
 
 const getAntifragilityBadge = (score: number) => {
   if (score > 50) return { emoji: '🦸', label: 'Opportunist', color: 'from-green-400 to-green-600' };
-  if (score > 0) return { emoji: '💪', label: 'Resilient', color: 'from-blue-400 to-blue-600' };
+  if (score > 0) return { emoji: '💪', label: 'Resilient', color: 'from-cyan-400 to-cyan-600' };
   if (score > -25) return { emoji: '🛡️', label: 'Defensive', color: 'from-purple-400 to-purple-600' };
   if (score > -50) return { emoji: '😤', label: 'Survivor', color: 'from-amber-400 to-amber-600' };
   return { emoji: '📉', label: 'Vulnerable', color: 'from-red-400 to-red-600' };
@@ -50,7 +50,7 @@ export default function BlackSwanResults() {
 
   const loadResults = async () => {
     try {
-      const response = await axios.get(`/api/v1/games/black-swan/${sessionId}`);
+      const response = await api.get(`/games/black-swan/${sessionId}`);
       // Construct results from response
       setResults({
         session_id: sessionId,
@@ -139,7 +139,7 @@ export default function BlackSwanResults() {
           <div className="text-5xl">🎯</div>
           <div>
             <p className="text-gray-600 mb-1">Overall Score</p>
-            <p className="text-2xl font-bold text-blue-600">{results.scores.overall.toFixed(0)}/100</p>
+            <p className="text-2xl font-bold text-cyan-600">{results.scores.overall.toFixed(0)}/100</p>
           </div>
         </Card>
 
@@ -158,7 +158,7 @@ export default function BlackSwanResults() {
         <h3 className="text-2xl font-bold">Portfolio Performance</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           <div className="text-center">
-            <p className="text-3xl font-bold text-blue-600">
+            <p className="text-3xl font-bold text-cyan-600">
               ₹{(results.performance.starting_wealth / 100000).toFixed(1)}L
             </p>
             <p className="text-gray-600">Starting Wealth</p>
@@ -223,7 +223,7 @@ export default function BlackSwanResults() {
       </Card>
 
       {/* Antifragility Explanation */}
-      <Card className="p-6 bg-blue-50 border border-blue-200 space-y-4">
+      <Card className="p-6 bg-cyan-50 border border-cyan-200 space-y-4">
         <h3 className="text-lg font-bold">Understanding Your Antifragility Score</h3>
         <div className="space-y-2 text-sm">
           <p>
@@ -262,7 +262,7 @@ export default function BlackSwanResults() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Button
           onClick={() => router.push('/games')}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
+          className="bg-cyan-600 hover:bg-blue-700 text-white"
         >
           <Home className="w-4 h-4 mr-2" />
           Back to Games

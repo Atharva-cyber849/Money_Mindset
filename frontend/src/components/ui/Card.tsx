@@ -65,8 +65,8 @@ export function Card({ children, className, hover = false, animate = false, ...p
     <div
       ref={cardRef}
       className={cn(
-        'bg-white rounded-xl shadow-sm border border-gray-200 p-6 transition-shadow',
-        hover && 'cursor-pointer',
+        'bg-white rounded-xl shadow-sm border border-gray-100 p-6 transition-all duration-300',
+        hover && 'cursor-pointer hover:shadow-md hover:-translate-y-1',
         className
       )}
       {...props}
@@ -91,7 +91,7 @@ export function StatCard({
   value, 
   change, 
   icon: Icon, 
-  iconColor = 'bg-blue-500',
+  iconColor = 'bg-cyan-500',
   trend = 'neutral',
   animate = false
 }: StatCardProps) {
@@ -150,21 +150,23 @@ export function StatCard({
   }
 
   return (
-    <Card hover animate={animate}>
+    <div
+      className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-all duration-300 hover:-translate-y-1"
+    >
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-gray-600 mb-1">{title}</p>
+          <p className="text-xs text-gray-600 mb-2 font-medium">{title}</p>
           <p ref={valueRef} className="text-2xl font-bold text-gray-900">{value}</p>
           {change !== undefined && (
-            <p className={cn('text-sm font-medium mt-1', trendColors[trend])}>
-              {change > 0 ? '+' : ''}{change}%
+            <p className={cn('text-xs font-semibold mt-2', trendColors[trend])}>
+              {trend === 'up' ? '↑' : trend === 'down' ? '↓' : ''} {change > 0 ? '+' : ''}{change}%
             </p>
           )}
         </div>
         <div ref={iconRef} className={cn('p-3 rounded-lg', iconColor)}>
-          <Icon className="w-6 h-6 text-white" />
+          <Icon className="w-5 h-5 text-white" />
         </div>
       </div>
-    </Card>
+    </div>
   )
 }

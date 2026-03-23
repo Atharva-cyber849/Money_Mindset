@@ -50,7 +50,7 @@ export default function InterruptionModal({
         {/* Options */}
         <div className="space-y-4 mb-6">
           {interruption.options.map((option, idx) => (
-            <div key={idx} className="border-2 border-gray-200 rounded-lg p-4 hover:border-blue-400 transition">
+            <div key={idx} className="border-2 border-gray-200 rounded-lg p-4 hover:border-cyan-400 transition">
               <p className="font-semibold text-sm mb-2">{option.description}</p>
               <p className="text-xs text-gray-600">💡 {option.consequence}</p>
               <Button

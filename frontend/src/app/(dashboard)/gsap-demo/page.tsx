@@ -142,7 +142,7 @@ export default function GSAPDemo() {
       {/* Header */}
       <div ref={headerRef}>
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-full mb-4">
+          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-purple-600 text-white px-6 py-3 rounded-full mb-4">
             <Sparkles className="w-5 h-5" />
             <span className="font-bold">GSAP Animations Demo</span>
           </div>
@@ -165,7 +165,7 @@ export default function GSAPDemo() {
             <div className="h-32 flex items-end justify-center">
               <div
                 ref={bounceRef}
-                className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg shadow-lg"
+                className="w-16 h-16 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-lg shadow-lg"
               />
             </div>
             <div className="flex gap-2">
@@ -229,7 +229,7 @@ export default function GSAPDemo() {
             <div className="h-32 flex items-center justify-center">
               <div
                 ref={morphRef}
-                className="w-16 h-16 bg-blue-500 rounded-lg shadow-lg"
+                className="w-16 h-16 bg-cyan-500 rounded-lg shadow-lg"
               />
             </div>
             <div className="flex gap-2">

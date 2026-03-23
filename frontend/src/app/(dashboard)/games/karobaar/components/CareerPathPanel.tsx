@@ -23,6 +23,11 @@ export default function CareerPathPanel({ state }: CareerPathPanelProps) {
   const careerPath = ['Associate', 'Senior Associate', 'Manager', 'Senior Manager', 'Director', 'VP'];
   const currentIndex = Math.floor(state.years_in_job / 3);
   const nextPromotion = Math.ceil((state.years_in_job + 1) / 3) * 3;
+  const replayMilestones = Array.from({ length: Math.max(1, currentIndex + 1) }).map((_, idx) => ({
+    role: careerPath[Math.min(idx, careerPath.length - 1)],
+    year: idx * 3,
+    salary: state.current_salary * Math.max(0.45, 0.65 + idx * 0.12),
+  }));
 
   return (
     <Card className="p-6 space-y-6">
@@ -33,7 +38,7 @@ export default function CareerPathPanel({ state }: CareerPathPanelProps) {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-gray-600">Current Position</p>
-            <p className="text-2xl font-bold text-blue-600">{state.job_title}</p>
+            <p className="text-2xl font-bold text-cyan-600">{state.job_title}</p>
           </div>
           <div className="text-right">
             <p className="text-sm text-gray-600">Tenure</p>
@@ -41,7 +46,7 @@ export default function CareerPathPanel({ state }: CareerPathPanelProps) {
           </div>
         </div>
         <div className="flex items-center space-x-2 text-sm">
-          <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">
+          <span className="px-3 py-1 bg-cyan-100 text-cyan-700 rounded-full">
             {state.company_size === 'startup' ? '🚀 Startup' : state.company_size === 'medium' ? '📊 Mid-size' : '🏢 Large'}
           </span>
           {state.has_mba && (
@@ -75,16 +80,14 @@ export default function CareerPathPanel({ state }: CareerPathPanelProps) {
         <div className="space-y-2">
           {careerPath.map((role, idx) => (
             <div key={idx} className="flex items-center space-x-2">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
-                ${idx <= currentIndex ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'}`}
-              >
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx <= currentIndex ? 'bg-cyan-600 text-white' : 'bg-gray-300 text-gray-600'}`}>
                 {idx + 1}
               </div>
               <span className={`text-sm ${idx <= currentIndex ? 'font-semibold text-gray-900' : 'text-gray-500'}`}>
                 {role}
               </span>
               {idx === currentIndex && (
-                <span className="ml-auto text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                <span className="ml-auto text-xs px-2 py-1 bg-cyan-100 text-cyan-700 rounded">
                   Current
                 </span>
               )}
@@ -98,6 +101,18 @@ export default function CareerPathPanel({ state }: CareerPathPanelProps) {
         <p className="text-sm text-gray-600">
           💡 Keep improving your skills and making good decisions. Next promotion in ~{Math.max(0, nextPromotion - state.years_in_job)} years.
         </p>
+      </div>
+
+      <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-4 space-y-2">
+        <p className="text-sm font-semibold text-cyan-900">Career Path Replay</p>
+        <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+          {replayMilestones.map((m) => (
+            <div key={`${m.role}-${m.year}`} className="flex items-center justify-between text-sm">
+              <span className="text-gray-700">Year {m.year}: {m.role}</span>
+              <span className="font-semibold text-cyan-700">{formatCurrency(m.salary)}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </Card>
   );

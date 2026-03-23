@@ -26,7 +26,7 @@ const features = [
     icon: Zap,
     title: 'Interactive Simulations',
     description: 'Learn through engaging scenarios that make complex concepts simple',
-    color: 'bg-blue-500'
+    color: 'bg-cyan-500'
   },
   {
     icon: Target,
@@ -71,7 +71,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-br from-cyan-600 to-purple-600 rounded-lg flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <span className="text-xl font-bold">Money Mindset</span>
@@ -92,7 +92,7 @@ export default function HomePage() {
       <section className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-cyan-600 to-purple-600 bg-clip-text text-transparent">
               Master Your Money,
               <br />Transform Your Life
             </h1>
@@ -164,25 +164,25 @@ export default function HomePage() {
                 </Link>
               </div>
             </div>
-            <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
+            <div className="bg-gradient-to-br from-cyan-600 to-purple-600 rounded-2xl p-8 text-white">
               <div className="text-center">
                 <Trophy className="w-16 h-16 mx-auto mb-4" />
                 <h3 className="text-3xl font-bold mb-4">Join 10,000+ Learners</h3>
-                <p className="text-blue-100 mb-6">
+                <p className="text-cyan-100 mb-6">
                   People just like you are building better financial futures every day
                 </p>
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
                     <div className="text-3xl font-bold">12+</div>
-                    <div className="text-sm text-blue-200">Simulations</div>
+                    <div className="text-sm text-cyan-200">Simulations</div>
                   </div>
                   <div>
                     <div className="text-3xl font-bold">50+</div>
-                    <div className="text-sm text-blue-200">Lessons</div>
+                    <div className="text-sm text-cyan-200">Lessons</div>
                   </div>
                   <div>
                     <div className="text-3xl font-bold">24/7</div>
-                    <div className="text-sm text-blue-200">AI Support</div>
+                    <div className="text-sm text-cyan-200">AI Support</div>
                   </div>
                 </div>
               </div>
@@ -192,15 +192,15 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600">
+      <section className="py-20 bg-gradient-to-r from-cyan-600 to-purple-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
           <h2 className="text-4xl font-bold mb-4">Ready to Take Control?</h2>
-          <p className="text-xl text-blue-100 mb-8">
+          <p className="text-xl text-cyan-100 mb-8">
             Join thousands of learners who are mastering their finances
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/register">
-              <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100">
+              <Button size="lg" className="bg-white text-cyan-600 hover:bg-gray-100">
                 Create Free Account
               </Button>
             </Link>
@@ -217,7 +217,7 @@ export default function HomePage() {
       <footer className="bg-gray-900 text-gray-400 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-cyan-600 to-purple-600 rounded-lg flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-bold text-white">Money Mindset</span>

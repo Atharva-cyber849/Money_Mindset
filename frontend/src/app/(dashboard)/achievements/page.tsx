@@ -210,7 +210,7 @@ export default function AchievementsPage() {
 
         <Card className="text-center bg-gradient-to-br from-blue-50 to-blue-100">
           <div className="text-3xl mb-2">🔵</div>
-          <div className="text-2xl font-bold text-blue-600">{rarityCount.rare}</div>
+          <div className="text-2xl font-bold text-cyan-600">{rarityCount.rare}</div>
           <div className="text-sm text-gray-600">Rare</div>
         </Card>
 

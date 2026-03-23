@@ -79,14 +79,14 @@ export function Badge({
 
   const rarityColors = {
     common: 'from-gray-400 to-gray-500',
-    rare: 'from-blue-400 to-blue-600',
+    rare: 'from-cyan-400 to-cyan-600',
     epic: 'from-purple-400 to-purple-600',
     legendary: 'from-yellow-400 to-orange-500',
   }
 
   const rarityBorders = {
     common: 'border-gray-300',
-    rare: 'border-blue-400',
+    rare: 'border-cyan-400',
     epic: 'border-purple-400',
     legendary: 'border-yellow-400',
   }

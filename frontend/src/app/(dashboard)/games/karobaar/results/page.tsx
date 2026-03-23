@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import { api } from '@/lib/api/client';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -43,7 +43,7 @@ const formatCurrency = (amount: number) => {
 
 const getScoreBadge = (score: number) => {
   if (score >= 90) return { emoji: '🏆', label: 'Legendary', color: 'from-yellow-400 to-yellow-600' };
-  if (score >= 80) return { emoji: '⭐', label: 'Excellent', color: 'from-blue-400 to-blue-600' };
+  if (score >= 80) return { emoji: '⭐', label: 'Excellent', color: 'from-cyan-400 to-cyan-600' };
   if (score >= 70) return { emoji: '✨', label: 'Great', color: 'from-purple-400 to-purple-600' };
   if (score >= 60) return { emoji: '👍', label: 'Good', color: 'from-green-400 to-green-600' };
   return { emoji: '📚', label: 'Learning', color: 'from-gray-400 to-gray-600' };
@@ -61,7 +61,7 @@ export default function KarobarResults({ params }: { params: { session_id: strin
 
   const loadResults = async () => {
     try {
-      const response = await axios.get(`/api/v1/games/karobaar/${params.session_id}`);
+      const response = await api.get(`/games/karobaar/${params.session_id}`);
       setResults(response.data);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load results');
@@ -124,7 +124,7 @@ export default function KarobarResults({ params }: { params: { session_id: strin
           <div className="text-5xl">{careerBadge.emoji}</div>
           <div>
             <p className="text-gray-600 mb-1">Career Score</p>
-            <p className="text-4xl font-bold text-blue-600">{Math.round(results.final_scores.career)}</p>
+            <p className="text-4xl font-bold text-cyan-600">{Math.round(results.final_scores.career)}</p>
             <p className="text-sm text-gray-600 mt-1">{careerBadge.label}</p>
           </div>
           <div className="bg-gray-100 p-3 rounded text-sm text-gray-700">
@@ -164,7 +164,7 @@ export default function KarobarResults({ params }: { params: { session_id: strin
         <h3 className="text-2xl font-bold">Your Journey in Numbers</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           <div className="text-center">
-            <p className="text-3xl font-bold text-blue-600">{results.decisions_made}</p>
+            <p className="text-3xl font-bold text-cyan-600">{results.decisions_made}</p>
             <p className="text-gray-600">Key Decisions Made</p>
           </div>
           <div className="text-center">
@@ -190,7 +190,7 @@ export default function KarobarResults({ params }: { params: { session_id: strin
             {results.decision_history.map((decision, idx) => (
               <div key={idx} className="flex gap-4 p-4 bg-gray-50 rounded-lg">
                 <div className="flex-shrink-0">
-                  <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-blue-100 text-blue-600 font-bold text-sm">
+                  <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-cyan-100 text-cyan-600 font-bold text-sm">
                     {idx + 1}
                   </span>
                 </div>
@@ -204,7 +204,7 @@ export default function KarobarResults({ params }: { params: { session_id: strin
                       </span>
                     )}
                     {decision.impacts.career !== 0 && (
-                      <span className={decision.impacts.career > 0 ? 'text-blue-600' : 'text-red-600'}>
+                      <span className={decision.impacts.career > 0 ? 'text-cyan-600' : 'text-red-600'}>
                         Career {decision.impacts.career > 0 ? '+' : ''}{Math.round(decision.impacts.career)}
                       </span>
                     )}
@@ -225,7 +225,7 @@ export default function KarobarResults({ params }: { params: { session_id: strin
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Button
           onClick={() => router.push('/games')}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
+          className="bg-cyan-600 hover:bg-blue-700 text-white"
         >
           <Home className="w-4 h-4 mr-2" />
           Back to Games
@@ -247,7 +247,7 @@ export default function KarobarResults({ params }: { params: { session_id: strin
       </div>
 
       {/* Insights */}
-      <Card className="p-6 bg-blue-50 border border-blue-200 space-y-4">
+      <Card className="p-6 bg-cyan-50 border border-cyan-200 space-y-4">
         <h3 className="text-lg font-bold">💡 Key Insights</h3>
         <ul className="space-y-2 text-sm">
           <li>

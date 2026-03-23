@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import { api } from '@/lib/api/client';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -36,6 +36,14 @@ interface GameSession {
   financial_profile: any;
   crisis_name: string;
   crisis_description: string;
+}
+
+interface DecisionLogEntry {
+  quarter: number;
+  phase: string;
+  action: string;
+  asset: string;
+  consequence: string;
 }
 
 const CRISES: CrisisOption[] = [
@@ -86,6 +94,35 @@ export default function BlackSwanGame() {
   const [error, setError] = useState('');
   const [currentAsset, setCurrentAsset] = useState('');
   const [currentAction, setCurrentAction] = useState('');
+  const [decisionLog, setDecisionLog] = useState<DecisionLogEntry[]>([]);
+  const [activeStage, setActiveStage] = useState<'portfolio' | 'decisions' | 'resilience'>('portfolio');
+
+  const getProfileMix = (profileType: string) => {
+    switch (profileType) {
+      case 'conservative':
+        return { cash: 35, equity: 15, real_estate: 25, fds: 20, gold: 5, crypto: 0 };
+      case 'aggressive':
+        return { cash: 10, equity: 45, real_estate: 15, fds: 5, gold: 5, crypto: 20 };
+      case 'unprepared':
+        return { cash: 5, equity: 30, real_estate: 40, fds: 5, gold: 5, crypto: 15 };
+      default:
+        return { cash: 20, equity: 30, real_estate: 20, fds: 15, gold: 10, crypto: 5 };
+    }
+  };
+
+  const getDecisionConsequence = (action: string, asset: string, phase: string) => {
+    const phaseText = phase.replace('_', ' ');
+    if (action === 'sell') {
+      return `Raised liquidity by reducing ${asset} exposure during ${phaseText}; safer but may cap rebound gains.`;
+    }
+    if (action === 'buy_dip') {
+      return `Increased ${asset} at discounted levels in ${phaseText}; high upside with higher near-term volatility.`;
+    }
+    if (action === 'rebalance') {
+      return `Rebalanced ${asset} allocation during ${phaseText}; improved diversification and drawdown control.`;
+    }
+    return `Held ${asset} through ${phaseText}; avoided transaction noise but accepted full market swings.`;
+  };
 
   const handleCreateGame = async () => {
     if (!selectedCrisis || !selectedProfile) {
@@ -95,7 +132,7 @@ export default function BlackSwanGame() {
 
     try {
       setLoading(true);
-      const response = await axios.post('/api/v1/games/black-swan/create', {
+      const response = await api.post('/games/black-swan/create', {
         crisis_type: selectedCrisis.id,
         profile_type: selectedProfile.id,
         difficulty: selectedDifficulty,
@@ -116,7 +153,7 @@ export default function BlackSwanGame() {
 
     try {
       setLoading(true);
-      const response = await axios.post(`/api/v1/games/black-swan/${session.session_id}/advance-quarter`);
+      const response = await api.post(`/games/black-swan/${session.session_id}/advance-quarter`);
 
       setSession(prev => prev ? {
         ...prev,
@@ -139,11 +176,22 @@ export default function BlackSwanGame() {
 
     try {
       setLoading(true);
-      await axios.post(`/api/v1/games/black-swan/${session.session_id}/make-decision`, {
+      await api.post(`/games/black-swan/${session.session_id}/make-decision`, {
         decision_type: currentAction,
         asset_class: currentAsset,
         amount: Math.random() * 100000, // Placeholder amount
       });
+
+      setDecisionLog((prev) => [
+        ...prev,
+        {
+          quarter: session.current_quarter,
+          phase: session.current_phase,
+          action: currentAction,
+          asset: currentAsset,
+          consequence: getDecisionConsequence(currentAction, currentAsset, session.current_phase),
+        },
+      ]);
 
       setCurrentAsset('');
       setCurrentAction('');
@@ -159,7 +207,7 @@ export default function BlackSwanGame() {
 
     try {
       setLoading(true);
-      await axios.post(`/api/v1/games/black-swan/${session.session_id}/complete`);
+      await api.post(`/games/black-swan/${session.session_id}/complete`);
       router.push(`/games/black-swan/results?session_id=${session.session_id}`);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to complete game');
@@ -234,8 +282,8 @@ export default function BlackSwanGame() {
               key={profile.id}
               className={`p-6 cursor-pointer transition ${
                 selectedProfile?.id === profile.id
-                  ? 'border-2 border-blue-500 bg-blue-50'
-                  : 'border border-gray-200 hover:border-blue-300'
+                  ? 'border-2 border-cyan-500 bg-cyan-50'
+                  : 'border border-gray-200 hover:border-cyan-300'
               }`}
               onClick={() => setSelectedProfile(profile)}
             >
@@ -257,7 +305,7 @@ export default function BlackSwanGame() {
           <Button
             onClick={() => setScreen('difficulty-select')}
             disabled={!selectedProfile}
-            className="bg-blue-600 hover:bg-blue-700 text-white py-3"
+            className="bg-cyan-600 hover:bg-blue-700 text-white py-3"
           >
             Next: Choose Difficulty
           </Button>
@@ -405,6 +453,19 @@ export default function BlackSwanGame() {
       'trough': '🔴',
       'recovery': '✅',
     };
+    const profileMix = getProfileMix(session.profile_type);
+    const assetRows = Object.entries(profileMix)
+      .map(([asset, pct]) => ({ asset, pct, amount: (session.wealth * pct) / 100 }))
+      .sort((a, b) => b.pct - a.pct);
+    const resilienceMetrics = {
+      liquidity: Math.min(100, profileMix.cash + profileMix.fds),
+      diversification: 100 - Math.max(...Object.values(profileMix)),
+      optionality: Math.min(100, profileMix.cash + (session.current_phase === 'trough' ? 30 : 15)),
+      hedge: Math.min(100, profileMix.gold * 5),
+    };
+    const selectedConsequence = currentAction && currentAsset
+      ? getDecisionConsequence(currentAction, currentAsset, session.current_phase)
+      : 'Pick an asset and action to see expected consequences before executing.';
 
     return (
       <div className="max-w-7xl mx-auto p-6 space-y-6">
@@ -414,10 +475,37 @@ export default function BlackSwanGame() {
             <h1 className="text-3xl font-bold">⚫ Black Swan Crisis</h1>
             <p className="text-gray-600">Quarter {session.current_quarter} • Phase: {phaseEmoji[session.current_phase]}</p>
           </div>
-          <Link href="/games" className="text-blue-600 hover:underline flex items-center gap-2">
+          <Link href="/games" className="text-cyan-600 hover:underline flex items-center gap-2">
             <Home className="w-4 h-4" />
             Back to Games
           </Link>
+        </div>
+
+        <div className="bg-white rounded-lg border border-slate-200 p-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <button
+            onClick={() => setActiveStage('portfolio')}
+            className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
+              activeStage === 'portfolio' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+            }`}
+          >
+            Stage 1: Portfolio
+          </button>
+          <button
+            onClick={() => setActiveStage('decisions')}
+            className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
+              activeStage === 'decisions' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+            }`}
+          >
+            Stage 2: Decisions
+          </button>
+          <button
+            onClick={() => setActiveStage('resilience')}
+            className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
+              activeStage === 'resilience' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+            }`}
+          >
+            Stage 3: Resilience
+          </button>
         </div>
 
         {/* Grid Layout */}
@@ -429,7 +517,7 @@ export default function BlackSwanGame() {
               <div className="space-y-3">
                 <div>
                   <p className="text-sm text-gray-600">Current Value</p>
-                  <p className="text-3xl font-bold text-blue-600">
+                  <p className="text-3xl font-bold text-cyan-600">
                     ₹{(session.wealth / 100000).toFixed(1)}L
                   </p>
                 </div>
@@ -440,10 +528,30 @@ export default function BlackSwanGame() {
               </div>
             </Card>
 
+            {activeStage === 'portfolio' && (
+              <Card className="p-4 space-y-3">
+                <h3 className="text-lg font-bold">Crisis Portfolio Mix</h3>
+                <div className="space-y-2">
+                  {assetRows.map((row) => (
+                    <div key={row.asset}>
+                      <div className="flex items-center justify-between text-xs text-gray-700 mb-1">
+                        <span>{row.asset.replace('_', ' ')}</span>
+                        <span>{row.pct}%</span>
+                      </div>
+                      <div className="h-2 rounded bg-gray-200 overflow-hidden">
+                        <div className="h-full bg-cyan-600" style={{ width: `${row.pct}%` }} />
+                      </div>
+                      <p className="text-[11px] text-gray-500 mt-1">₹{row.amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
             <Button
               onClick={handleAdvanceQuarter}
               disabled={loading || session.current_quarter >= 20}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              className="w-full bg-cyan-600 hover:bg-blue-700 text-white"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Next Quarter
@@ -469,8 +577,14 @@ export default function BlackSwanGame() {
             </Card>
 
             {/* Decision Panel */}
-            <Card className="p-6 space-y-4">
-              <h3 className="text-lg font-bold">Make a Decision</h3>
+            {activeStage === 'decisions' && (
+              <Card className="p-6 space-y-4">
+                <h3 className="text-lg font-bold">Make a Decision</h3>
+
+              <Card className="p-3 bg-cyan-50 border border-cyan-200">
+                <p className="text-xs font-semibold text-cyan-900">Consequence Preview</p>
+                <p className="text-sm text-cyan-800 mt-1">{selectedConsequence}</p>
+              </Card>
 
               <div>
                 <label className="block text-sm font-medium mb-2">Asset Class</label>
@@ -481,7 +595,7 @@ export default function BlackSwanGame() {
                       onClick={() => setCurrentAsset(asset)}
                       className={`p-2 rounded text-sm font-medium transition ${
                         currentAsset === asset
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-cyan-600 text-white'
                           : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
                       }`}
                     >
@@ -510,18 +624,45 @@ export default function BlackSwanGame() {
                 </div>
               </div>
 
-              <Button
-                onClick={handleMakeDecision}
-                disabled={!currentAsset || !currentAction}
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
-              >
-                Execute Decision
-              </Button>
-            </Card>
+                <Button
+                  onClick={handleMakeDecision}
+                  disabled={!currentAsset || !currentAction}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                >
+                  Execute Decision
+                </Button>
+              </Card>
+            )}
+
+            {activeStage === 'portfolio' && (
+              <Card className="p-4 bg-cyan-50 border border-cyan-200">
+                <p className="text-sm text-cyan-800">
+                  In this stage, track how your portfolio composition changes across crisis phases.
+                </p>
+              </Card>
+            )}
           </div>
 
           {/* Right: Crisis Status */}
           <div className="lg:col-span-1">
+            {activeStage === 'resilience' && (
+              <Card className="p-4 space-y-3 mb-4">
+                <h3 className="text-lg font-bold">Antifragility Metrics</h3>
+                {Object.entries(resilienceMetrics).map(([k, v]) => (
+                  <div key={k}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="capitalize text-gray-700">{k}</span>
+                      <span className="font-semibold text-gray-900">{Math.round(v)}</span>
+                    </div>
+                    <div className="h-2 rounded bg-gray-200 overflow-hidden">
+                      <div className="h-full bg-green-600" style={{ width: `${Math.max(5, Math.min(100, v))}%` }} />
+                    </div>
+                  </div>
+                ))}
+                <p className="text-xs text-gray-600">Higher scores indicate better ability to absorb shocks and exploit recovery phases.</p>
+              </Card>
+            )}
+
             <Card className="p-4 space-y-4">
               <h3 className="text-lg font-bold">Crisis Timeline</h3>
               <div className="space-y-3">
@@ -539,6 +680,21 @@ export default function BlackSwanGame() {
                 </div>
               </div>
             </Card>
+
+            {activeStage === 'resilience' && decisionLog.length > 0 && (
+              <Card className="p-4 space-y-3 mt-4">
+                <h3 className="text-lg font-bold">Decision Replay</h3>
+                <div className="space-y-2 max-h-56 overflow-y-auto">
+                  {decisionLog.slice(-6).reverse().map((entry, idx) => (
+                    <div key={`${entry.quarter}-${idx}`} className="rounded border border-gray-200 bg-gray-50 p-2">
+                      <p className="text-xs font-semibold text-gray-900">Q{entry.quarter} • {entry.phase.replace('_', ' ')}</p>
+                      <p className="text-xs text-cyan-700">{entry.action} {entry.asset}</p>
+                      <p className="text-xs text-gray-700 mt-1">{entry.consequence}</p>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
           </div>
         </div>
 

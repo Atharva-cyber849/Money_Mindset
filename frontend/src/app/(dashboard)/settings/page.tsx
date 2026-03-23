@@ -38,7 +38,7 @@ export default function SettingsPage() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
                     activeTab === tab.id
-                      ? 'bg-blue-50 text-blue-700 font-medium'
+                      ? 'bg-cyan-50 text-cyan-700 font-medium'
                       : 'text-gray-700 hover:bg-gray-50'
                   }`}
                 >
@@ -105,7 +105,7 @@ export default function SettingsPage() {
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" className="sr-only peer" defaultChecked={index < 3} />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
                     </label>
                   </div>
                 ))}
@@ -152,8 +152,8 @@ export default function SettingsPage() {
                     {['Light', 'Dark', 'Auto'].map((theme) => (
                       <button
                         key={theme}
-                        className={`p-4 border-2 rounded-lg text-center hover:border-blue-500 transition-colors ${
-                          theme === 'Light' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                        className={`p-4 border-2 rounded-lg text-center hover:border-cyan-500 transition-colors ${
+                          theme === 'Light' ? 'border-cyan-500 bg-cyan-50' : 'border-gray-200'
                         }`}
                       >
                         <div className="font-medium">{theme}</div>
@@ -193,7 +193,7 @@ export default function SettingsPage() {
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" className="sr-only peer" defaultChecked={index === 3} />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
                     </label>
                   </div>
                 ))}
@@ -205,7 +205,7 @@ export default function SettingsPage() {
             <Card className="p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-6">Billing & Subscription</h2>
               <div className="space-y-6">
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg border border-blue-200">
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg border border-cyan-200">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-lg font-semibold text-gray-900">Free Plan</div>

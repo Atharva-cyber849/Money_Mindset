@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import { api } from '@/lib/api/client';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -108,6 +108,7 @@ export default function DalalStreetGame() {
   const [tradeMessage, setTradeMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [activeStage, setActiveStage] = useState<'portfolio' | 'trade' | 'market'>('portfolio');
 
   // Load existing session on mount
   useEffect(() => {
@@ -117,12 +118,12 @@ export default function DalalStreetGame() {
   const loadExistingSession = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/v1/games/dalal/user/sessions');
+      const response = await api.get('/games/dalal/user/sessions');
       if (response.data.sessions && response.data.sessions.length > 0) {
         const active = response.data.sessions.find((s: any) => s.status === 'active');
         if (active) {
           // Load the active session
-          const sessionData = await axios.get(`/api/v1/games/dalal/${active.session_id}`);
+          const sessionData = await api.get(`/games/dalal/${active.session_id}`);
           setSession({
             session_id: active.session_id,
             status: active.status,
@@ -153,7 +154,7 @@ export default function DalalStreetGame() {
 
     try {
       setLoading(true);
-      const response = await axios.post('/api/v1/games/dalal/create', {
+      const response = await api.post('/games/dalal/create', {
         era: selectedEra.id,
       });
 
@@ -169,7 +170,7 @@ export default function DalalStreetGame() {
 
   const loadAvailableStocks = async (sessionId: string) => {
     try {
-      const response = await axios.get(`/api/v1/games/dalal/${sessionId}/available-stocks`);
+      const response = await api.get(`/games/dalal/${sessionId}/available-stocks`);
       setStocks(response.data.stocks);
     } catch (err) {
       console.error('Failed to load stocks:', err);
@@ -181,7 +182,7 @@ export default function DalalStreetGame() {
 
     try {
       setSubmitting(true);
-      const response = await axios.post(`/api/v1/games/dalal/${session.session_id}/advance-quarter`);
+      const response = await api.post(`/games/dalal/${session.session_id}/advance-quarter`);
 
       setSession(prev => prev ? {
         ...prev,
@@ -215,7 +216,7 @@ export default function DalalStreetGame() {
 
     try {
       setSubmitting(true);
-      const response = await axios.post(`/api/v1/games/dalal/${session.session_id}/trade`, {
+      const response = await api.post(`/games/dalal/${session.session_id}/trade`, {
         symbol: tradeSymbol,
         trade_type: tradeType,
         quantity: tradeQuantity,
@@ -246,7 +247,7 @@ export default function DalalStreetGame() {
 
     try {
       setSubmitting(true);
-      await axios.post(`/api/v1/games/dalal/${session.session_id}/complete`);
+      await api.post(`/games/dalal/${session.session_id}/complete`);
       router.push(`/games/dalal-street/results?session_id=${session.session_id}`);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to complete game');
@@ -254,6 +255,38 @@ export default function DalalStreetGame() {
       setSubmitting(false);
     }
   };
+
+  const selectedStockData = stocks.find((s) => s.symbol === tradeSymbol);
+  const estimatedTradeValue = selectedStockData ? selectedStockData.current_price * tradeQuantity : 0;
+  const sectorCounts = stocks.reduce((acc: Record<string, number>, stock) => {
+    acc[stock.sector] = (acc[stock.sector] || 0) + 1;
+    return acc;
+  }, {});
+  const sectorRows = Object.entries(sectorCounts)
+    .map(([sector, count]) => ({ sector, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  const tradeConsequence = (() => {
+    if (!tradeSymbol || tradeType === 'hold' || !selectedStockData) {
+      return 'HOLD preserves liquidity and avoids timing risk, but may miss momentum in strong trends.';
+    }
+
+    if (tradeType === 'buy') {
+      if (selectedStockData.trend === 'up') {
+        return 'Buying an uptrend can compound gains, but entering late raises pullback risk.';
+      }
+      if (selectedStockData.trend === 'down') {
+        return 'Buying a downtrend is a contrarian bet; size carefully to avoid catching a falling knife.';
+      }
+      return 'Buying a stable stock is a lower-volatility position build with moderate upside.';
+    }
+
+    if (selectedStockData.trend === 'down') {
+      return 'Selling into weakness can reduce drawdown and protect capital for better setups.';
+    }
+    return 'Selling an uptrend locks profit now but can reduce upside if momentum continues.';
+  })();
 
   // Loading state
   if (loading && !gameStarted) {
@@ -287,8 +320,8 @@ export default function DalalStreetGame() {
                 key={era.id}
                 className={`p-6 cursor-pointer transition ${
                   selectedEra?.id === era.id
-                    ? 'border-2 border-blue-500 bg-blue-50'
-                    : 'border border-gray-200 hover:border-blue-300'
+                    ? 'border-2 border-cyan-500 bg-cyan-50'
+                    : 'border border-gray-200 hover:border-cyan-300'
                 }`}
                 onClick={() => setSelectedEra(era)}
               >
@@ -317,7 +350,7 @@ export default function DalalStreetGame() {
         <Button
           onClick={handleCreateGame}
           disabled={!selectedEra || loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg"
+          className="w-full bg-cyan-600 hover:bg-blue-700 text-white py-3 text-lg"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
           Start Trading
@@ -337,12 +370,12 @@ export default function DalalStreetGame() {
           <p className="text-xl text-gray-600">{era?.narrative}</p>
         </div>
 
-        <Card className="p-8 bg-gradient-to-r from-blue-50 to-indigo-50 space-y-4">
+        <Card className="p-8 bg-gradient-to-r from-blue-50 to-cyan-50 space-y-4">
           <h2 className="text-2xl font-bold">Starting Conditions</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <p className="text-sm text-gray-600">Starting Capital</p>
-              <p className="text-2xl font-bold text-blue-600">₹{session?.portfolio_value.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-cyan-600">₹{session?.portfolio_value.toLocaleString()}</p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Available Stocks</p>
@@ -393,10 +426,37 @@ export default function DalalStreetGame() {
           <h1 className="text-3xl font-bold">📊 Dalal Street Trading</h1>
           <p className="text-gray-600">Quarter {session?.current_quarter} of 20</p>
         </div>
-        <Link href="/games" className="text-blue-600 hover:underline flex items-center gap-2">
+        <Link href="/games" className="text-cyan-600 hover:underline flex items-center gap-2">
           <Home className="w-4 h-4" />
           Back to Games
         </Link>
+      </div>
+
+      <div className="bg-white rounded-lg border border-slate-200 p-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <button
+          onClick={() => setActiveStage('portfolio')}
+          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
+            activeStage === 'portfolio' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          Stage 1: Portfolio
+        </button>
+        <button
+          onClick={() => setActiveStage('trade')}
+          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
+            activeStage === 'trade' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          Stage 2: Trade Desk
+        </button>
+        <button
+          onClick={() => setActiveStage('market')}
+          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
+            activeStage === 'market' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          Stage 3: Market View
+        </button>
       </div>
 
       {/* Grid Layout */}
@@ -408,7 +468,7 @@ export default function DalalStreetGame() {
             <div className="space-y-3">
               <div>
                 <p className="text-sm text-gray-600">Total Value</p>
-                <p className="text-3xl font-bold text-blue-600">
+                <p className="text-3xl font-bold text-cyan-600">
                   ₹{(session?.portfolio_value || 0).toLocaleString('en-IN', {
                     maximumFractionDigits: 0,
                   })}
@@ -435,7 +495,7 @@ export default function DalalStreetGame() {
           <Button
             onClick={handleAdvanceQuarter}
             disabled={submitting || !session || session.current_quarter >= 20}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            className="w-full bg-cyan-600 hover:bg-blue-700 text-white"
           >
             {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
             Next Quarter
@@ -474,9 +534,20 @@ export default function DalalStreetGame() {
             </Card>
           )}
 
-          {/* Trade Execution Panel */}
-          <Card className="p-6 space-y-4">
-            <h3 className="text-lg font-bold">Execute Trade</h3>
+          {activeStage === 'trade' && (
+            <>
+              <Card className="p-4 bg-gradient-to-r from-sky-50 to-cyan-50 border border-cyan-200">
+                <h3 className="text-sm font-semibold text-cyan-900 mb-2">Decision Consequence</h3>
+                <p className="text-sm text-cyan-800">{tradeConsequence}</p>
+                {selectedStockData && tradeType !== 'hold' && (
+                  <p className="text-xs text-cyan-700 mt-2">
+                    Estimated {tradeType.toUpperCase()} value: ₹{estimatedTradeValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                  </p>
+                )}
+              </Card>
+
+              <Card className="p-6 space-y-4">
+                <h3 className="text-lg font-bold">Execute Trade</h3>
 
             <div>
               <label className="block text-sm font-medium mb-2">Stock Symbol</label>
@@ -552,7 +623,7 @@ export default function DalalStreetGame() {
                   onClick={() => setTradeType('hold')}
                   className={`p-2 rounded ${
                     tradeType === 'hold'
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-cyan-600 text-white'
                       : 'bg-gray-100 text-gray-900'
                   }`}
                 >
@@ -573,43 +644,78 @@ export default function DalalStreetGame() {
               </div>
             )}
 
-            <Button
-              onClick={handleExecuteTrade}
-              disabled={submitting || !tradeSymbol}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Execute Trade
-            </Button>
-          </Card>
+                <Button
+                  onClick={handleExecuteTrade}
+                  disabled={submitting || !tradeSymbol}
+                  className="w-full bg-cyan-600 hover:bg-blue-700 text-white"
+                >
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Execute Trade
+                </Button>
+              </Card>
+            </>
+          )}
+
+          {activeStage === 'portfolio' && (
+            <Card className="p-5 bg-cyan-50 border border-cyan-200">
+              <h3 className="font-semibold text-cyan-900 mb-2">Portfolio Stage</h3>
+              <p className="text-sm text-cyan-800">
+                Review cash, holdings value, and quarter-by-quarter market events before placing trades.
+              </p>
+            </Card>
+          )}
         </div>
 
         {/* Right Sidebar: Stock List */}
         <div className="lg:col-span-1">
-          <Card className="p-4 space-y-3">
-            <h3 className="text-lg font-bold">Market Prices</h3>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {stocks.slice(0, 15).map((stock) => (
-                <div
-                  key={stock.symbol}
-                  onClick={() => setTradeSymbol(stock.symbol)}
-                  className="p-2 hover:bg-gray-100 rounded cursor-pointer"
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-sm">{stock.symbol}</span>
-                    <span className="text-sm text-gray-600">₹{stock.current_price.toFixed(0)}</span>
+          {(activeStage === 'market' || activeStage === 'portfolio') && (
+            <Card className="p-4 space-y-3 mb-4">
+              <h3 className="text-lg font-bold">Market Breadth</h3>
+              <div className="space-y-2">
+                {sectorRows.map((row) => (
+                  <div key={row.sector}>
+                    <div className="flex items-center justify-between text-xs text-gray-700 mb-1">
+                      <span>{row.sector}</span>
+                      <span>{row.count} stocks</span>
+                    </div>
+                    <div className="h-2 rounded bg-gray-200 overflow-hidden">
+                      <div
+                        className="h-full bg-cyan-500"
+                        style={{ width: `${Math.max(10, (row.count / Math.max(1, sectorRows[0]?.count || 1)) * 100)}%` }}
+                      />
+                    </div>
                   </div>
-                  {stock.trend === 'up' ? (
-                    <p className="text-xs text-green-600">📈 Trending up</p>
-                  ) : stock.trend === 'down' ? (
-                    <p className="text-xs text-red-600">📉 Trending down</p>
-                  ) : (
-                    <p className="text-xs text-gray-600">➡️ Stable</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </Card>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {(activeStage === 'market' || activeStage === 'trade') && (
+            <Card className="p-4 space-y-3">
+              <h3 className="text-lg font-bold">Market Prices</h3>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {stocks.slice(0, 15).map((stock) => (
+                  <div
+                    key={stock.symbol}
+                    onClick={() => setTradeSymbol(stock.symbol)}
+                    className="p-2 hover:bg-gray-100 rounded cursor-pointer"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold text-sm">{stock.symbol}</span>
+                      <span className="text-sm text-gray-600">₹{stock.current_price.toFixed(0)}</span>
+                    </div>
+                    {stock.trend === 'up' ? (
+                      <p className="text-xs text-green-600">📈 Trending up</p>
+                    ) : stock.trend === 'down' ? (
+                      <p className="text-xs text-red-600">📉 Trending down</p>
+                    ) : (
+                      <p className="text-xs text-gray-600">➡️ Stable</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
         </div>
       </div>
 

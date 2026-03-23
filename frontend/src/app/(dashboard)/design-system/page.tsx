@@ -105,7 +105,7 @@ export default function DesignSystemDemo() {
             title="Monthly Savings"
             value="$1,234"
             icon={Target}
-            iconColor="bg-blue-500"
+            iconColor="bg-cyan-500"
             trend="up"
             change={8}
             animate={true}
@@ -392,7 +392,7 @@ export default function DesignSystemDemo() {
               <div className="h-12 bg-info-blue rounded flex items-center justify-center text-white font-mono text-sm">
                 #3B82F6
               </div>
-              <div className="h-12 bg-info-blue-light rounded flex items-center justify-center text-blue-800 font-mono text-sm">
+              <div className="h-12 bg-info-blue-light rounded flex items-center justify-center text-cyan-800 font-mono text-sm">
                 Light
               </div>
             </div>
