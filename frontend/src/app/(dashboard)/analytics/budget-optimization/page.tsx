@@ -85,7 +85,7 @@ export default function BudgetOptimizationPage() {
             'Helps identify overspending areas and savings opportunities',
           ]}
           color="teal"
-          example="If you earn $5,000/month: $2,500 needs, $1,500 wants, $1,000 savings"
+          example="If you earn ₹4,00,000/month: ₹2,00,000 needs, ₹1,20,000 wants, ₹80,000 savings"
         />
 
         {/* How It Works */}
@@ -152,11 +152,11 @@ export default function BudgetOptimizationPage() {
           title="Budget Optimization Example"
           description="See how our analysis helps you understand your spending"
           inputExample={[
-            { label: 'Monthly Income', value: '$5,000', highlight: true },
-            { label: 'Housing Expenses', value: '$1,250' },
-            { label: 'Food & Groceries', value: '$400' },
-            { label: 'Entertainment', value: '$400' },
-            { label: 'Current Savings', value: '$800' },
+            { label: 'Monthly Income', value: '₹4,00,000', highlight: true },
+            { label: 'Housing Expenses', value: '₹1,00,000' },
+            { label: 'Food & Groceries', value: '₹32,000' },
+            { label: 'Entertainment', value: '₹32,000' },
+            { label: 'Current Savings', value: '₹64,000' },
           ]}
           outputExample={[
             {
@@ -168,7 +168,7 @@ export default function BudgetOptimizationPage() {
             { label: 'Savings Rate', value: '18%' },
             {
               label: 'Optimization Potential',
-              value: '+$200/month',
+              value: '+₹16,000/month',
               highlight: true,
             },
           ]}
@@ -310,7 +310,7 @@ export default function BudgetOptimizationPage() {
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
                     <div className="text-2xl font-bold text-green-600">
-                      ${result.optimization_potential.potential_additional_savings.toLocaleString()}
+                      ₹{result.optimization_potential.potential_additional_savings.toLocaleString('en-IN')}
                     </div>
                     <div className="text-sm text-gray-600 mt-1">
                       Potential Monthly Savings

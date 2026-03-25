@@ -273,6 +273,7 @@ class DalalStreetSimulator:
     def __init__(
         self,
         era: MarketEra,
+        starting_capital: Optional[float] = None,
         starting_portfolio: Optional[Portfolio] = None,
         inherited_capital: Optional[float] = None,
     ):
@@ -284,7 +285,12 @@ class DalalStreetSimulator:
         if starting_portfolio:
             self.portfolio = starting_portfolio
         else:
-            capital = inherited_capital or self.config.get("starting_capital", 0)
+            if inherited_capital is not None:
+                capital = inherited_capital
+            elif starting_capital is not None:
+                capital = starting_capital
+            else:
+                capital = self.config.get("starting_capital", 0)
             self.portfolio = Portfolio(cash=capital, holdings={}, trades=[])
 
         # Initialize stocks

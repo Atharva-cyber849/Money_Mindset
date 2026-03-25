@@ -107,6 +107,8 @@ export default function DalalStreetGame() {
   const [tradeError, setTradeError] = useState('');
   const [tradeMessage, setTradeMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [stocksLoading, setStocksLoading] = useState(false);
+  const [stocksError, setStocksError] = useState('');
   const [error, setError] = useState('');
   const [activeStage, setActiveStage] = useState<'portfolio' | 'trade' | 'market'>('portfolio');
 
@@ -114,6 +116,12 @@ export default function DalalStreetGame() {
   useEffect(() => {
     loadExistingSession();
   }, []);
+
+  useEffect(() => {
+    if (session?.session_id && stocks.length === 0 && !stocksLoading) {
+      loadAvailableStocks(session.session_id);
+    }
+  }, [session?.session_id]);
 
   const loadExistingSession = async () => {
     try {
@@ -158,7 +166,17 @@ export default function DalalStreetGame() {
         era: selectedEra.id,
       });
 
-      setSession(response.data);
+      setSession({
+        session_id: response.data.session_id,
+        status: response.data.status || 'active',
+        era: response.data.era,
+        current_quarter: response.data.current_quarter || 0,
+        portfolio_value: response.data.portfolio_value ?? response.data.starting_capital ?? 0,
+        cash: response.data.cash ?? response.data.starting_capital ?? 0,
+        holdings_value: response.data.holdings_value ?? 0,
+        market_index: response.data.market_index ?? 100,
+      });
+      setGameStarted(true);
       setShowOpeningScene(true);
       setError('');
     } catch (err: any) {
@@ -170,10 +188,16 @@ export default function DalalStreetGame() {
 
   const loadAvailableStocks = async (sessionId: string) => {
     try {
+      setStocksLoading(true);
+      setStocksError('');
       const response = await api.get(`/games/dalal/${sessionId}/available-stocks`);
       setStocks(response.data.stocks);
-    } catch (err) {
-      console.error('Failed to load stocks:', err);
+    } catch (err: any) {
+      const detail = err.response?.data?.detail || 'Failed to load market data';
+      setStocks([]);
+      setStocksError(detail);
+    } finally {
+      setStocksLoading(false);
     }
   };
 
@@ -375,7 +399,7 @@ export default function DalalStreetGame() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <p className="text-sm text-gray-600">Starting Capital</p>
-              <p className="text-2xl font-bold text-cyan-600">₹{session?.portfolio_value.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-cyan-600">₹{(session?.portfolio_value || 0).toLocaleString()}</p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Available Stocks</p>
@@ -671,49 +695,83 @@ export default function DalalStreetGame() {
           {(activeStage === 'market' || activeStage === 'portfolio') && (
             <Card className="p-4 space-y-3 mb-4">
               <h3 className="text-lg font-bold">Market Breadth</h3>
-              <div className="space-y-2">
-                {sectorRows.map((row) => (
-                  <div key={row.sector}>
-                    <div className="flex items-center justify-between text-xs text-gray-700 mb-1">
-                      <span>{row.sector}</span>
-                      <span>{row.count} stocks</span>
+              {stocksLoading ? (
+                <p className="text-sm text-gray-600">Loading market breadth...</p>
+              ) : sectorRows.length > 0 ? (
+                <div className="space-y-2">
+                  {sectorRows.map((row) => (
+                    <div key={row.sector}>
+                      <div className="flex items-center justify-between text-xs text-gray-700 mb-1">
+                        <span>{row.sector}</span>
+                        <span>{row.count} stocks</span>
+                      </div>
+                      <div className="h-2 rounded bg-gray-200 overflow-hidden">
+                        <div
+                          className="h-full bg-cyan-500"
+                          style={{ width: `${Math.max(10, (row.count / Math.max(1, sectorRows[0]?.count || 1)) * 100)}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-2 rounded bg-gray-200 overflow-hidden">
-                      <div
-                        className="h-full bg-cyan-500"
-                        style={{ width: `${Math.max(10, (row.count / Math.max(1, sectorRows[0]?.count || 1)) * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600">No market breadth data yet.</p>
+                  {stocksError && <p className="text-xs text-red-600">{stocksError}</p>}
+                  {session && (
+                    <Button
+                      onClick={() => loadAvailableStocks(session.session_id)}
+                      className="w-full bg-cyan-600 hover:bg-blue-700 text-white"
+                    >
+                      Refresh Market Data
+                    </Button>
+                  )}
+                </div>
+              )}
             </Card>
           )}
 
           {(activeStage === 'market' || activeStage === 'trade') && (
             <Card className="p-4 space-y-3">
               <h3 className="text-lg font-bold">Market Prices</h3>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {stocks.slice(0, 15).map((stock) => (
-                  <div
-                    key={stock.symbol}
-                    onClick={() => setTradeSymbol(stock.symbol)}
-                    className="p-2 hover:bg-gray-100 rounded cursor-pointer"
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold text-sm">{stock.symbol}</span>
-                      <span className="text-sm text-gray-600">₹{stock.current_price.toFixed(0)}</span>
+              {stocksLoading ? (
+                <p className="text-sm text-gray-600">Loading market prices...</p>
+              ) : stocks.length > 0 ? (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {stocks.slice(0, 15).map((stock) => (
+                    <div
+                      key={stock.symbol}
+                      onClick={() => setTradeSymbol(stock.symbol)}
+                      className="p-2 hover:bg-gray-100 rounded cursor-pointer"
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-sm">{stock.symbol}</span>
+                        <span className="text-sm text-gray-600">₹{stock.current_price.toFixed(0)}</span>
+                      </div>
+                      {stock.trend === 'up' ? (
+                        <p className="text-xs text-green-600">📈 Trending up</p>
+                      ) : stock.trend === 'down' ? (
+                        <p className="text-xs text-red-600">📉 Trending down</p>
+                      ) : (
+                        <p className="text-xs text-gray-600">➡️ Stable</p>
+                      )}
                     </div>
-                    {stock.trend === 'up' ? (
-                      <p className="text-xs text-green-600">📈 Trending up</p>
-                    ) : stock.trend === 'down' ? (
-                      <p className="text-xs text-red-600">📉 Trending down</p>
-                    ) : (
-                      <p className="text-xs text-gray-600">➡️ Stable</p>
-                    )}
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600">No market price data available.</p>
+                  {stocksError && <p className="text-xs text-red-600">{stocksError}</p>}
+                  {session && (
+                    <Button
+                      onClick={() => loadAvailableStocks(session.session_id)}
+                      className="w-full bg-cyan-600 hover:bg-blue-700 text-white"
+                    >
+                      Refresh Market Data
+                    </Button>
+                  )}
+                </div>
+              )}
             </Card>
           )}
         </div>

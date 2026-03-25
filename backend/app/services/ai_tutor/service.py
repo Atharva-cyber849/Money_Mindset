@@ -8,6 +8,9 @@ from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from app.core.config import settings
 from sqlalchemy.orm import Session
+import json
+import os
+from difflib import SequenceMatcher
 
 
 class AITutorService:
@@ -17,6 +20,7 @@ class AITutorService:
         self.personalization_engine = personalization_engine
         self._llm = None
         self._chain = None
+        self._popular_answers = None
 
         self.system_prompt = """You are an empathetic, knowledgeable financial AI tutor for "Money Mindset" app.
 
@@ -68,6 +72,48 @@ Respond as their trusted financial mentor, incorporating their personality profi
     def chain(self):
         """Create LLM chain with prompt"""
         return self.prompt_template | self.llm
+
+    @property
+    def popular_answers(self):
+        """Lazy load popular answers from JSON"""
+        if self._popular_answers is None:
+            try:
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                answers_file = os.path.join(current_dir, 'popular_answers.json')
+                if os.path.exists(answers_file):
+                    with open(answers_file, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        self._popular_answers = data.get('popular_questions', [])
+                else:
+                    self._popular_answers = []
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Could not load popular answers: {e}")
+                self._popular_answers = []
+        return self._popular_answers
+
+    def _find_similar_question(self, user_message: str, threshold: float = 0.6) -> Optional[Dict]:
+        """Find similar pre-answered question from popular answers"""
+        if not user_message or len(user_message) < 5:
+            return None
+
+        user_msg_lower = user_message.lower()
+        best_match = None
+        best_ratio = 0
+
+        for qa_item in self.popular_answers:
+            question_lower = qa_item.get('question', '').lower()
+            ratio = SequenceMatcher(None, user_msg_lower, question_lower).ratio()
+
+            if ratio > best_ratio:
+                best_ratio = ratio
+                best_match = qa_item
+
+        # Return if similarity is above threshold
+        if best_ratio >= threshold:
+            return best_match
+        return None
 
     async def get_response(
         self,
@@ -139,10 +185,15 @@ Respond as their trusted financial mentor, incorporating their personality profi
             import logging
             logger = logging.getLogger(__name__)
             logger.error(f"AI Tutor error for user {user_id}: {str(e)}", exc_info=True)
+
+            # Try to find similar pre-answered question
+            similar_qa = self._find_similar_question(message)
+            suggestions = similar_qa.get('suggestions', []) if similar_qa else []
+
             # Fallback response
             return {
                 "response": self._get_fallback_response(message),
-                "suggestions": [],
+                "suggestions": suggestions,
                 "insights": {},
                 "detected_biases": []
             }
@@ -255,17 +306,31 @@ Respond as their trusted financial mentor, incorporating their personality profi
         return suggestions[:4]  # Return max 4
     
     def _get_fallback_response(self, message: str) -> str:
-        """Fallback response when API fails"""
+        """Fallback response when API fails - try popular answers first"""
+        # Try to find a similar pre-answered question
+        similar_qa = self._find_similar_question(message)
+        if similar_qa:
+            return similar_qa.get('answer', '') + "\n\n---\n\n*This answer was prepared offline as our AI service is temporarily rate-limited. For the most personalized guidance, please ask a follow-up question!*"
+
+        # Fallback to generic response
         return f"""I understand you're asking about: "{message}"
 
 While I'm having trouble connecting to my full knowledge base right now, here's what I can tell you:
 
-Financial success comes down to three fundamentals:
+**Financial success comes down to three fundamentals:**
+
 1. **Spend less than you earn** - Track where your money goes
 2. **Automate good habits** - Make saving automatic
 3. **Learn continuously** - Financial literacy is a journey
 
-Would you like to explore any of these areas? I'm here to help you build better money habits!"""
+**I can help you with:**
+- Popular questions: DMAT accounts, ITR filing, health insurance, NPS vs EPF
+- Budgeting strategies
+- Investment basics
+- Debt management
+- Retirement planning
+
+Would you like to explore any of these areas? Ask me your question again, and I'll provide comprehensive guidance!"""
 
 
 # Specialized tutoring modules

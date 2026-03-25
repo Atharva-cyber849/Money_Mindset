@@ -16,7 +16,7 @@ class TransactionType(str, Enum):
 class Transaction(Base):
     """Transaction model"""
     __tablename__ = "transactions"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     date = Column(DateTime, nullable=False)
@@ -25,9 +25,35 @@ class Transaction(Base):
     amount = Column(Float, nullable=False)
     transaction_type = Column(String, nullable=False)  # debit, credit
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     user = relationship("User", back_populates="transactions")
+
+
+class ClassificationFeedback(Base):
+    """User feedback on expense classifications for model improvement"""
+    __tablename__ = "classification_feedback"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    transaction_id = Column(Integer, ForeignKey("transactions.id"), nullable=True)
+
+    # Feedback details
+    transaction_description = Column(String, nullable=False)
+    transaction_amount = Column(Float, nullable=False)
+    predicted_category = Column(String, nullable=False)
+    predicted_confidence = Column(Float, nullable=False)  # 0.0-1.0
+    corrected_category = Column(String, nullable=False)
+
+    # Metadata
+    feedback_type = Column(String, default="correction")  # correction, confirmation
+    is_used_in_training = Column(Boolean, default=False)  # Whether this was used to retrain model
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    user = relationship("User", back_populates="classification_feedback")
 
 
 class Goal(Base):

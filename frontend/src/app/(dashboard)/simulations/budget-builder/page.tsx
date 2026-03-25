@@ -60,7 +60,7 @@ export default function BudgetBuilderPage() {
       .replace('{reduce}', formatCurrency(wants * 0.1))
       .replace('{new_savings}', formatCurrency(savings + wants * 0.1))
       .replace('{needed}', formatCurrency(monthlyIncome * 0.05))
-      .replace('{pct}', `${(savings / monthlyIncome * 100).toFixed(0)}`
+      .replace('{pct}', `${(savings / monthlyIncome * 100).toFixed(0)}`)
 
     return {
       text,

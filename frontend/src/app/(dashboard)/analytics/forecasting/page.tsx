@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Pill';
 import { forecastCategory } from '@/lib/api/analytics';
+import { formatCurrency } from '@/lib/utils';
 import { Loader2, TrendingUp, TrendingDown, Minus, BarChart3, TrendingUpIcon, Lightbulb, Calendar, Clock, AlertCircle } from 'lucide-react';
 import { ForecastLineChart, StatisticsPulse, InsightCard, ExplanationCard, HowItWorks, ExampleShowcase } from '@/components/analytics';
 
@@ -238,7 +239,7 @@ export default function ForecastingPage() {
             <InsightCard
               icon={result.trend.trend === 'increasing' ? TrendingUp : result.trend.trend === 'decreasing' ? TrendingDown : Minus}
               title={`Spending Trend: ${result.trend.trend.charAt(0).toUpperCase() + result.trend.trend.slice(1)}`}
-              description={`Monthly change: ${result.trend.monthly_change >= 0 ? '+' : ''}$${Math.abs(result.trend.monthly_change).toFixed(2)}`}
+              description={`Monthly change: ${result.trend.monthly_change >= 0 ? '+' : ''}${formatCurrency(Math.abs(result.trend.monthly_change), 'INR')}`}
               color={result.trend.trend === 'increasing' ? 'red' : result.trend.trend === 'decreasing' ? 'green' : 'yellow'}
             />
 

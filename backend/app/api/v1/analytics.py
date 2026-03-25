@@ -3,6 +3,7 @@ Analytics API Endpoints
 AI-powered financial features: classification, simulation, optimization, forecasting
 """
 from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 from datetime import datetime
@@ -13,6 +14,7 @@ from app.services.analytics import (
     BudgetOptimizer,
     ForecastingService
 )
+from app.models.database import get_db
 
 router = APIRouter()
 
@@ -106,6 +108,17 @@ class BudgetComparisonRequest(BaseModel):
     budgets: Dict[str, float]
 
 
+class ClassificationFeedbackRequest(BaseModel):
+    """User feedback on a classification"""
+    user_id: int = Field(..., description="User ID")
+    transaction_id: Optional[int] = Field(None, description="Transaction ID")
+    description: str = Field(..., description="Transaction description")
+    amount: float = Field(..., description="Transaction amount")
+    predicted_category: str = Field(..., description="Category that was predicted")
+    predicted_confidence: float = Field(..., ge=0, le=1, description="Model's confidence")
+    corrected_category: str = Field(..., description="The correct category")
+
+
 # ==================== Expense Classification Endpoints ====================
 
 @router.post("/classify/transaction", tags=["Classification"])
@@ -161,6 +174,83 @@ async def suggest_merchant_category(merchant_name: str) -> Dict:
     """
     try:
         result = expense_classifier.suggest_category_for_merchant(merchant_name)
+        return {
+            "success": True,
+            "data": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/classify/feedback", tags=["Classification"])
+async def submit_classification_feedback(
+    request: ClassificationFeedbackRequest,
+    db: Session = Depends(get_db)
+) -> Dict:
+    """
+    Submit user feedback on a classification to improve the model.
+    Stores feedback for periodic model retraining.
+    """
+    try:
+        from app.models.finance import ClassificationFeedback
+
+        # Store feedback in database
+        feedback = ClassificationFeedback(
+            user_id=request.user_id,
+            transaction_id=request.transaction_id,
+            transaction_description=request.description,
+            transaction_amount=request.amount,
+            predicted_category=request.predicted_category,
+            predicted_confidence=request.predicted_confidence,
+            corrected_category=request.corrected_category,
+            feedback_type="correction"
+        )
+        db.add(feedback)
+        db.commit()
+        db.refresh(feedback)
+
+        # Check if we should trigger retraining (e.g., every 50 corrections)
+        correction_count = db.query(ClassificationFeedback).filter(
+            ClassificationFeedback.feedback_type == "correction",
+            ClassificationFeedback.is_used_in_training == False
+        ).count()
+
+        retraining_triggered = False
+        if correction_count >= 50:
+            # Trigger retraining
+            from app.services.ml_models.retraining import retrain_classifier_model
+            retraining_result = retrain_classifier_model()
+            retraining_triggered = retraining_result.get("status") == "success"
+
+        return {
+            "success": True,
+            "data": {
+                "feedback_id": feedback.id,
+                "stored": True,
+                "retraining_triggered": retraining_triggered,
+                "correction_count": correction_count
+            }
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/classify/retrain", tags=["Classification"])
+async def manually_retrain_model() -> Dict:
+    """
+    Manually trigger model retraining using accumulated corrections.
+    Requires admin/system access in production.
+    """
+    try:
+        from app.services.ml_models.retraining import retrain_classifier_model
+
+        result = retrain_classifier_model()
+
+        if result.get("status") == "success":
+            # Reload the model in the classifier
+            expense_classifier._load_ml_model()
+
         return {
             "success": True,
             "data": result

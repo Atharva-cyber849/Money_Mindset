@@ -1,8 +1,9 @@
 """
 FastAPI Backend Configuration
 """
-from pydantic_settings import BaseSettings
 from typing import Optional
+
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -53,7 +54,7 @@ class Settings(BaseSettings):
     YFINANCE_ENABLED: bool = True
 
     # News API
-    NEWSAPI_KEY: str = ""
+    NEWSAPI_KEY: Optional[str] = None
     NEWSAPI_ENABLED: bool = False
 
     class Config:

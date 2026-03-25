@@ -29,6 +29,8 @@ anthropic==0.37.0
 numpy==1.26.3
 pandas==2.2.0
 yfinance==0.2.35
+scikit-learn==1.4.2
+joblib==1.3.2
 
 # Utilities
 python-dotenv==1.0.0

@@ -51,9 +51,9 @@ export default function MarketSimulationPage() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'INR',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -162,15 +162,15 @@ export default function MarketSimulationPage() {
           title="Market Simulation Example"
           description="See possible outcomes for your investment strategy"
           inputExample={[
-            { label: 'Initial Investment', value: '$10,000', highlight: true },
-            { label: 'Monthly Contribution', value: '$500' },
+            { label: 'Initial Investment', value: '₹8,00,000', highlight: true },
+            { label: 'Monthly Contribution', value: '₹40,000' },
             { label: 'Time Horizon', value: '10 years' },
             { label: 'Asset Class', value: 'Balanced' },
           ]}
           outputExample={[
-            { label: 'P50 (Median)', value: '$125,000', highlight: true },
-            { label: 'P10 (Pessimistic)', value: '$85,000' },
-            { label: 'P90 (Optimistic)', value: '$180,000' },
+            { label: 'P50 (Median)', value: '₹95,00,000', highlight: true },
+            { label: 'P10 (Pessimistic)', value: '₹65,00,000' },
+            { label: 'P90 (Optimistic)', value: '₹1,35,00,000' },
             { label: 'Profit Probability', value: '87%', highlight: true },
           ]}
           color="purple"

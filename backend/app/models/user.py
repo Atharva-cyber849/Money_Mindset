@@ -37,3 +37,4 @@ class User(Base):
     paper_trading_sessions = relationship("PaperTradingSession", back_populates="user", cascade="all, delete-orphan")
     user_profile = relationship("UserProfile", back_populates="user", cascade="all, delete-orphan")
     user_progress = relationship("UserProgress", back_populates="user", cascade="all, delete-orphan")
+    classification_feedback = relationship("ClassificationFeedback", back_populates="user", cascade="all, delete-orphan")

@@ -110,7 +110,7 @@ export default function ExpenseClassificationPage() {
           description="See how AI predicts transaction categories"
           inputExample={[
             { label: 'Description', value: 'Whole Foods Market', highlight: true },
-            { label: 'Amount', value: '$45.50' },
+            { label: 'Amount', value: '₹2,250' },
             { label: 'Text Analysis', value: 'Keywords: food, market' },
           ]}
           outputExample={[

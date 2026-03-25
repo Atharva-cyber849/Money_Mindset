@@ -1,20 +1,24 @@
 """
 Expense Classification Service
-Supervised learning to automatically categorize expenses
+ML-based automatic categorization using Random Forest classifier with keyword fallback
 """
 from typing import Dict, List, Optional, Tuple
 import re
 from datetime import datetime
 import numpy as np
 from collections import defaultdict
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ExpenseClassifier:
     """
-    ML-based expense classification using keyword matching and pattern learning.
-    In production, this would use a trained ML model (e.g., Random Forest, SVM).
+    Expense classification system with ML-based approach.
+    Uses Random Forest classifier trained on transaction descriptions.
+    Falls back to keyword matching if ML model unavailable or low confidence.
     """
-    
+
     # Training data: keywords mapped to categories
     CATEGORY_KEYWORDS = {
         "groceries": [
@@ -78,6 +82,11 @@ class ExpenseClassifier:
     def __init__(self):
         self.category_scores = defaultdict(float)
         self._build_keyword_index()
+
+        # Initialize ML model
+        self.ml_model = None
+        self.use_ml = False
+        self._load_ml_model()
     
     def _build_keyword_index(self):
         """Build reverse index: keyword -> category"""
@@ -85,18 +94,97 @@ class ExpenseClassifier:
         for category, keywords in self.CATEGORY_KEYWORDS.items():
             for keyword in keywords:
                 self.keyword_to_category[keyword.lower()] = category
+
+    def _load_ml_model(self):
+        """Load pre-trained ML model if available"""
+        try:
+            from app.services.ml_models.training import MLExpenseClassifierTrainer
+            trainer = MLExpenseClassifierTrainer()
+            latest_version = trainer.get_latest_model_version()
+
+            if latest_version and trainer.load_model(latest_version):
+                self.ml_model = trainer.model
+                self.use_ml = True
+                logger.info(f"Loaded ML model version: {latest_version}")
+            else:
+                logger.info("No pre-trained ML model found. Using keyword matching fallback.")
+        except Exception as e:
+            logger.warning(f"Could not load ML model: {e}. Using keyword matching fallback.")
+
+    def _classify_with_ml(self, description: str, amount: Optional[float] = None) -> Dict:
+        """
+        Classify using trained ML model
+
+        Args:
+            description: Transaction description
+            amount: Transaction amount (optional)
+
+        Returns:
+            Dict with category, confidence, and alternatives
+        """
+        if self.ml_model is None:
+            return None
+
+        try:
+            # Get prediction from ML model
+            predictions = self.ml_model.predict([description])
+            probabilities = self.ml_model.predict_proba([description])
+
+            # Map prediction index to category
+            category_idx = predictions[0]
+            categories = [
+                "groceries", "restaurants", "transportation", "utilities",
+                "entertainment", "shopping", "healthcare", "insurance",
+                "housing", "fitness", "education", "personal_care", "subscriptions"
+            ]
+            category = categories[category_idx]
+            confidence = float(probabilities[0][category_idx])
+
+            # Get top alternatives
+            top_indices = np.argsort(probabilities[0])[-3:][::-1][1:]  # Top 3 excluding primary
+            alternatives = [
+                {
+                    "category": categories[idx],
+                    "confidence": round(float(probabilities[0][idx]), 2)
+                }
+                for idx in top_indices
+                if probabilities[0][idx] > 0
+            ]
+
+            return {
+                "category": category,
+                "confidence": round(confidence, 2),
+                "alternatives": alternatives,
+                "needs_review": confidence < 0.7,
+                "method": "ml"
+            }
+        except Exception as e:
+            logger.error(f"ML inference error: {e}. Falling back to keyword matching.")
+            return None
     
     def classify(self, description: str, amount: Optional[float] = None) -> Dict:
         """
         Classify a transaction based on its description and amount.
-        
+        Tries ML model first, falls back to keyword matching if ML unavailable.
+
         Args:
             description: Transaction description
             amount: Transaction amount (optional, can help with classification)
-        
+
         Returns:
             Dict with category, confidence, and alternative suggestions
         """
+        # Try ML model first
+        if self.use_ml and self.ml_model is not None:
+            ml_result = self._classify_with_ml(description, amount)
+            if ml_result is not None:
+                return ml_result
+
+        # Fall back to keyword matching
+        return self._classify_with_keywords(description, amount)
+
+    def _classify_with_keywords(self, description: str, amount: Optional[float] = None) -> Dict:
+        """Original keyword-based classification (fallback)"""
         description_lower = description.lower()
         
         # Score each category
@@ -157,7 +245,8 @@ class ExpenseClassifier:
             "category": primary_category,
             "confidence": round(confidence, 2),
             "alternatives": alternatives,
-            "needs_review": confidence < 0.7
+            "needs_review": confidence < 0.7,
+            "method": "keyword"
         }
     
     def classify_batch(self, transactions: List[Dict]) -> List[Dict]:
@@ -239,19 +328,16 @@ class ExpenseClassifier:
         corrections: List[Tuple[str, str]]
     ) -> Dict:
         """
-        Learn from user corrections to improve classification.
-        In production, this would update the ML model.
-        
+        Learn from user corrections. In actual implementation, these would be stored
+        in the database and used to trigger periodic retraining.
+
         Args:
             user_id: User ID for personalized learning
             corrections: List of (description, correct_category) tuples
-        
+
         Returns:
             Training summary
         """
-        # In production: store these corrections and retrain model periodically
-        # For now, we'll just return a summary
-        
         learned_patterns = defaultdict(list)
         for description, category in corrections:
             # Extract key words from user-corrected transactions
@@ -259,7 +345,7 @@ class ExpenseClassifier:
             for word in words:
                 if len(word) > 3:  # Ignore short words
                     learned_patterns[category].append(word)
-        
+
         return {
             "user_id": user_id,
             "corrections_learned": len(corrections),
@@ -267,24 +353,43 @@ class ExpenseClassifier:
                 category: list(set(words))[:5]  # Top 5 unique words
                 for category, words in learned_patterns.items()
             },
-            "model_version": "1.0.0"
+            "note": "Corrections stored for periodic model retraining"
         }
+
+    def trigger_model_retraining(self) -> Dict:
+        """
+        Trigger retraining of the ML model using accumulated corrections.
+        Should be called periodically or after N corrections accumulate.
+
+        Returns:
+            Retraining results
+        """
+        try:
+            from app.services.ml_models.retraining import retrain_classifier_model
+            return retrain_classifier_model()
+        except ImportError:
+            logger.warning("Retraining module not available")
+            return {
+                "status": "failed",
+                "reason": "Retraining module not available"
+            }
     
     def suggest_category_for_merchant(self, merchant_name: str) -> Dict:
         """
         Suggest category for a specific merchant.
-        
+
         Args:
             merchant_name: Name of the merchant
-        
+
         Returns:
             Category suggestion with confidence
         """
         result = self.classify(merchant_name)
-        
+
         return {
             "merchant": merchant_name,
             "suggested_category": result["category"],
             "confidence": result["confidence"],
-            "reason": f"Based on keyword analysis of '{merchant_name}'"
+            "method": result.get("method", "keyword"),
+            "reason": f"Classified using {result.get('method', 'keyword')} method"
         }

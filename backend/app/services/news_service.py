@@ -4,6 +4,7 @@ News Service - Fetches financial news articles
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 import logging
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -105,25 +106,31 @@ class NewsService:
             List of articles or None
         """
         try:
-            import newsapi
-            from os import getenv
+            import requests
+            from app.core.config import settings
 
-            api_key = getenv("NEWSAPI_KEY")
+            api_key = settings.NEWSAPI_KEY
             if not api_key:
                 logger.warning("NEWSAPI_KEY not set, using mock data")
                 return None
 
-            client = newsapi.NewsApiClient(api_key=api_key)
-            response = client.get_top_headlines(
-                q="finance market India stocks",
-                language="en",
-                page_size=limit,
-                sort_by="publishedAt"
-            )
+            url = "https://newsapi.org/v2/top-headlines"
+            params = {
+                "q": "finance market India stocks",
+                "language": "en",
+                "pageSize": limit,
+                "sortBy": "publishedAt",
+                "apiKey": api_key
+            }
 
-            if response and response.get("articles"):
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            
+            data = response.json()
+            
+            if data.get("status") == "ok" and data.get("articles"):
                 articles = []
-                for article in response["articles"][:limit]:
+                for article in data["articles"][:limit]:
                     articles.append({
                         "title": article.get("title", ""),
                         "source": article.get("source", {}).get("name", "")[:30],
@@ -134,9 +141,11 @@ class NewsService:
                         if article.get("description") else "",
                     })
                 return articles
+            else:
+                logger.warning(f"NewsAPI returned status: {data.get('status')}")
 
         except ImportError:
-            logger.warning("newsapi not installed, using mock data")
+            logger.warning("requests not installed, using mock data")
         except Exception as e:
             logger.error(f"NewsAPI error: {str(e)}")
 

@@ -7,24 +7,24 @@ import { MessageSquare, Send, Sparkles, HelpCircle, DollarSign, PiggyBank, Trend
 
 const suggestedQuestions = [
   {
-    question: "How much should I save for an emergency fund?",
-    icon: PiggyBank,
-    category: "Savings"
-  },
-  {
-    question: "What's the difference between a 401(k) and IRA?",
+    question: "How do I open a DMAT account and invest in Indian stocks?",
     icon: TrendingUp,
     category: "Investing"
   },
   {
-    question: "How can I pay off my credit card debt faster?",
-    icon: DollarSign,
-    category: "Debt"
+    question: "What documents do I need to file ITR in India?",
+    icon: AlertCircle,
+    category: "Taxes"
   },
   {
-    question: "What is compound interest and how does it work?",
-    icon: HelpCircle,
-    category: "Education"
+    question: "How much should I invest in health insurance as an Indian?",
+    icon: DollarSign,
+    category: "Insurance"
+  },
+  {
+    question: "What is the best way to save for retirement in India - NPS or EPF?",
+    icon: PiggyBank,
+    category: "Retirement"
   },
 ];
 

@@ -72,7 +72,8 @@ export function HoldingsTable({
           </thead>
           <tbody>
             {Object.entries(holdings).map(([symbol, holding], idx) => {
-              const isProfit = holding.pnl_percentage >= 0;
+              const pnlPercentage = holding.pnl_percentage ?? 0;
+              const isProfit = pnlPercentage >= 0;
               const sparklineData = holding.priceHistory
                 ? holding.priceHistory.map((price) => ({ value: price }))
                 : [];
@@ -128,7 +129,7 @@ export function HoldingsTable({
 
                   {/* Return % */}
                   <td className={`px-6 py-4 text-right font-semibold ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
-                    {isProfit ? '+' : ''}{holding.pnl_percentage.toFixed(2)}%
+                    {isProfit ? '+' : ''}{pnlPercentage.toFixed(2)}%
                   </td>
 
                   {/* Action */}

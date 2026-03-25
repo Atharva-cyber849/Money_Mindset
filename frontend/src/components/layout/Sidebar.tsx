@@ -70,20 +70,6 @@ export function Sidebar() {
           )
         })}
       </nav>
-
-      {/* Bottom CTA */}
-      <div className="p-4 m-4 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg">
-        <div className="text-center">
-          <Trophy className="w-8 h-8 mx-auto mb-2 text-white" />
-          <h3 className="font-semibold text-sm mb-1 text-white">Unlock Premium</h3>
-          <p className="text-xs text-white/90 mb-3">
-            Get advanced simulations & personalized coaching
-          </p>
-          <button className="w-full bg-white text-amber-600 text-sm font-semibold py-2 rounded-lg hover:bg-gray-100 transition-colors">
-            Upgrade Now
-          </button>
-        </div>
-      </div>
     </aside>
   )
 }

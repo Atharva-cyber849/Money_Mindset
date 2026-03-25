@@ -61,6 +61,12 @@ class GullakAllocationRequest(BaseModel):
     gold: float
 
 
+class DalalTradeRequest(BaseModel):
+    symbol: str
+    trade_type: str
+    quantity: int = 1
+
+
 def _safe_json(value: Any, default: Any):
     """Normalize JSON/db values that may be dict/list or JSON-encoded strings."""
     if value is None:
@@ -116,6 +122,54 @@ def _build_paper_simulator_from_session(session: PaperTradingSession) -> PaperTr
             )
 
     simulator.portfolio.holdings = holdings
+    return simulator
+
+
+def _build_dalal_simulator_from_session(session: DalalSession) -> DalalStreetSimulator:
+    """Rehydrate Dalal simulator from persisted session data."""
+    portfolio_data = _safe_json(
+        session.portfolio_json,
+        {
+            "cash": session.ending_value or session.starting_value or 100000,
+            "holdings": {},
+            "trades": [],
+            "portfolio_value_history": [],
+        },
+    )
+    if not isinstance(portfolio_data, dict):
+        portfolio_data = {
+            "cash": session.ending_value or session.starting_value or 100000,
+            "holdings": {},
+            "trades": [],
+            "portfolio_value_history": [],
+        }
+
+    portfolio = Portfolio.from_dict(portfolio_data)
+    simulator = DalalStreetSimulator(
+        era=MarketEra(session.era),
+        starting_portfolio=portfolio,
+        inherited_capital=session.ending_value,
+    )
+    simulator.current_quarter = session.current_quarter or 0
+
+    news_events = _safe_json(session.news_events_log, [])
+    if isinstance(news_events, list):
+        simulator.news_log = [
+            n for n in news_events if isinstance(n, dict)
+        ]
+
+    quarterly_snapshots = _safe_json(session.quarterly_snapshots, [])
+    if isinstance(quarterly_snapshots, list):
+        simulator.quarterly_snapshots = [
+            s for s in quarterly_snapshots if isinstance(s, dict)
+        ]
+        market_points = [100.0]
+        for snapshot in simulator.quarterly_snapshots:
+            market_value = snapshot.get("market_index")
+            if isinstance(market_value, (int, float)):
+                market_points.append(float(market_value))
+        simulator.market_index_history = market_points
+
     return simulator
 
 
@@ -702,14 +756,13 @@ async def create_dalal_session(
             user_id=current_user.id,
             session_id=session_id,
             era=body.era,
-            starting_capital=100000,
-            current_capital=100000,
+            starting_value=100000,
+            ending_value=100000,
             current_quarter=0,
-            portfolio=json.dumps(simulator.portfolio.to_dict() if hasattr(simulator.portfolio, 'to_dict') else {"stocks": {}, "cash": 100000}),
-            trades_made=json.dumps([]),
-            news_events=json.dumps([]),
+            portfolio_json=json.dumps(simulator.portfolio.to_dict() if hasattr(simulator.portfolio, 'to_dict') else {"stocks": {}, "cash": 100000}),
+            trades_history=json.dumps([]),
+            news_events_log=json.dumps([]),
             status="active",
-            started_at=datetime.utcnow(),
         )
 
         db.add(db_session)
@@ -718,10 +771,14 @@ async def create_dalal_session(
 
         return {
             "session_id": session_id,
-            "status": "created",
+            "status": db_session.status,
             "era": body.era,
             "starting_capital": 100000,
             "current_quarter": 0,
+            "portfolio_value": 100000,
+            "cash": 100000,
+            "holdings_value": 0,
+            "market_index": 100,
         }
 
     except ValueError as e:
@@ -750,14 +807,222 @@ async def get_dalal_session(
             "session_id": session_id,
             "status": db_session.status,
             "era": db_session.era,
-            "current_capital": db_session.current_capital,
+            "current_capital": db_session.ending_value,
             "current_quarter": db_session.current_quarter,
-            "portfolio": json.loads(db_session.portfolio) if db_session.portfolio else {},
-            "trades_made": json.loads(db_session.trades_made) if db_session.trades_made else [],
-            "news_events": json.loads(db_session.news_events) if db_session.news_events else [],
+            "portfolio": json.loads(db_session.portfolio_json) if db_session.portfolio_json else {},
+            "trades_made": json.loads(db_session.trades_history) if db_session.trades_history else [],
+            "news_events": json.loads(db_session.news_events_log) if db_session.news_events_log else [],
+            "quarterly_snapshots": db_session.quarterly_snapshots or "[]",
             "created_at": db_session.created_at.isoformat() if db_session.created_at else None,
         }
 
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/dalal/{session_id}/available-stocks")
+async def get_dalal_available_stocks(
+    session_id: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Get available stocks for current Dalal session."""
+    try:
+        db_session = db.query(DalalSession).filter(
+            DalalSession.session_id == session_id,
+            DalalSession.user_id == current_user.id,
+        ).first()
+        if not db_session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        simulator = _build_dalal_simulator_from_session(db_session)
+        stocks = []
+        for symbol, quote in simulator.stock_quotes.items():
+            trend = "up" if quote.current_price >= quote.open_price else "down"
+            stocks.append(
+                {
+                    "symbol": symbol,
+                    "name": quote.name,
+                    "current_price": round(quote.current_price, 2),
+                    "trend": trend,
+                    "sector": quote.sector,
+                }
+            )
+
+        return {"session_id": session_id, "stocks": stocks}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/dalal/{session_id}/trade")
+async def execute_dalal_trade(
+    session_id: str,
+    body: DalalTradeRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Execute a trade in Dalal Street session."""
+    try:
+        db_session = db.query(DalalSession).filter(
+            DalalSession.session_id == session_id,
+            DalalSession.user_id == current_user.id,
+        ).first()
+        if not db_session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        if db_session.status != "active":
+            raise HTTPException(status_code=400, detail="Session is not active")
+
+        simulator = _build_dalal_simulator_from_session(db_session)
+
+        try:
+            trade_type = TradeType(body.trade_type)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid trade type")
+
+        quantity = body.quantity if body.quantity and body.quantity > 0 else 1
+        ok, message = simulator.execute_trade(body.symbol, trade_type, quantity)
+        if not ok:
+            raise HTTPException(status_code=400, detail=message)
+
+        summary = simulator.get_portfolio_value_summary()
+        db_session.portfolio_json = json.dumps(simulator.portfolio.to_dict())
+        db_session.ending_value = summary["total_value"]
+        db_session.trades_history = json.dumps([t.to_dict() for t in simulator.portfolio.trades])
+
+        latest_trade = simulator.portfolio.trades[-1] if simulator.portfolio.trades else None
+        if latest_trade:
+            db_trade = DalalTrade(
+                session_id=session_id,
+                quarter=latest_trade.quarter,
+                symbol=latest_trade.symbol,
+                trade_type=latest_trade.trade_type.value,
+                quantity=latest_trade.quantity,
+                price_at_trade=latest_trade.price_at_trade,
+                commission=latest_trade.commission,
+            )
+            db.add(db_trade)
+
+        db.commit()
+
+        return {
+            "session_id": session_id,
+            "message": message,
+            "portfolio_value": summary["total_value"],
+            "cash": summary["cash"],
+            "holdings_value": summary["holdings_value"],
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/dalal/{session_id}/advance-quarter")
+async def advance_dalal_quarter(
+    session_id: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Advance Dalal Street simulation by one quarter."""
+    try:
+        db_session = db.query(DalalSession).filter(
+            DalalSession.session_id == session_id,
+            DalalSession.user_id == current_user.id,
+        ).first()
+        if not db_session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        if db_session.status != "active":
+            raise HTTPException(status_code=400, detail="Session is not active")
+        if (db_session.current_quarter or 0) >= 20:
+            raise HTTPException(status_code=400, detail="Game already completed")
+
+        simulator = _build_dalal_simulator_from_session(db_session)
+        _, news_event = simulator.advance_quarter()
+        summary = simulator.get_portfolio_value_summary()
+
+        db_session.current_quarter = simulator.current_quarter
+        db_session.ending_value = summary["total_value"]
+        db_session.portfolio_json = json.dumps(simulator.portfolio.to_dict())
+        db_session.news_events_log = json.dumps(
+            [n.to_dict() if hasattr(n, "to_dict") else n for n in simulator.news_log]
+        )
+        db_session.quarterly_snapshots = json.dumps(simulator.quarterly_snapshots)
+
+        if news_event:
+            db_news = DalalNewsEvent(
+                session_id=session_id,
+                quarter=news_event.quarter,
+                event_type=news_event.event_type.value,
+                headline=news_event.headline,
+                description=news_event.description,
+                affected_symbols=json.dumps(news_event.affected_symbols),
+                price_impact_percentage=news_event.price_impact,
+            )
+            db.add(db_news)
+
+        db.commit()
+
+        return {
+            "session_id": session_id,
+            "current_quarter": simulator.current_quarter,
+            "portfolio_value": summary["total_value"],
+            "cash": summary["cash"],
+            "holdings_value": summary["holdings_value"],
+            "market_index": simulator.market_index_history[-1] if simulator.market_index_history else 100,
+            "news_event": news_event.to_dict() if news_event else None,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/dalal/{session_id}/complete")
+async def complete_dalal_session(
+    session_id: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Complete Dalal Street session and calculate summary metrics."""
+    try:
+        db_session = db.query(DalalSession).filter(
+            DalalSession.session_id == session_id,
+            DalalSession.user_id == current_user.id,
+        ).first()
+        if not db_session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        simulator = _build_dalal_simulator_from_session(db_session)
+        performance = simulator.get_portfolio_performance()
+
+        db_session.status = "completed"
+        db_session.is_completed = True
+        db_session.completed_at = datetime.utcnow()
+        db_session.starting_value = performance.get("starting_value", db_session.starting_value)
+        db_session.ending_value = performance.get("ending_value", db_session.ending_value)
+        db_session.total_profit_loss = performance.get("return_amount", 0)
+        db_session.return_percentage = performance.get("return_pct", 0)
+        db_session.market_comparison_return = performance.get("market_return_pct", 0)
+        db_session.max_drawdown = performance.get("max_drawdown", 0)
+
+        db.commit()
+
+        return {
+            "session_id": session_id,
+            "status": db_session.status,
+            "portfolio_performance": {
+                "starting_value": db_session.starting_value,
+                "ending_value": db_session.ending_value,
+                "profit_loss": db_session.total_profit_loss,
+                "return_percentage": db_session.return_percentage,
+                "market_return_percentage": db_session.market_comparison_return,
+                "max_drawdown": db_session.max_drawdown,
+            },
+        }
     except HTTPException:
         raise
     except Exception as e:
@@ -781,7 +1046,7 @@ async def get_user_dalal_sessions(
                     "session_id": s.session_id,
                     "status": s.status,
                     "era": s.era,
-                    "current_capital": s.current_capital,
+                    "current_capital": s.ending_value,
                     "current_quarter": s.current_quarter,
                     "created_at": s.created_at.isoformat() if s.created_at else None,
                 }
