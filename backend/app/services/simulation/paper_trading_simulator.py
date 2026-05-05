@@ -9,6 +9,8 @@ from enum import Enum
 import uuid
 import logging
 import numpy as np
+from app.core.config import settings
+from app.services.api_clients import IndianMarketClient
 
 logger = logging.getLogger(__name__)
 
@@ -193,8 +195,16 @@ class PaperTradingSimulator:
         self.portfolio = Portfolio(cash=initial_capital)
         self.stocks = get_stocks_for_market(market)
         self.events: List[Dict[str, Any]] = []
+        self.indian_market_client = IndianMarketClient(
+            base_url=settings.INDIAN_MARKET_API_URL,
+            api_key=settings.INDIAN_MARKET_API_KEY,
+            enabled=settings.INDIAN_MARKET_ENABLED,
+        )
 
         logger.info(f"Initialized paper trading simulator: {market.value}, capital: {initial_capital}")
+
+    def _is_indian_symbol(self, symbol: str) -> bool:
+        return symbol.endswith((".NS", ".BO"))
 
     def get_current_price(self, symbol: str) -> Optional[float]:
         """
@@ -207,6 +217,11 @@ class PaperTradingSimulator:
             Current price or None if unavailable
         """
         try:
+            if self._is_indian_symbol(symbol) and self.indian_market_client.enabled:
+                indian_quote = self.indian_market_client.get_quote(symbol)
+                if indian_quote and indian_quote.get("price"):
+                    return float(indian_quote.get("price"))
+
             ticker = yf.Ticker(symbol)
 
             # Try to get the most recent data
@@ -270,6 +285,33 @@ class PaperTradingSimulator:
             DataFrame with OHLCV data or empty DataFrame if unavailable
         """
         try:
+            if self._is_indian_symbol(symbol) and self.indian_market_client.enabled:
+                days_span = max(1, (end_date - start_date).days)
+                if days_span <= 31:
+                    period = "1m"
+                elif days_span <= 183:
+                    period = "6m"
+                elif days_span <= 365:
+                    period = "1yr"
+                elif days_span <= 365 * 3:
+                    period = "3yr"
+                elif days_span <= 365 * 5:
+                    period = "5yr"
+                elif days_span <= 365 * 10:
+                    period = "10yr"
+                else:
+                    period = "max"
+
+                historical_df = self.indian_market_client.get_historical_data(
+                    symbol=symbol,
+                    start_date=start_date,
+                    end_date=end_date,
+                    period=period,
+                    filter_type="price",
+                )
+                if historical_df is not None and not historical_df.empty:
+                    return historical_df
+
             data = yf.download(symbol, start=start_date, end=end_date, progress=False)
             return data
         except Exception as e:

@@ -54,7 +54,7 @@ class NewsService:
         Returns:
             Dict with news articles
         """
-        cache_key = "financial_news"
+        cache_key = f"financial_news_{limit}"
 
         # Check cache first
         cached_data = self._get_cached_data(cache_key)
@@ -107,42 +107,106 @@ class NewsService:
         """
         try:
             import requests
-            from app.core.config import settings
 
             api_key = settings.NEWSAPI_KEY
             if not api_key:
                 logger.warning("NEWSAPI_KEY not set, using mock data")
                 return None
 
-            url = "https://newsapi.org/v2/top-headlines"
-            params = {
-                "q": "finance market India stocks",
+            def parse_articles(raw_articles: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+                parsed: List[Dict[str, Any]] = []
+                for article in raw_articles:
+                    title = (article.get("title") or "").strip()
+                    if not title or title.lower() == "[removed]":
+                        continue
+
+                    url = (article.get("url") or "").strip()
+                    if not url:
+                        continue
+
+                    description = (article.get("description") or "").strip()
+                    parsed.append({
+                        "title": title,
+                        "source": (article.get("source", {}).get("name", "") or "Unknown")[:30],
+                        "url": url,
+                        "image": (article.get("urlToImage") or "").strip(),
+                        "published_date": (article.get("publishedAt") or "").strip(),
+                        "description": (description[:150] + "...") if description else "",
+                    })
+
+                    if len(parsed) >= limit:
+                        break
+
+                return parsed
+
+            # Attempt 1: top-headlines for India business market
+            top_headlines_url = "https://newsapi.org/v2/top-headlines"
+            top_headlines_params = {
+                "country": "in",
+                "category": "business",
                 "language": "en",
                 "pageSize": limit,
-                "sortBy": "publishedAt",
-                "apiKey": api_key
+                "apiKey": api_key,
             }
-
-            response = requests.get(url, params=params, timeout=10)
+            response = requests.get(top_headlines_url, params=top_headlines_params, timeout=10)
             response.raise_for_status()
-            
             data = response.json()
-            
-            if data.get("status") == "ok" and data.get("articles"):
-                articles = []
-                for article in data["articles"][:limit]:
-                    articles.append({
-                        "title": article.get("title", ""),
-                        "source": article.get("source", {}).get("name", "")[:30],
-                        "url": article.get("url", ""),
-                        "image": article.get("urlToImage", ""),
-                        "published_date": article.get("publishedAt", ""),
-                        "description": (article.get("description", "")[:150] + "...")
-                        if article.get("description") else "",
-                    })
-                return articles
+
+            top_status = data.get("status")
+            if top_status == "ok":
+                parsed_top = parse_articles(data.get("articles", []))
+                if parsed_top:
+                    logger.info(f"NewsAPI top-headlines returned {len(parsed_top)} articles")
+                    return parsed_top
+                logger.warning("NewsAPI top-headlines status ok but no usable articles")
             else:
-                logger.warning(f"NewsAPI returned status: {data.get('status')}")
+                logger.warning(f"NewsAPI top-headlines returned status: {top_status}")
+
+            # Attempt 2: broader everything search to avoid empty headline feeds
+            everything_url = "https://newsapi.org/v2/everything"
+            everything_params = {
+                "q": "(India OR Indian) AND (stock market OR Nifty OR Sensex OR finance)",
+                "language": "en",
+                "sortBy": "publishedAt",
+                "pageSize": max(limit * 2, 12),
+                "apiKey": api_key,
+            }
+            response = requests.get(everything_url, params=everything_params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+
+            everything_status = data.get("status")
+            if everything_status == "ok":
+                parsed_everything = parse_articles(data.get("articles", []))
+                if parsed_everything:
+                    logger.info(f"NewsAPI everything returned {len(parsed_everything)} articles")
+                    return parsed_everything
+                logger.warning("NewsAPI everything status ok but no usable articles")
+            else:
+                logger.warning(f"NewsAPI everything returned status: {everything_status}")
+
+            # Attempt 3: source-targeted query for Indian business publishers
+            source_fallback_params = {
+                "domains": "economictimes.indiatimes.com,moneycontrol.com,business-standard.com,thehindubusinessline.com",
+                "q": "stock market OR nifty OR sensex",
+                "language": "en",
+                "sortBy": "publishedAt",
+                "pageSize": max(limit * 2, 12),
+                "apiKey": api_key,
+            }
+            response = requests.get(everything_url, params=source_fallback_params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+
+            source_status = data.get("status")
+            if source_status == "ok":
+                parsed_source = parse_articles(data.get("articles", []))
+                if parsed_source:
+                    logger.info(f"NewsAPI source-fallback returned {len(parsed_source)} articles")
+                    return parsed_source
+                logger.warning("NewsAPI source-fallback status ok but no usable articles")
+            else:
+                logger.warning(f"NewsAPI source-fallback returned status: {source_status}")
 
         except ImportError:
             logger.warning("requests not installed, using mock data")

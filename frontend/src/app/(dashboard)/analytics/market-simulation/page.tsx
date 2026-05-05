@@ -1,349 +1,247 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { simulateInvestment, getAssetClasses } from '@/lib/api/analytics';
-import { Loader2, TrendingUp, DollarSign, TrendingDown, BarChart3, Zap, TrendingUpIcon, PieChart } from 'lucide-react';
-import { DistributionBellCurve, StatisticsPulse, ExplanationCard, HowItWorks, ExampleShowcase, ConceptInfographic } from '@/components/analytics';
+import { MarketSimulationDashboard } from '@/components/analytics';
+import { AlertCircle, Loader2 } from 'lucide-react';
+import { simulateInvestment, simulateMarketCrash } from '@/lib/api/analytics';
 
 export default function MarketSimulationPage() {
-  const [assetClasses, setAssetClasses] = useState<any>({});
-  const [formData, setFormData] = useState({
-    initial_amount: '10000',
-    monthly_contribution: '500',
-    years: '10',
-    asset_class: 'balanced',
-  });
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [showSimulator, setShowSimulator] = useState(false);
+  const [initialAmount, setInitialAmount] = useState('100000');
+  const [monthlyContribution, setMonthlyContribution] = useState('5000');
+  const [years, setYears] = useState('20');
+  const [assetClass, setAssetClass] = useState('balanced');
+  const [crashYear, setCrashYear] = useState('5');
+  const [loadingSim, setLoadingSim] = useState(false);
+  const [loadingCrash, setLoadingCrash] = useState(false);
+  const [error, setError] = useState('');
+  const [simulationResult, setSimulationResult] = useState<any>(null);
+  const [crashResult, setCrashResult] = useState<any>(null);
 
-  useEffect(() => {
-    loadAssetClasses();
-  }, []);
-
-  const loadAssetClasses = async () => {
-    try {
-      const data = await getAssetClasses();
-      setAssetClasses(data);
-    } catch (error) {
-      console.error('Failed to load asset classes:', error);
-    }
+  const parseInputs = () => {
+    return {
+      initial: Number(initialAmount),
+      monthly: Number(monthlyContribution),
+      yearsValue: Number(years),
+      crashYearValue: Number(crashYear),
+    };
   };
 
-  const handleSimulate = async () => {
-    setLoading(true);
+  const validateInputs = () => {
+    const { initial, monthly, yearsValue, crashYearValue } = parseInputs();
+    if (!initial || initial <= 0) return 'Initial amount must be greater than 0.';
+    if (Number.isNaN(monthly) || monthly < 0) return 'Monthly contribution cannot be negative.';
+    if (!Number.isInteger(yearsValue) || yearsValue < 1 || yearsValue > 50) return 'Years must be between 1 and 50.';
+    if (!Number.isInteger(crashYearValue) || crashYearValue < 1 || crashYearValue > yearsValue) {
+      return 'Crash year must be between 1 and selected years.';
+    }
+    return '';
+  };
+
+  const handleRunSimulation = async () => {
+    const validationError = validateInputs();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    const { initial, monthly, yearsValue } = parseInputs();
+    setLoadingSim(true);
+    setError('');
     try {
       const data = await simulateInvestment({
-        initial_amount: parseFloat(formData.initial_amount),
-        monthly_contribution: parseFloat(formData.monthly_contribution),
-        years: parseInt(formData.years),
-        asset_class: formData.asset_class,
+        initial_amount: initial,
+        monthly_contribution: monthly,
+        years: yearsValue,
+        asset_class: assetClass,
         num_simulations: 1000,
       });
-      setResult(data);
-    } catch (error) {
-      console.error('Simulation failed:', error);
+      setSimulationResult(data);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to run investment simulation.');
     } finally {
-      setLoading(false);
+      setLoadingSim(false);
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
+  const handleRunCrashScenario = async () => {
+    const validationError = validateInputs();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    const { initial, monthly, yearsValue, crashYearValue } = parseInputs();
+    setLoadingCrash(true);
+    setError('');
+    try {
+      const data = await simulateMarketCrash({
+        initial_amount: initial,
+        monthly_contribution: monthly,
+        years: yearsValue,
+        asset_class: assetClass,
+        crash_year: crashYearValue,
+        crash_magnitude: -0.3,
+      });
+      setCrashResult(data);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to run crash simulation.');
+    } finally {
+      setLoadingCrash(false);
+    }
   };
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">Market Simulation</h1>
-        <p className="text-muted-foreground">
-          Historical data-based Monte Carlo simulations to visualize risk vs return
-        </p>
-      </div>
+    <div className="container mx-auto py-8 px-4 max-w-7xl space-y-8">
+      {/* Dashboard */}
+      <MarketSimulationDashboard
+        onSimulate={() => setShowSimulator(!showSimulator)}
+      />
 
-      {/* Educational Infographics */}
-      <div className="mb-12 space-y-6">
-        {/* Explanation */}
-        <ExplanationCard
-          icon={TrendingUpIcon}
-          title="What is Market Simulation?"
-          description="Monte Carlo simulations run 1000+ virtual market scenarios using historical asset class data to show possible investment outcomes. This helps you see the range of possible results and understand investment risk vs. reward."
-          keyPoints={[
-            'Based on 20+ years of historical market data',
-            'Runs 1000 simulations to cover market scenarios',
-            'Shows percentile ranges (P10 to P90) of possible outcomes',
-            'Calculates probability of profit, loss, and wealth doubling',
-            'Helps set realistic expectations for your investments',
-          ]}
-          color="purple"
-          example="Investing $10K initial + $500/month for 10 years typically results in $85K-$220K depending on market conditions"
-        />
+      {showSimulator && (
+        <Card className="p-6 space-y-6 border-cyan-200 bg-cyan-50/30">
+          <div>
+            <h2 className="text-xl font-bold">Detailed Monte Carlo Simulator</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Run direct simulation and crash scenario tests using your own assumptions.
+            </p>
+          </div>
 
-        {/* How It Works */}
-        <HowItWorks
-          title="How Market Simulation Works"
-          steps={[
-            {
-              number: 1,
-              title: 'Enter Investment Parameters',
-              description: 'Specify your initial investment, monthly contribution, investment time horizon (years), and asset class (stocks, bonds, balanced).',
-              icon: DollarSign,
-            },
-            {
-              number: 2,
-              title: 'Run 1000 Simulations',
-              description: 'Our algorithm randomly samples historical returns to simulate 1000 potential market scenarios over your time period.',
-              icon: Zap,
-            },
-            {
-              number: 3,
-              title: 'Calculate Distribution',
-              description: 'We analyze all 1000 outcomes to determine percentiles (10th, 25th, 50th, 75th, 90th) showing the range of possible results.',
-              icon: BarChart3,
-            },
-            {
-              number: 4,
-              title: 'Compute Probabilities',
-              description: 'We calculate the likelihood of profit, doubling your investment, and experiencing losses. See your risk profile clearly.',
-              icon: TrendingUp,
-            },
-          ]}
-          color="purple"
-        />
-
-        {/* Visual Concept */}
-        <ConceptInfographic
-          title="Understanding Bell Curve Distribution"
-          subtitle="What the percentiles mean for your investment"
-          type="bars"
-          segments={[
-            {
-              label: 'P10 (Pessimistic)',
-              percentage: 10,
-              color: '#EF4444',
-              description: 'Worst 10% case',
-            },
-            {
-              label: 'P25',
-              percentage: 25,
-              color: '#F59E0B',
-              description: 'Below average',
-            },
-            {
-              label: 'P50 (Median)',
-              percentage: 50,
-              color: '#0891B2',
-              description: 'Most likely outcome',
-            },
-            {
-              label: 'P75',
-              percentage: 75,
-              color: '#06B6D4',
-              description: 'Above average',
-            },
-            {
-              label: 'P90 (Optimistic)',
-              percentage: 90,
-              color: '#10B981',
-              description: 'Best 10% case',
-            },
-          ]}
-        />
-
-        {/* Example */}
-        <ExampleShowcase
-          title="Market Simulation Example"
-          description="See possible outcomes for your investment strategy"
-          inputExample={[
-            { label: 'Initial Investment', value: '₹8,00,000', highlight: true },
-            { label: 'Monthly Contribution', value: '₹40,000' },
-            { label: 'Time Horizon', value: '10 years' },
-            { label: 'Asset Class', value: 'Balanced' },
-          ]}
-          outputExample={[
-            { label: 'P50 (Median)', value: '₹95,00,000', highlight: true },
-            { label: 'P10 (Pessimistic)', value: '₹65,00,000' },
-            { label: 'P90 (Optimistic)', value: '₹1,35,00,000' },
-            { label: 'Profit Probability', value: '87%', highlight: true },
-          ]}
-          color="purple"
-        />
-      </div>
-
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Input Panel */}
-        <Card className="lg:col-span-1 p-6">
-          <h3 className="text-lg font-bold mb-2">Simulation Parameters</h3>
-          <p className="text-sm text-muted-foreground mb-4">Configure your investment scenario</p>
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label htmlFor="initial" className="text-sm font-medium">Initial Investment</label>
+              <label htmlFor="initial-amount" className="text-sm font-medium">Initial Amount</label>
               <Input
-                id="initial"
+                id="initial-amount"
                 type="number"
-                value={formData.initial_amount}
-                onChange={(e) =>
-                  setFormData({ ...formData, initial_amount: e.target.value })
-                }
+                value={initialAmount}
+                onChange={(e) => setInitialAmount(e.target.value)}
+                placeholder="100000"
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="monthly" className="text-sm font-medium">Monthly Contribution</label>
+              <label htmlFor="monthly-contribution" className="text-sm font-medium">Monthly Contribution</label>
               <Input
-                id="monthly"
+                id="monthly-contribution"
                 type="number"
-                value={formData.monthly_contribution}
-                onChange={(e) =>
-                  setFormData({ ...formData, monthly_contribution: e.target.value })
-                }
+                value={monthlyContribution}
+                onChange={(e) => setMonthlyContribution(e.target.value)}
+                placeholder="5000"
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="years" className="text-sm font-medium">Time Horizon (Years)</label>
+              <label htmlFor="years" className="text-sm font-medium">Years</label>
               <Input
                 id="years"
                 type="number"
                 min="1"
                 max="50"
-                value={formData.years}
-                onChange={(e) => setFormData({ ...formData, years: e.target.value })}
+                value={years}
+                onChange={(e) => setYears(e.target.value)}
+                placeholder="20"
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="asset" className="text-sm font-medium">Asset Class</label>
+              <label htmlFor="asset-class" className="text-sm font-medium">Asset Class</label>
               <select
-                id="asset"
-                className="w-full p-2 border rounded-md text-sm"
-                value={formData.asset_class}
-                onChange={(e) =>
-                  setFormData({ ...formData, asset_class: e.target.value })
-                }
+                id="asset-class"
+                value={assetClass}
+                onChange={(e) => setAssetClass(e.target.value)}
+                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
-                {Object.entries(assetClasses).map(([key, value]: [string, any]) => (
-                  <option key={key} value={key}>
-                    {value.name}
-                  </option>
-                ))}
+                <option value="aggressive_stocks">Aggressive Stocks</option>
+                <option value="large_cap_stocks">Large Cap Stocks</option>
+                <option value="balanced">Balanced</option>
+                <option value="conservative">Conservative</option>
+                <option value="bonds">Bonds</option>
+                <option value="savings">Savings</option>
               </select>
-              {assetClasses[formData.asset_class] && (
-                <p className="text-xs text-muted-foreground">
-                  {assetClasses[formData.asset_class].description}
-                </p>
-              )}
             </div>
 
-            <Button onClick={handleSimulate} disabled={loading} className="w-full">
-              {loading ? (
+            <div className="space-y-2">
+              <label htmlFor="crash-year" className="text-sm font-medium">Crash Year</label>
+              <Input
+                id="crash-year"
+                type="number"
+                min="1"
+                max={years || '50'}
+                value={crashYear}
+                onChange={(e) => setCrashYear(e.target.value)}
+                placeholder="5"
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+              <AlertCircle className="w-4 h-4" />
+              {error}
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={handleRunSimulation} disabled={loadingSim}>
+              {loadingSim ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Simulating...
                 </>
               ) : (
                 'Run Simulation'
               )}
             </Button>
+            <Button variant="outline" onClick={handleRunCrashScenario} disabled={loadingCrash}>
+              {loadingCrash ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Simulating Crash...
+                </>
+              ) : (
+                'Run Crash Scenario'
+              )}
+            </Button>
+            <Button variant="outline" onClick={() => setShowSimulator(false)}>
+              Close
+            </Button>
           </div>
-        </Card>
 
-        {/* Results Panel */}
-        {result && (
-          <div className="lg:col-span-2 space-y-6">
-            {/* Summary Cards */}
-            <div className="grid sm:grid-cols-2 gap-4">
-              <Card className="p-6">
-                <div className="text-sm font-medium text-gray-600 mb-3">
-                  Total Invested
-                </div>
-                <div className="text-2xl font-bold text-gray-900">
-                  {formatCurrency(result.total_invested)}
-                </div>
-              </Card>
+          {simulationResult && (
+            <Card className="p-4 border-green-200 bg-green-50/40 space-y-2">
+              <h3 className="font-semibold text-green-900">Simulation Result</h3>
+              <p className="text-sm text-green-800">Asset: {simulationResult.asset_class}</p>
+              <p className="text-sm text-green-800">Expected Return: {simulationResult.returns?.expected_return_pct ?? 0}%</p>
+              <p className="text-sm text-green-800">Median Final Value: {Number(simulationResult.statistics?.median ?? 0).toLocaleString('en-IN')}</p>
+              <p className="text-sm text-green-800">Profit Probability: {simulationResult.probability_analysis?.prob_profit ?? 0}%</p>
+            </Card>
+          )}
 
-              <Card className="p-6">
-                <div className="text-sm font-medium text-gray-600 mb-3">
-                  Expected Value (Median)
-                </div>
-                <div className="text-2xl font-bold text-green-600">
-                  {formatCurrency(result.statistics.median)}
-                </div>
-                <p className="text-sm text-gray-600 mt-1">
-                  {formatCurrency(result.returns.expected_gain)} gain
-                </p>
-              </Card>
-            </div>
-
-            {/* Distribution Bell Curve */}
-            <DistributionBellCurve
-              percentiles={{
-                p10: result.percentiles.p10,
-                p25: result.percentiles.p25,
-                p50: result.percentiles.p50,
-                p75: result.percentiles.p75,
-                p90: result.percentiles.p90,
-              }}
-              probability={{
-                profit: result.probability_analysis.prob_profit,
-                double: result.probability_analysis.prob_double,
-                loss: result.probability_analysis.prob_loss,
-              }}
-            />
-
-            {/* Key Statistics */}
-            <StatisticsPulse
-              stats={[
-                {
-                  label: 'Mean Outcome',
-                  value: Math.round(result.statistics.mean),
-                  icon: BarChart3,
-                  color: 'teal',
-                },
-                {
-                  label: 'Std Dev',
-                  value: Math.round(result.statistics.std_dev),
-                  icon: BarChart3,
-                  color: 'cyan',
-                },
-                {
-                  label: 'Best Case',
-                  value: Math.round(result.statistics.max),
-                  icon: TrendingUp,
-                  color: 'green',
-                },
-                {
-                  label: 'Worst Case',
-                  value: Math.round(result.statistics.min),
-                  icon: TrendingDown,
-                  color: 'red',
-                },
-              ]}
-            />
-          </div>
-        )}
-
-        {/* Placeholder when no results */}
-        {!result && !loading && (
-          <Card className="lg:col-span-2 p-6">
-            <div className="flex flex-col items-center justify-center py-12">
-              <DollarSign className="w-16 h-16 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Ready to Simulate</h3>
-              <p className="text-muted-foreground text-center max-w-md">
-                Configure your investment parameters and click "Run Simulation" to see
-                potential outcomes based on historical market data.
+          {crashResult && (
+            <Card className="p-4 border-amber-200 bg-amber-50/40 space-y-2">
+              <h3 className="font-semibold text-amber-900">Crash Scenario Result</h3>
+              <p className="text-sm text-amber-800">
+                Final Value with Crash: {Number(crashResult.crash_scenario?.median_value ?? 0).toLocaleString('en-IN')}
               </p>
-            </div>
-          </Card>
-        )}
-      </div>
+              <p className="text-sm text-amber-800">
+                Final Value without Crash: {Number(crashResult.normal_scenario?.median_value ?? 0).toLocaleString('en-IN')}
+              </p>
+              <p className="text-sm text-amber-800">Recovery Years: {crashResult.impact_analysis?.years_to_recover ?? 'N/A'}</p>
+              <p className="text-sm text-amber-800">Crash Magnitude: {Number(crashResult.crash_scenario?.crash_magnitude_pct ?? -30).toFixed(0)}%</p>
+              {crashResult.lesson && (
+                <p className="text-sm text-amber-900 bg-white/70 border border-amber-200 rounded-md px-3 py-2 mt-2">
+                  {crashResult.lesson}
+                </p>
+              )}
+            </Card>
+          )}
+        </Card>
+      )}
     </div>
   );
 }

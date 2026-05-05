@@ -10,16 +10,19 @@ import DecisionModal from './components/DecisionModal';
 import LifeState from './components/LifeState';
 import MetricsPanel from './components/MetricsPanel';
 import CareerPathPanel from './components/CareerPathPanel';
+import { EnhancedDecisionModal, FinancialLiteracyCard } from '../_lib/SharedComponents';
 import { Loader2, Play, ChevronRight } from 'lucide-react';
 
 interface KarobarSession {
   session_id: string;
   current_age: number;
+  current_month: number;
   current_year: number;
   status: string;
   gender: string;
   city: string;
   education: string;
+  starting_job?: string;
   current_state?: any;
 }
 
@@ -43,18 +46,41 @@ export default function KarobarGame() {
   const [setupScreen, setSetupScreen] = useState(true);
   const [session, setSession] = useState<KarobarSession | null>(null);
   const [loading, setLoading] = useState(true);
-  const [gameStarted, setGameStarted] = useState(false);
   const [showDecisionModal, setShowDecisionModal] = useState(false);
   const [currentDecision, setCurrentDecision] = useState<Decision | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [activeStage, setActiveStage] = useState<'overview' | 'decisions' | 'metrics'>('overview');
 
+  // Business decision state
+  const [businessDecision, setBusinessDecision] = useState<any>(null);
+  const [showBusinessDecisionModal, setShowBusinessDecisionModal] = useState(false);
+  const [submittingBusinessDecision, setSubmittingBusinessDecision] = useState(false);
+
   // Setup form state
   const [gender, setGender] = useState('female');
   const [city, setCity] = useState('bangalore');
   const [education, setEducation] = useState('ug');
   const [startingJob, setStartingJob] = useState('salaried');
+
+  const normalizeSession = (rawSession: any): KarobarSession => {
+    const state = rawSession?.current_state && typeof rawSession.current_state === 'object'
+      ? rawSession.current_state
+      : {};
+
+    const currentAge = Number(rawSession?.current_age ?? state?.age ?? 22);
+    const currentMonth = Number(rawSession?.current_month ?? state?.current_month ?? 0);
+    const currentYear = Number(rawSession?.current_year ?? state?.current_year ?? 0);
+
+    return {
+      ...rawSession,
+      current_age: Number.isFinite(currentAge) ? currentAge : 22,
+      current_month: Number.isFinite(currentMonth) ? currentMonth : 0,
+      current_year: Number.isFinite(currentYear) ? currentYear : 0,
+      status: rawSession?.status === 'created' ? 'active' : (rawSession?.status || 'active'),
+      current_state: state,
+    };
+  };
 
   useEffect(() => {
     loadSession();
@@ -69,8 +95,7 @@ export default function KarobarGame() {
         const lastSession = sessions[0];
         if (lastSession.status === 'active') {
           const sessionDetails = await api.get(`/games/karobaar/${lastSession.session_id}`);
-          setSession(sessionDetails.data);
-          setGameStarted(true);
+          setSession(normalizeSession(sessionDetails.data));
           setSetupScreen(false);
         }
       }
@@ -92,13 +117,27 @@ export default function KarobarGame() {
         starting_job: startingJob,
       });
 
-      setSession(response.data);
-      setGameStarted(true);
+      setSession(normalizeSession(response.data));
       setSetupScreen(false);
+      
+      // Fetch business decision after game starts
+      await fetchBusinessDecision(response.data.session_id);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to create game');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchBusinessDecision = async (sessionId: string) => {
+    try {
+      const response = await api.get(`/games/karobaar/${sessionId}/business-decision`);
+      if (response.data.has_decision) {
+        setBusinessDecision(response.data);
+        setShowBusinessDecisionModal(true);
+      }
+    } catch (error) {
+      console.error('Failed to fetch business decision:', error);
     }
   };
 
@@ -107,7 +146,7 @@ export default function KarobarGame() {
     setSubmitting(true);
     try {
       const response = await api.post(`/games/karobaar/${session.session_id}/progress`);
-      setSession(response.data);
+      setSession(normalizeSession(response.data));
 
       // If there's a pending decision, show modal
       if (response.data.pending_decision) {
@@ -133,12 +172,12 @@ export default function KarobarGame() {
         }
       );
 
-      setSession(response.data);
+      setSession(normalizeSession(response.data));
       setShowDecisionModal(false);
 
       // Check if game should continue
       if (response.data.current_age >= 65) {
-        router.push(`/games/karobaar/results/${session.session_id}`);
+        router.push(`/games/karobaar/results?session_id=${session.session_id}`);
       } else if (response.data.next_decision) {
         setCurrentDecision(response.data.next_decision);
         setShowDecisionModal(true);
@@ -155,7 +194,7 @@ export default function KarobarGame() {
     setSubmitting(true);
     try {
       await api.post(`/games/karobaar/${session.session_id}/complete`);
-      router.push(`/games/karobaar/results/${session.session_id}`);
+      router.push(`/games/karobaar/results?session_id=${session.session_id}`);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to complete game');
     } finally {
@@ -320,8 +359,9 @@ export default function KarobarGame() {
       {/* Header */}
       <GameHeader
         title="💼 Karobaar"
-        subtitle={`Age ${session.current_age} • Year ${session.current_year}`}
-        progress={(session.current_age - 22) / 43}
+        gameMonth={session.current_month || 0}
+        totalMonths={516}
+        description={`Age ${session.current_age} • Year ${session.current_year}`}
       />
 
       {/* Error Message */}
@@ -331,30 +371,30 @@ export default function KarobarGame() {
         </div>
       )}
 
-      <div className="bg-white rounded-lg border border-slate-200 p-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
         <button
           onClick={() => setActiveStage('overview')}
-          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
-            activeStage === 'overview' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+          className={`px-4 py-3 rounded-lg font-semibold text-sm transition-all ${
+            activeStage === 'overview' ? 'bg-cyan-600 text-white shadow-md ring-2 ring-cyan-300' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          Stage 1: Life Overview
+          👤 Life State
         </button>
         <button
           onClick={() => setActiveStage('decisions')}
-          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
-            activeStage === 'decisions' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+          className={`px-4 py-3 rounded-lg font-semibold text-sm transition-all ${
+            activeStage === 'decisions' ? 'bg-cyan-600 text-white shadow-md ring-2 ring-cyan-300' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          Stage 2: Decisions
+          🎯 Decision
         </button>
         <button
           onClick={() => setActiveStage('metrics')}
-          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
-            activeStage === 'metrics' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+          className={`px-4 py-3 rounded-lg font-semibold text-sm transition-all ${
+            activeStage === 'metrics' ? 'bg-cyan-600 text-white shadow-md ring-2 ring-cyan-300' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          Stage 3: Metrics
+          📊 Metrics
         </button>
       </div>
 
@@ -372,7 +412,7 @@ export default function KarobarGame() {
             <Button
               onClick={handleProgress}
               disabled={submitting || session.status !== 'active'}
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 transition-all"
             >
               {submitting ? (
                 <>
@@ -382,7 +422,7 @@ export default function KarobarGame() {
               ) : (
                 <>
                   <Play className="w-4 h-4 mr-2" />
-                  Continue to Next Year
+                  Continue to Next Year →
                 </>
               )}
             </Button>
@@ -418,6 +458,57 @@ export default function KarobarGame() {
           onChoose={handleDecision}
           isLoading={submitting}
         />
+      )}
+
+      {showBusinessDecisionModal && businessDecision && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex flex-col items-center justify-center p-4 overflow-y-auto">
+          <div className="flex flex-col gap-6 w-full max-w-2xl py-6">
+            <EnhancedDecisionModal
+              title={businessDecision.decision_title}
+              description={businessDecision.description}
+              event_type={businessDecision.event_type}
+              options={businessDecision.options.map((opt: any) => ({
+                index: opt.index,
+                title: opt.title,
+                description: opt.description,
+                risk_level: opt.risk_level,
+                consequences: {},
+                monthly_impact: 0,
+                months: 1,
+                long_term_effect: opt.best_for || '',
+              }))}
+              onDecide={async (optionIndex: number) => {
+                setSubmittingBusinessDecision(true);
+                setError('');
+                try {
+                  const response = await api.post(`/games/karobaar/${session?.session_id}/business-decision`, {
+                    option_index: optionIndex,
+                  });
+
+                  if (response.data?.current_state && session) {
+                    setSession({
+                      ...session,
+                      current_state: response.data.current_state,
+                    });
+                  }
+
+                  setShowBusinessDecisionModal(false);
+                } catch (error: any) {
+                  setError(error?.response?.data?.detail || 'Failed to submit business decision');
+                  console.error('Failed to submit business decision:', error);
+                } finally {
+                  setSubmittingBusinessDecision(false);
+                }
+              }}
+              isLoading={submittingBusinessDecision}
+            />
+            <FinancialLiteracyCard
+              concept="opportunity_cost"
+              impact_amount={0}
+              context="Your career and life decisions compound over 43 years. Choose wisely."
+            />
+          </div>
+        </div>
       )}
     </div>
   );

@@ -12,6 +12,7 @@ import { InsightsPanel } from '@/components/simulations/InsightsPanel'
 import { StepProgressBar } from '@/components/simulations/StepProgressBar'
 import { DebtTrapInfographic } from './components/DebtTrapInfographic'
 import { creditCardDebtConfig } from './config'
+import { useSimulationCompletion } from '@/lib/hooks/useSimulationCompletion'
 
 const steps = [
   { number: 1, label: 'Introduction' },
@@ -25,7 +26,7 @@ export default function CreditCardDebtPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [debtAmount, setDebtAmount] = useState(100000)
   const [monthlyPayment, setMonthlyPayment] = useState(5000)
-  const [xpEarned, setXpEarned] = useState(false)
+  const { xpEarned, isCompleting, completeSimulation } = useSimulationCompletion('credit_card_debt')
 
   const interestRate = 0.02 // 2% monthly (24% annual)
 
@@ -276,7 +277,9 @@ export default function CreditCardDebtPage() {
 
                 <div className="text-center">
                   <Button
-                    onClick={() => setXpEarned(true)}
+                    onClick={completeSimulation}
+                    isLoading={isCompleting}
+                    disabled={xpEarned}
                     variant="primary"
                     size="lg"
                     className="mb-4"

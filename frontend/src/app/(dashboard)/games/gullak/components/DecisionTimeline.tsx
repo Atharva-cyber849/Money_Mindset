@@ -20,7 +20,7 @@ interface DecisionTimelineProps {
   currentMonth: number;
 }
 
-export function DecisionTimeline({ allocationHistory, currentMonth }: DecisionTimelineProps) {
+export function DecisionTimeline({ allocationHistory, currentMonth: _currentMonth }: DecisionTimelineProps) {
   // Get last 10 decisions for timeline view
   const recentDecisions = allocationHistory.slice(-10);
 

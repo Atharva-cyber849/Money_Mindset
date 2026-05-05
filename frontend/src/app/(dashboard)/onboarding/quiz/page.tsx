@@ -112,17 +112,14 @@ export default function QuizPage() {
 
     try {
       // Transform answers to match API format
-      const q3Knowledge = question.id === 3
-        ? QUESTIONS[2].scoreMap?.[answers.q3_knowledge as keyof typeof QUESTIONS[2].scoreMap] || 50
-        : answers.q3_knowledge || 50
+      const q3KnowledgeMap = QUESTIONS[2].scoreMap as Record<number, number> | undefined
+      const q3Knowledge = q3KnowledgeMap?.[Number(answers.q3_knowledge)] ?? 50
 
-      const q4RiskTolerance = answers.q4_risk_tolerance
-        ? QUESTIONS[3].riskMap?.[answers.q4_risk_tolerance as keyof typeof QUESTIONS[3].riskMap] || 'Moderate'
-        : 'Moderate'
+      const q4RiskMap = QUESTIONS[3].riskMap as Record<number, string> | undefined
+      const q4RiskTolerance = q4RiskMap?.[Number(answers.q4_risk_tolerance)] ?? 'Moderate'
 
-      const q5MonthlySurplus = answers.q5_monthly_surplus
-        ? QUESTIONS[4].valueMap?.[answers.q5_monthly_surplus as keyof typeof QUESTIONS[4].valueMap] || 5000
-        : 5000
+      const q5ValueMap = QUESTIONS[4].valueMap as Record<number, number> | undefined
+      const q5MonthlySurplus = q5ValueMap?.[Number(answers.q5_monthly_surplus)] ?? 5000
 
       // Submit quiz
       const result = await userAPI.submitQuiz(

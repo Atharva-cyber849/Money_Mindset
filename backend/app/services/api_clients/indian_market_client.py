@@ -63,6 +63,11 @@ class IndianMarketClient(APIClient):
         Returns:
             Quote data or None if failed
         """
+        # /stock endpoint is name-based and unreliable for index tickers such as
+        # ^NSEI / ^BSESN / ^CNXIT / ^CNXBN. Let upstream router handle indices.
+        if symbol.startswith("^"):
+            return self._get_mock_quote(symbol)
+
         if not self.enabled or not self.base_url:
             return self._get_mock_quote(symbol)
 
@@ -232,7 +237,12 @@ class IndianMarketClient(APIClient):
             return None
 
     def get_historical_data(
-        self, symbol: str, start_date: datetime = None, end_date: datetime = None, period: str = "1yr"
+        self,
+        symbol: str,
+        start_date: datetime = None,
+        end_date: datetime = None,
+        period: str = "1yr",
+        filter_type: str = "price",
     ) -> Optional[pd.DataFrame]:
         """Fetch historical data for a stock
 
@@ -241,6 +251,7 @@ class IndianMarketClient(APIClient):
             start_date: Start date (unused with period-based API)
             end_date: End date (unused with period-based API)
             period: Period string (1m, 6m, 1yr, 3yr, 5yr, 10yr, max)
+            filter_type: Filter type (price, pe, sm, evebitda, ptb, mcs)
 
         Returns:
             DataFrame with historical price data or None
@@ -249,33 +260,18 @@ class IndianMarketClient(APIClient):
             return self._get_mock_historical(symbol)
 
         try:
-            start_time = time.time()
-
-            company_name = self._extract_company_name(symbol)
-
-            headers = {}
-            if self.api_key:
-                headers["x-api-key"] = self.api_key
-
-            response = requests.get(
-                f"{self.base_url}/historical_data",
-                params={
-                    "stock_name": company_name,
-                    "period": period,
-                    "filter": "price"
-                },
-                headers=headers,
-                timeout=self.timeout
+            data = self.get_historical_data_payload(
+                stock_name=symbol,
+                period=period,
+                filter_type=filter_type,
             )
-            response.raise_for_status()
-
-            data = response.json()
-            latency = int((time.time() - start_time) * 1000)
+            latency = 0
 
             if data and "datasets" in data:
                 # Extract price data from datasets
                 for dataset in data["datasets"]:
-                    if dataset.get("metric") == "Price":
+                    metric = str(dataset.get("metric", "")).lower()
+                    if metric == "price" or filter_type.lower() == "price":
                         values = dataset.get("values", [])
                         if values:
                             dates = []
@@ -303,6 +299,89 @@ class IndianMarketClient(APIClient):
         except Exception as e:
             self._log_error("get_historical_data", e)
             return self._get_mock_historical(symbol)
+
+    def get_historical_data_payload(
+        self,
+        stock_name: str,
+        period: str = "5yr",
+        filter_type: str = "price",
+    ) -> Optional[Dict[str, Any]]:
+        """Fetch raw historical datasets from /historical_data endpoint."""
+        if not self.enabled or not self.base_url:
+            return None
+
+        try:
+            start_time = time.time()
+            company_name = self._extract_company_name(stock_name)
+
+            headers = {}
+            if self.api_key:
+                headers["x-api-key"] = self.api_key
+
+            response = requests.get(
+                f"{self.base_url}/historical_data",
+                params={
+                    "stock_name": company_name,
+                    "period": period,
+                    "filter": filter_type,
+                },
+                headers=headers,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+
+            data = response.json()
+            latency = int((time.time() - start_time) * 1000)
+            if data and "datasets" in data:
+                self._log_success("get_historical_data_payload", company_name, latency)
+                return data
+        except Exception as e:
+            self._log_error("get_historical_data_payload", e)
+
+        return None
+
+    def get_stock_forecasts(
+        self,
+        stock_id: str,
+        measure_code: str,
+        period_type: str,
+        data_type: str,
+        age: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Fetch stock forecasts from /stock_forecasts endpoint."""
+        if not self.enabled or not self.base_url:
+            return None
+
+        try:
+            start_time = time.time()
+            headers = {}
+            if self.api_key:
+                headers["x-api-key"] = self.api_key
+
+            response = requests.get(
+                f"{self.base_url}/stock_forecasts",
+                params={
+                    "stock_id": self._extract_company_name(stock_id).lower(),
+                    "measure_code": measure_code,
+                    "period_type": period_type,
+                    "data_type": data_type,
+                    "age": age,
+                },
+                headers=headers,
+                timeout=self.timeout,
+            )
+
+            if response.status_code == 404:
+                return None
+
+            response.raise_for_status()
+            data = response.json()
+            latency = int((time.time() - start_time) * 1000)
+            self._log_success("get_stock_forecasts", stock_id, latency)
+            return data
+        except Exception as e:
+            self._log_error("get_stock_forecasts", e)
+            return None
 
     def get_quarterly_results(self, symbol: str) -> Optional[Dict[str, Any]]:
         """Get historical quarterly results

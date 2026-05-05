@@ -19,14 +19,6 @@ interface JarAllocationProps {
   disabled: boolean;
 }
 
-const JAR_COLORS = {
-  emergency: '#ef4444',
-  insurance: '#f97316',
-  short_term: '#eab308',
-  long_term: '#22c55e',
-  gold: '#eab308',
-};
-
 const JAR_DESCRIPTIONS = {
   emergency: '6 months of expenses for emergencies',
   insurance: 'Health & life insurance coverage',
@@ -196,7 +188,7 @@ export default function JarAllocation({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={disabled || totalAllocated === 0}
+            disabled={disabled || (surplus > 0 && totalAllocated === 0)}
             className="flex-1"
           >
             Allocate & Next Month

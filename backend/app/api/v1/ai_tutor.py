@@ -9,10 +9,11 @@ import uuid
 from app.core.security import get_current_active_user
 from app.models.database import get_db
 from app.models.user import User
-from app.models.finance import Transaction, Goal
+from app.models.finance import Transaction, Goal, UserProfile
 from app.schemas.schemas import AIMessage, AIResponse
 from app.services.ai_tutor.service import ai_tutor_service
 from app.services.ai_personalization_engine import ai_personalization_engine
+from app.services.microlearning.service import microlearning_service
 
 router = APIRouter()
 
@@ -51,8 +52,19 @@ async def chat_with_tutor(
 @router.get("/suggestions")
 async def get_suggestions(
     current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
 ):
     """Get personalized suggestions"""
+
+    profile = db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
+    learning_gaps = profile.learning_gaps if profile and profile.learning_gaps else []
+    preferred_topic = profile.recommended_first_sim if profile else None
+
+    microlearning = microlearning_service.recommend_items(
+        learning_gaps=learning_gaps,
+        preferred_topic=preferred_topic,
+        limit=4,
+    )
 
     return {
         "suggestions": [
@@ -60,7 +72,43 @@ async def get_suggestions(
             "Analyze my spending patterns",
             "Should I invest or pay off debt first?",
             "Help me create a budget",
-        ]
+        ],
+        "microlearning": microlearning,
+        "daily_queue": microlearning_service.get_daily_microlearning_queue(learning_gaps),
+    }
+
+
+@router.get("/microlearning")
+async def get_microlearning_library(
+    current_user: User = Depends(get_current_active_user),
+):
+    """Get the full microlearning library"""
+
+    return {
+        "items": microlearning_service.list_items(),
+        "count": len(microlearning_service.list_items()),
+    }
+
+
+@router.get("/microlearning/recommendations")
+async def get_microlearning_recommendations(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Get personalized bite-sized lessons from books and podcasts"""
+
+    profile = db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
+    learning_gaps = profile.learning_gaps if profile and profile.learning_gaps else []
+    preferred_topic = profile.recommended_first_sim if profile else None
+
+    return {
+        "items": microlearning_service.recommend_items(
+            learning_gaps=learning_gaps,
+            preferred_topic=preferred_topic,
+            limit=6,
+        ),
+        "learning_gaps": learning_gaps,
+        "preferred_topic": preferred_topic,
     }
 
 

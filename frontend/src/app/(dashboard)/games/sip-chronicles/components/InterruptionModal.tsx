@@ -38,7 +38,7 @@ export default function InterruptionModal({
   const icon = EVENT_ICONS[interruption.type] || '⚡';
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-[1px] flex items-center justify-center z-50 p-4">
       <Card className="p-8 max-w-2xl w-full">
         <div className="text-center mb-6">
           <div className="text-6xl mb-4">{icon}</div>

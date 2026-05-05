@@ -9,6 +9,12 @@ from dataclasses import dataclass, field, asdict
 from enum import Enum
 from typing import Dict, List, Tuple, Optional
 from datetime import datetime
+import logging
+
+from app.core.config import settings
+from app.services.api_clients import IndianMarketClient
+
+logger = logging.getLogger(__name__)
 
 
 class MarketEra(str, Enum):
@@ -280,6 +286,11 @@ class DalalStreetSimulator:
         self.era = era
         self.current_quarter = 0
         self.config = self.ERA_CONFIGS[era]
+        self.indian_market_client = IndianMarketClient(
+            base_url=settings.INDIAN_MARKET_API_URL,
+            api_key=settings.INDIAN_MARKET_API_KEY,
+            enabled=settings.INDIAN_MARKET_ENABLED,
+        )
 
         # Initialize portfolio
         if starting_portfolio:
@@ -295,6 +306,7 @@ class DalalStreetSimulator:
 
         # Initialize stocks
         self.stock_quotes: Dict[str, StockQuote] = self._initialize_stocks()
+        self._apply_historical_anchors()
         self.stock_base_prices: Dict[str, float] = {}  # Track base prices for calculation
         for symbol, quote in self.stock_quotes.items():
             self.stock_base_prices[symbol] = quote.current_price
@@ -337,6 +349,32 @@ class DalalStreetSimulator:
             )
 
         return stocks
+
+    def _apply_historical_anchors(self) -> None:
+        """Anchor initial Dalal prices to provider historical data when available."""
+        if not self.indian_market_client.enabled:
+            return
+
+        for symbol, quote in self.stock_quotes.items():
+            try:
+                hist = self.indian_market_client.get_historical_data(
+                    symbol=symbol,
+                    period="1yr",
+                    filter_type="price",
+                )
+                if hist is None or hist.empty or "close" not in hist.columns:
+                    continue
+
+                latest_close = float(hist["close"].dropna().iloc[-1])
+                if latest_close <= 0:
+                    continue
+
+                quote.current_price = latest_close
+                quote.open_price = latest_close
+                quote.high_price = latest_close * 1.02
+                quote.low_price = latest_close * 0.98
+            except Exception as e:
+                logger.debug(f"Dalal historical anchor skipped for {symbol}: {str(e)}")
 
     def _generate_quarterly_return(self, base_return: float) -> float:
         """Generate quarterly return with volatility"""

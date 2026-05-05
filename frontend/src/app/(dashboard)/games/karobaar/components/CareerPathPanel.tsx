@@ -8,6 +8,7 @@ interface CareerPathPanelProps {
     current_salary: number;
     company_size: string;
     years_in_job: number;
+    starting_job?: string;
     business_status?: string;
     has_mba?: boolean;
   };
@@ -20,7 +21,12 @@ const formatCurrency = (amount: number) => {
 };
 
 export default function CareerPathPanel({ state }: CareerPathPanelProps) {
-  const careerPath = ['Associate', 'Senior Associate', 'Manager', 'Senior Manager', 'Director', 'VP'];
+  const pathType = state.business_status === 'active' ? 'business' : (state.starting_job || 'salaried');
+  const careerPath = pathType === 'business'
+    ? ['Founder', 'Product-Market Fit', 'Profitable', 'Scale-Up', 'Expansion', 'Legacy Business']
+    : pathType === 'freelance'
+      ? ['Freelance Consultant', 'Specialist', 'Independent Practice', 'Agency Lead', 'Premium Advisor', 'Thought Leader']
+      : ['Associate', 'Senior Associate', 'Manager', 'Senior Manager', 'Director', 'VP'];
   const currentIndex = Math.floor(state.years_in_job / 3);
   const nextPromotion = Math.ceil((state.years_in_job + 1) / 3) * 3;
   const replayMilestones = Array.from({ length: Math.max(1, currentIndex + 1) }).map((_, idx) => ({
@@ -31,7 +37,9 @@ export default function CareerPathPanel({ state }: CareerPathPanelProps) {
 
   return (
     <Card className="p-6 space-y-6">
-      <h3 className="text-xl font-bold">Career Path</h3>
+      <h3 className="text-xl font-bold">
+        {pathType === 'business' ? 'Business Journey' : pathType === 'freelance' ? 'Freelance Journey' : 'Career Path'}
+      </h3>
 
       {/* Current Role */}
       <div className="space-y-2">
@@ -46,8 +54,13 @@ export default function CareerPathPanel({ state }: CareerPathPanelProps) {
           </div>
         </div>
         <div className="flex items-center space-x-2 text-sm">
+          {pathType === 'freelance' && (
+            <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full">
+              🧑‍💻 Freelance
+            </span>
+          )}
           <span className="px-3 py-1 bg-cyan-100 text-cyan-700 rounded-full">
-            {state.company_size === 'startup' ? '🚀 Startup' : state.company_size === 'medium' ? '📊 Mid-size' : '🏢 Large'}
+            {state.company_size === 'startup' ? '🚀 Startup' : state.company_size === 'medium' ? '📊 Mid-size' : state.company_size === 'independent' ? '🧭 Independent' : '🏢 Large'}
           </span>
           {state.has_mba && (
             <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full">
@@ -99,7 +112,7 @@ export default function CareerPathPanel({ state }: CareerPathPanelProps) {
       {/* Next Steps */}
       <div className="border-t pt-4">
         <p className="text-sm text-gray-600">
-          💡 Keep improving your skills and making good decisions. Next promotion in ~{Math.max(0, nextPromotion - state.years_in_job)} years.
+          💡 Keep compounding smart decisions. Next milestone in ~{Math.max(0, nextPromotion - state.years_in_job)} years.
         </p>
       </div>
 

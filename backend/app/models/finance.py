@@ -850,3 +850,109 @@ class MarketDataSource(Base):
     api_latency_ms = Column(Integer, default=0)  # Response time in milliseconds
     created_at = Column(DateTime, default=datetime.utcnow)
 
+
+# ============================================================================
+# MARKET PARTICIPANT & ORDER BOOK MODELS (Paper Trading Market Simulation)
+# ============================================================================
+
+class MarketParticipantProfile(Base):
+    """Profile template for AI market participants (lazy-loaded, regenerated per session)"""
+    __tablename__ = "market_participant_profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String, ForeignKey("paper_trading_sessions.session_id"), nullable=False, index=True)
+
+    # Participant configuration (1 record can generate 1000 participants deterministically)
+    participant_count = Column(Integer, default=1000)  # Total AI traders for this session
+    market_type = Column(String, nullable=False)  # india, us, or both
+    random_seed = Column(Integer, nullable=False)  # For deterministic regeneration
+
+    # Composition of traders (percentages)
+    hft_percentage = Column(Float, default=10)  # High-frequency traders (trade every call)
+    momentum_percentage = Column(Float, default=30)  # Momentum traders (trade 60% of time)
+    conservative_percentage = Column(Float, default=40)  # Conservative (trade 20% of time)
+    value_investor_percentage = Column(Float, default=20)  # Value investors (trade 15% of time)
+
+    # Initial conditions
+    initial_capital_per_trader = Column(Float, default=100000)  # Starting cash each AI trader
+    total_market_capital = Column(Float)  # Calculated: participant_count * initial_capital_per_trader
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    session = relationship("PaperTradingSession", foreign_keys=[session_id])
+    snapshots = relationship("MarketOrderBookSnapshot", back_populates="profile")
+
+
+class MarketOrderBookSnapshot(Base):
+    """Aggregated order book snapshot at a point in time"""
+    __tablename__ = "market_order_book_snapshots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String, ForeignKey("paper_trading_sessions.session_id"), nullable=False, index=True)
+    profile_id = Column(Integer, ForeignKey("market_participant_profiles.id"), nullable=False)
+
+    # Snapshot metadata
+    snapshot_timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    symbol = Column(String, nullable=False, index=True)
+
+    # Order book state
+    buy_orders = Column(JSON, nullable=False)  # [{quantity, price, count}, ...]
+    sell_orders = Column(JSON, nullable=False)  # [{quantity, price, count}, ...]
+
+    # Calculated prices
+    best_bid = Column(Float, nullable=False)  # Highest buy price
+    best_ask = Column(Float, nullable=False)  # Lowest sell price
+    mid_price = Column(Float, nullable=False)  # (bid + ask) / 2
+    bid_ask_spread = Column(Float, nullable=False)  # ask - bid
+    spread_percentage = Column(Float)  # spread / mid_price * 100
+
+    # Volume info
+    total_buy_volume = Column(Integer, default=0)
+    total_sell_volume = Column(Integer, default=0)
+    total_volume = Column(Integer, default=0)
+
+    # Market conditions
+    imbalance = Column(Float)  # (buy_volume - sell_volume) / total_volume, -1 to 1
+    volatility_estimate = Column(Float, default=0.01)  # Recent price volatility %
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    profile = relationship("MarketParticipantProfile", back_populates="snapshots")
+    session = relationship("PaperTradingSession", foreign_keys=[session_id])
+
+
+class AIParticipantTrade(Base):
+    """Individual trade executed by AI participant"""
+    __tablename__ = "ai_participant_trades"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String, ForeignKey("paper_trading_sessions.session_id"), nullable=False, index=True)
+
+    # Participant info (deterministic ID based on seed)
+    participant_id = Column(Integer, nullable=False)  # 0-999
+    participant_type = Column(String, nullable=False)  # hft, momentum, conservative, value_investor
+
+    # Trade details
+    symbol = Column(String, nullable=False)
+    quantity = Column(Integer, nullable=False)
+    execution_price = Column(Float, nullable=False)
+    side = Column(String, nullable=False)  # BUY or SELL
+    executed_at = Column(DateTime, nullable=False)
+
+    # Trading rationale
+    signal_type = Column(String, nullable=False)  # trend_following, value_buy, rebalance, scalp, portfolio_adjustment
+    confidence = Column(Float, default=0.5)  # 0.0-1.0, how confident AI is about this trade
+
+    # Impact tracking
+    market_impact = Column(Float, default=0)  # Price change caused by this trade
+    is_limit_order = Column(Boolean, default=False)  # Whether price had to move to execute
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    session = relationship("PaperTradingSession", foreign_keys=[session_id])
+

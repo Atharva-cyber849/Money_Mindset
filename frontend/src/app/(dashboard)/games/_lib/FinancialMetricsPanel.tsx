@@ -1,7 +1,7 @@
 'use client';
 
 import { Card } from '@/components/ui/Card';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 
 interface FinancialMetricsPanelProps {
   netWorth: number;

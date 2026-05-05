@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Trophy, TrendingUp, Award } from 'lucide-react';
 import { api } from '@/lib/api/client';
+import { LearningSummaryCard } from '../../_lib/SharedComponents/LearningSummaryCard';
 
 export default function PaperTradingResults({ params }: { params: { sessionId: string } }) {
   const [session, setSession] = useState<any>(null);
@@ -176,6 +177,17 @@ function ScoreCard({
   return (
     <div>
       <div className="flex justify-between items-center mb-2">
+
+      <LearningSummaryCard
+        title="What disciplined investing teaches"
+        summary="Paper Trading rewards process over prediction. The strongest portfolios are built by managing downside, diversifying exposures, and staying consistent through volatility."
+        takeaways={[
+          'A good investing process reduces emotional decisions when markets move fast.',
+          'Diversification protects compounding by reducing the chance of one bad bet dominating the result.',
+          'Risk-adjusted returns matter more than chasing the biggest single-trade win.',
+        ]}
+        nextStep="Replay using a different strategy mix and compare how discipline, diversification, and timing change your long-term result."
+      />
         <h4 className="font-semibold text-slate-900">{title}</h4>
         <span className="text-lg font-bold text-slate-900">
           {score}/{maxScore}

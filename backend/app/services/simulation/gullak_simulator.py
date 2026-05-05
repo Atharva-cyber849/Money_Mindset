@@ -93,6 +93,18 @@ class JarAllocation:
 
 
 @dataclass
+class DecisionOption:
+    """Represents a decision option for a life event"""
+    title: str
+    description: str
+    consequences: Dict[str, float]  # jar_name -> amount change
+    monthly_impact: Optional[float] = None  # Monthly impact for loan options
+    months: Optional[int] = None  # Duration of monthly impact
+    risk_level: str = "medium"  # low, medium, high
+    long_term_effect: Optional[str] = None  # Narrative description of long-term effects
+
+
+@dataclass
 class LifeEvent:
     """Represents a life event"""
     month: int
@@ -100,6 +112,10 @@ class LifeEvent:
     impact_amount: float
     jar_affected: Optional[JarType]
     description: str
+    has_decision: bool = False
+    decision_title: Optional[str] = None
+    decision_options: List[DecisionOption] = field(default_factory=list)
+    chosen_option_idx: Optional[int] = None
 
 
 @dataclass
@@ -181,6 +197,317 @@ class GullakSimulator:
         }
         return tax_by_state.get(self.state_location, 1000) / 12  # Convert yearly to monthly
 
+    # ==================== Decision-Based Event Methods ====================
+
+    def _create_car_repair_decision(self, month: int, amount: float) -> LifeEvent:
+        """Create car repair expense with multiple options"""
+        options = [
+            DecisionOption(
+                title="Pay in Full from Savings",
+                description=f"Deduct ₹{amount:,.0f} from current savings. Note: New Net Worth will be ₹{max(0, self.current_jars.total() - amount):,.0f}. Risk of low liquidity.",
+                consequences={
+                    "emergency": -amount * 0.7,
+                    "short_term": -amount * 0.3,
+                },
+                risk_level="medium",
+                long_term_effect="Maintains financial independence but reduces emergency buffer"
+            ),
+            DecisionOption(
+                title="Take a Personal Loan",
+                description=f"Borrow full ₹{amount:,.0f}. Repayment: +₹{amount * 0.08:,.0f} monthly for 24 months. Increases monthly deficit.",
+                consequences={},
+                monthly_impact=amount * 0.08 / 24,
+                months=24,
+                risk_level="high",
+                long_term_effect="Increases monthly expenses, reduces debt-to-income ratio"
+            ),
+            DecisionOption(
+                title="Hybrid: Partial Payment + Aggressive Cut",
+                description=f"Pay ₹{amount * 0.5:,.0f} from savings. Cut non-essential spending by ₹{amount * 0.02:,.0f}/month for 12 months to cover rest.",
+                consequences={
+                    "emergency": -amount * 0.35,
+                    "short_term": -amount * 0.15,
+                },
+                monthly_impact=amount * 0.02,
+                months=12,
+                risk_level="low",
+                long_term_effect="Balanced approach - maintains some savings while building financial discipline"
+            ),
+        ]
+        return LifeEvent(
+            month=month,
+            event_type=LifeEventType.CAR_ACCIDENT,
+            impact_amount=amount,
+            jar_affected=JarType.SHORT_TERM,
+            description=f"Unexpected Car Repair: ₹{amount:,.0f} major mechanical issue",
+            has_decision=True,
+            decision_title="ALERT: Decision Required: Unexpected Car Repair Expense",
+            decision_options=options,
+        )
+
+    def _create_medical_decision(self, month: int, amount: float) -> LifeEvent:
+        """Create medical emergency with treatment options"""
+        options = [
+            DecisionOption(
+                title="Premium Hospital Treatment",
+                description=f"Best care at top hospital: ₹{amount:,.0f}. Full recovery in 1 month. Insurance covers ₹{amount * 0.8:,.0f}.",
+                consequences={
+                    "insurance": -amount * 0.2,
+                    "short_term": -amount * 0.0,
+                },
+                risk_level="low",
+                long_term_effect="Best health outcome, minimal financial impact"
+            ),
+            DecisionOption(
+                title="Government Hospital (Cost-effective)",
+                description=f"Good care at ₹{amount * 0.4:,.0f}. Recovery takes 2 months. Wait times higher but comprehensive treatment.",
+                consequences={
+                    "short_term": -amount * 0.4,
+                },
+                months=2,
+                risk_level="low",
+                long_term_effect="Minimal financial impact but prolonged recovery period"
+            ),
+            DecisionOption(
+                title="Delay & Use Home Remedies",
+                description=f"Skip ₹{amount:,.0f} treatment now. Risk: 50% chance condition worsens (need ₹{amount * 1.5:,.0f} later). Save immediately.",
+                consequences={},
+                risk_level="high",
+                long_term_effect="Potential health complications and higher future costs"
+            ),
+        ]
+        return LifeEvent(
+            month=month,
+            event_type=LifeEventType.MEDICAL_EMERGENCY,
+            impact_amount=amount,
+            jar_affected=JarType.INSURANCE,
+            description=f"Medical Emergency: ₹{amount:,.0f} required for treatment",
+            has_decision=True,
+            decision_title="ALERT: Medical Decision Required",
+            decision_options=options,
+        )
+
+    def _create_job_loss_decision(self, month: int) -> LifeEvent:
+        """Create job loss scenario with response options"""
+        savings = self.current_jars.total()
+        monthly_expenses = self.get_monthly_expenses(month)
+        runway_months = savings / monthly_expenses if monthly_expenses > 0 else 0
+
+        options = [
+            DecisionOption(
+                title="Aggressive Job Search",
+                description=f"Target 2 weeks job search. Maintain current spending. Runway: {runway_months:.0f} months. Risk: may take 2-3 months.",
+                consequences={},
+                monthly_impact=-monthly_expenses,
+                months=3,
+                risk_level="high",
+                long_term_effect="Quick re-employment possible but uses savings rapidly"
+            ),
+            DecisionOption(
+                title="Cut Spending + Measured Search",
+                description=f"Reduce expenses 40%. Monthly budget: ₹{monthly_expenses * 0.6:,.0f}. Runway extends to {(savings / (monthly_expenses * 0.6)):.0f} months.",
+                consequences={},
+                monthly_impact=-monthly_expenses * 0.6,
+                months=6,
+                risk_level="medium",
+                long_term_effect="Extends financial runway, allows broader job search"
+            ),
+            DecisionOption(
+                title="Freelance + Part-time",
+                description=f"Earn ₹{monthly_expenses * 0.5:,.0f}/month freelancing while searching. Reduces pressure. Takes 5 months to find full-time job.",
+                consequences={},
+                monthly_impact=-monthly_expenses * 0.5,
+                months=5,
+                risk_level="low",
+                long_term_effect="Most sustainable but requires upskilling and effort"
+            ),
+        ]
+        return LifeEvent(
+            month=month,
+            event_type=LifeEventType.JOB_LOSS_SIGNAL,
+            impact_amount=0,
+            jar_affected=None,
+            description="Job Loss Alert: Company lay-offs announced. Your role may be affected.",
+            has_decision=True,
+            decision_title="ALERT: Career Decision Required",
+            decision_options=options,
+        )
+
+    def _create_education_decision(self, month: int) -> LifeEvent:
+        """Create education investment decision"""
+        course_cost = random.uniform(50000, 200000)
+        salary_increase = course_cost * random.uniform(0.5, 1.5)  # ROI between 50-150%
+
+        options = [
+            DecisionOption(
+                title="Invest in Skill Course",
+                description=f"Pay ₹{course_cost:,.0f} for certification. Expected salary increase: +₹{salary_increase:,.0f}/year. ROI in {(course_cost / (salary_increase / 12)):.1f} months.",
+                consequences={
+                    "short_term": -course_cost,
+                },
+                risk_level="medium",
+                long_term_effect="Increases earning potential and career growth"
+            ),
+            DecisionOption(
+                title="Finance with Student Loan",
+                description=f"Borrow ₹{course_cost:,.0f} at 8% interest. EMI: ₹{course_cost * 0.08 / 12 / 5:,.0f} for 5 years. Salary increase covers EMI.",
+                consequences={},
+                monthly_impact=course_cost * 0.08 / 12 / 5,
+                months=60,
+                risk_level="low",
+                long_term_effect="No immediate cash impact but adds long-term liability"
+            ),
+            DecisionOption(
+                title="Skip for Now",
+                description=f"Delay investment. May miss promotion opportunity. Defer ₹{course_cost:,.0f} spend.",
+                consequences={},
+                risk_level="low",
+                long_term_effect="Conserves cash but may slow career progression"
+            ),
+        ]
+        return LifeEvent(
+            month=month,
+            event_type=LifeEventType.EDUCATION_EXPENSE,
+            impact_amount=course_cost,
+            jar_affected=JarType.SHORT_TERM,
+            description=f"Education Opportunity: Online certification course costs ₹{course_cost:,.0f}",
+            has_decision=True,
+            decision_title="ALERT: Education Investment Decision",
+            decision_options=options,
+        )
+
+    def _create_marriage_decision(self, month: int) -> LifeEvent:
+        """Create marriage event with budget planning options"""
+        budget_options = [
+            500000,   # Modest
+            1000000,  # Medium
+            2000000,  # Grand
+        ]
+        chosen_budget = random.choice(budget_options)
+        moderate_budget = chosen_budget * 0.6
+
+        options = [
+            DecisionOption(
+                title="Dream Wedding",
+                description=f"Grand celebration: ₹{chosen_budget:,.0f}. Memorable but significantly impacts savings.",
+                consequences={
+                    "short_term": -chosen_budget * 0.7,
+                    "long_term": -chosen_budget * 0.3,
+                },
+                risk_level="high",
+                long_term_effect="Celebrates milestone but reduces wealth accumulation"
+            ),
+            DecisionOption(
+                title="Balanced Celebration",
+                description=f"Moderate budget: ₹{moderate_budget:,.0f}. Nice wedding without excessive spending.",
+                consequences={
+                    "short_term": -moderate_budget * 0.8,
+                    "emergency": -moderate_budget * 0.2,
+                },
+                risk_level="medium",
+                long_term_effect="Maintains financial balance while enjoying celebration"
+            ),
+            DecisionOption(
+                title="Simple Ceremony + Future Travel",
+                description=f"Intimate wedding: ₹{chosen_budget * 0.2:,.0f}. Save rest for honeymoon/home investment.",
+                consequences={
+                    "short_term": -chosen_budget * 0.2,
+                },
+                risk_level="low",
+                long_term_effect="Prioritizes long-term wealth over one-time event"
+            ),
+        ]
+        return LifeEvent(
+            month=month,
+            event_type=LifeEventType.WEDDING,
+            impact_amount=chosen_budget,
+            jar_affected=JarType.SHORT_TERM,
+            description=f"Marriage Proposal Accepted: Wedding planning to begin",
+            has_decision=True,
+            decision_title="ALERT: Marriage Budget Planning",
+            decision_options=options,
+        )
+
+    def _create_investment_opportunity(self, month: int) -> LifeEvent:
+        """Create investment opportunity with risk-return tradeoff"""
+        investment = random.uniform(100000, 500000)
+        min_return = investment * 0.08
+        expected_return = investment * 0.15
+        max_return = investment * 0.25
+
+        options = [
+            DecisionOption(
+                title="Conservative Bond Fund",
+                description=f"Invest ₹{investment:,.0f}. Annual return: {min_return/investment*100:.0f}%. Low risk, guaranteed returns.",
+                consequences={
+                    "long_term": -investment,
+                },
+                risk_level="low",
+                long_term_effect="Stable but slow wealth growth"
+            ),
+            DecisionOption(
+                title="Balanced Mutual Fund",
+                description=f"Invest ₹{investment:,.0f}. Expected annual return: {expected_return/investment*100:.0f}%. Moderate risk-return balance.",
+                consequences={
+                    "long_term": -investment,
+                },
+                risk_level="medium",
+                long_term_effect="Reasonable wealth growth with moderate volatility"
+            ),
+            DecisionOption(
+                title="High-Growth Equity Fund",
+                description=f"Invest ₹{investment:,.0f}. Potential annual return: {max_return/investment*100:.0f}%. High volatility but long-term wealth builder.",
+                consequences={
+                    "long_term": -investment,
+                },
+                risk_level="high",
+                long_term_effect="High-risk, high-reward strategy for wealth accumulation"
+            ),
+            DecisionOption(
+                title="Skip Investment",
+                description=f"Keep ₹{investment:,.0f} in cash for emergencies. Foregoes growth but maintains liquidity.",
+                consequences={},
+                risk_level="low",
+                long_term_effect="No wealth growth but maintains emergency access"
+            ),
+        ]
+        return LifeEvent(
+            month=month,
+            event_type=LifeEventType.BONUS,
+            impact_amount=investment,
+            jar_affected=JarType.LONG_TERM,
+            description=f"Investment Opportunity: ₹{investment:,.0f} lump sum available",
+            has_decision=True,
+            decision_title="ALERT: Investment Decision Required",
+            decision_options=options,
+        )
+
+    def apply_decision(self, event: LifeEvent, option_idx: int) -> None:
+        """Apply chosen decision option to current jars"""
+        if not event.has_decision or option_idx >= len(event.decision_options):
+            return
+
+        option = event.decision_options[option_idx]
+        event.chosen_option_idx = option_idx
+
+        # Apply immediate consequences
+        for jar_name, amount in option.consequences.items():
+            if jar_name == "emergency":
+                self.current_jars.emergency = max(0, self.current_jars.emergency + amount)
+            elif jar_name == "insurance":
+                self.current_jars.insurance = max(0, self.current_jars.insurance + amount)
+            elif jar_name == "short_term":
+                self.current_jars.short_term = max(0, self.current_jars.short_term + amount)
+            elif jar_name == "long_term":
+                self.current_jars.long_term = max(0, self.current_jars.long_term + amount)
+            elif jar_name == "gold":
+                self.current_jars.gold = max(0, self.current_jars.gold + amount)
+
+        # Store recurring impact if any
+        if option.monthly_impact and option.months:
+            # This will need to be tracked in the monthly state or decision history
+            pass
+
     def _calculate_income_tax_tds(self, gross_income: float, month: int) -> float:
         """Calculate estimated income tax TDS based on slab"""
         annual_income = gross_income * 12
@@ -244,7 +571,7 @@ class GullakSimulator:
         inflation_factor = (1 + annual_inflation) ** years
 
         # Add festival month expense spikes (month 10-12)
-        festival_multiplier = 1.3 if month % 12 in [10, 11, 12] else 1.0
+        festival_multiplier = 1.3 if month % 12 in [10, 11, 0] else 1.0
 
         return self.initial_expenses * inflation_factor * festival_multiplier
 
@@ -266,28 +593,31 @@ class GullakSimulator:
                     description="Demonetization: 86% of cash becomes worthless overnight. Digital savings unaffected.",
                 )
 
-        # Wedding (high impact, late game)
-        if month > 48 and random.random() < 0.1:
-            amount = random.uniform(300000, 800000)
-            return LifeEvent(
-                month=month,
-                event_type=LifeEventType.WEDDING,
-                impact_amount=amount,
-                jar_affected=JarType.SHORT_TERM,
-                description=f"Wedding in family: ₹{amount:,.0f} needed",
-            )
+        # Car accident with decision options
+        if random.random() < 0.05:
+            amount = random.uniform(50000, 120000)
+            return self._create_car_repair_decision(month, amount)
 
-        # Medical emergency (uniform throughout)
-        if random.random() < 0.08:
+        # Wedding (high impact, late game) - with decision options
+        if month > 48 and random.random() < 0.08:
+            return self._create_marriage_decision(month)
+
+        # Medical emergency with treatment options
+        if random.random() < 0.06:
             amount = random.uniform(50000, 150000)
-            insurance_covered = min(amount * 0.7, self.current_jars.insurance)
-            return LifeEvent(
-                month=month,
-                event_type=LifeEventType.MEDICAL_EMERGENCY,
-                impact_amount=amount,
-                jar_affected=JarType.INSURANCE,
-                description=f"Medical emergency: ₹{amount:,.0f} (Insurance covers: ₹{insurance_covered:,.0f})",
-            )
+            return self._create_medical_decision(month, amount)
+
+        # Education opportunity with investment decision
+        if random.random() < 0.04:
+            return self._create_education_decision(month)
+
+        # Job loss with response strategy
+        if random.random() < 0.03:
+            return self._create_job_loss_decision(month)
+
+        # Investment opportunity
+        if random.random() < 0.04:
+            return self._create_investment_opportunity(month)
 
         # Salary increase on random months
         if random.random() < 0.05:
@@ -309,16 +639,6 @@ class GullakSimulator:
                 impact_amount=correction,
                 jar_affected=JarType.LONG_TERM,
                 description=f"Market correction: {correction*100:.1f}%",
-            )
-
-        # Job loss signal (fear, but can be managed)
-        if random.random() < 0.03:
-            return LifeEvent(
-                month=month,
-                event_type=LifeEventType.JOB_LOSS_SIGNAL,
-                impact_amount=0,
-                jar_affected=None,
-                description="Job market uncertainty: Companies doing lay-offs",
             )
 
         # Home repair
@@ -540,6 +860,10 @@ class GullakSimulator:
         income = self.get_monthly_income(month)
         expenses = self.get_monthly_expenses(month)
         surplus = income - expenses
+        
+        # Deduct negative surplus from emergency fund
+        if surplus < 0:
+            self.current_jars.emergency += surplus
 
         # Update allocation if provided
         if new_allocation is not None:
@@ -654,6 +978,20 @@ class GullakSimulator:
         final_state = self.history[-1] if self.history else None
         resilience_score, resilience_breakdown = self.calculate_resilience_score()
 
+        # Compile decision history
+        decisions_made = [
+            {
+                "month": d.get("month"),
+                "event_type": d.get("event_type"),
+                "event_description": d.get("event_description"),
+                "decision_made": d.get("decision_made"),
+                "option_title": d.get("option_title"),
+                "risk_level": d.get("risk_level"),
+                "outcome_description": d.get("outcome_description"),
+            }
+            for d in self.decision_history
+        ]
+
         return {
             "total_months": self.current_month,
             "final_age": self.get_age_at_month(self.current_month),
@@ -670,12 +1008,83 @@ class GullakSimulator:
                     "type": e.event_type.value,
                     "amount": e.impact_amount,
                     "description": e.description,
+                    "has_decision": e.has_decision,
+                    "decision_made": e.chosen_option_idx is not None,
                 }
                 for e in self.life_events_log
             ],
+            "decisions_made": decisions_made,
+            "decision_count": len(decisions_made),
             "average_monthly_income": (
                 sum(s.income for s in self.history) / len(self.history)
                 if self.history
                 else 0
             ),
         }
+
+    def get_event_with_options(self, month: int) -> Optional[Dict]:
+        """Get event and decision options for current month"""
+        if not self.history or month > len(self.history):
+            return None
+
+        state = self.history[month - 1] if month > 0 else None
+        if not state or not state.event:
+            return None
+
+        event = state.event
+        if not event.has_decision:
+            return None
+
+        # Format event with options
+        options = [
+            {
+                "index": idx,
+                "title": opt.title,
+                "description": opt.description,
+                "risk_level": opt.risk_level,
+                "consequences": opt.consequences,
+                "monthly_impact": opt.monthly_impact,
+                "months": opt.months,
+                "long_term_effect": opt.long_term_effect,
+            }
+            for idx, opt in enumerate(event.decision_options)
+        ]
+
+        return {
+            "month": event.month,
+            "event_type": event.event_type.value,
+            "description": event.description,
+            "decision_title": event.decision_title,
+            "has_decision": True,
+            "options": options,
+        }
+
+    def record_decision(self, month: int, option_idx: int) -> None:
+        """Record a player decision"""
+        if not self.history or month > len(self.history):
+            return
+
+        state = self.history[month - 1] if month > 0 else None
+        if not state or not state.event or not state.event.has_decision:
+            return
+
+        event = state.event
+        if option_idx >= len(event.decision_options):
+            return
+
+        option = event.decision_options[option_idx]
+
+        # Apply the decision
+        self.apply_decision(event, option_idx)
+
+        # Record in decision history
+        self.decision_history.append({
+            "month": month,
+            "event_type": event.event_type.value,
+            "event_description": event.description,
+            "decision_made": option.title,
+            "option_title": option.title,
+            "risk_level": option.risk_level,
+            "outcome_description": option.long_term_effect,
+        })
+

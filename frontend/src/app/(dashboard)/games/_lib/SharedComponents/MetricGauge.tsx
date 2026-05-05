@@ -1,7 +1,6 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useMemo } from 'react';
 
 interface MetricGaugeProps {
   value: number;
@@ -28,8 +27,6 @@ export function MetricGauge({
   thresholds,
 }: MetricGaugeProps) {
   const percentage = Math.min((value / max) * 100, 100);
-
-  const thresholdPercentage = thresholds ? (thresholds.good / max) * 100 : 66;
 
   // Determine gauge color based on value or manual color
   const getGaugeColor = (val: number) => {

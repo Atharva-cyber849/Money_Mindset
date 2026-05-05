@@ -11,8 +11,32 @@ from app.models.database import get_db
 from app.models.user import User
 from app.models.finance import UserProgress
 from app.core.security import get_current_user
+from app.services.gamification.progress_tracker import ProgressTracker
 
 router = APIRouter()
+progress_tracker = ProgressTracker()
+
+SIMULATION_XP_REWARDS = {
+    "coffee_shop_effect": 250,
+    "paycheck_game": 300,
+    "budget_builder": 300,
+    "emergency_fund": 350,
+    "car_payment": 350,
+    "credit_card_debt": 400,
+    "compound_interest": 500,
+}
+
+
+def _get_or_create_user_progress(db: Session, user_id: int) -> UserProgress:
+    user_progress = db.query(UserProgress).filter(UserProgress.user_id == user_id).first()
+
+    if not user_progress:
+        user_progress = UserProgress(user_id=user_id)
+        db.add(user_progress)
+        db.commit()
+        db.refresh(user_progress)
+
+    return user_progress
 
 
 # Response Models
@@ -49,24 +73,15 @@ async def get_user_stats(
     db: Session = Depends(get_db)
 ):
     """Get user's gamification stats and progress"""
-    
-    # Get or create user progress
-    user_progress = db.query(UserProgress).filter(UserProgress.user_id == current_user.id).first()
-    
-    if not user_progress:
-        # Create new progress for new user
-        user_progress = UserProgress(user_id=current_user.id)
-        db.add(user_progress)
-        db.commit()
-        db.refresh(user_progress)
-    
-    # Calculate next level XP threshold
-    current_level = user_progress.current_level
-    next_level_xp = current_level * 1000
+
+    user_progress = _get_or_create_user_progress(db, current_user.id)
+    current_level = progress_tracker.get_level_from_xp(user_progress.total_xp)
+    next_level_info = progress_tracker.get_next_level_info(current_level)
+    next_level_xp = next_level_info.xp_required if next_level_info else user_progress.total_xp
     
     return {
         "total_xp": user_progress.total_xp,
-        "current_level": current_level,
+        "current_level": current_level.value,
         "next_level_xp": next_level_xp,
         "simulations_completed": user_progress.simulations_completed,
         "total_simulations": 15,
@@ -83,9 +98,8 @@ async def get_simulations_status(
     db: Session = Depends(get_db)
 ):
     """Get all simulations with user's unlock and completion status"""
-    
-    # TODO: Get user's actual completion status from database
-    # For now, returning structured simulation data
+
+    user_progress = _get_or_create_user_progress(db, current_user.id)
     
     simulations = [
         # LEVEL 1: FOUNDATION
@@ -261,6 +275,11 @@ async def get_simulations_status(
             "completion_count": 0
         }
     ]
+
+    completed_count = max(0, min(int(user_progress.simulations_completed or 0), len(simulations)))
+    for index, simulation in enumerate(simulations):
+        simulation["is_completed"] = index < completed_count
+        simulation["completion_count"] = 1 if simulation["is_completed"] else 0
     
     return simulations
 
@@ -273,13 +292,30 @@ async def mark_simulation_complete(
     db: Session = Depends(get_db)
 ):
     """Mark a simulation as completed and award XP"""
-    
-    # TODO: Implement actual database update and XP calculation
-    # For now, return success
+
+    user_progress = _get_or_create_user_progress(db, current_user.id)
+
+    xp_reward = SIMULATION_XP_REWARDS.get(simulation_id, 100)
+    if perfect_score:
+        xp_reward = int(round(xp_reward * 1.1))
+
+    user_progress.total_xp += xp_reward
+    user_progress.simulations_completed += 1
+    user_progress.current_level = progress_tracker.get_level_from_xp(user_progress.total_xp).value
+    user_progress.last_activity_date = datetime.utcnow()
+
+    db.commit()
+    db.refresh(user_progress)
+
+    current_level = progress_tracker.get_level_from_xp(user_progress.total_xp)
+    next_level_info = progress_tracker.get_next_level_info(current_level)
     
     return {
         "success": True,
         "message": f"Simulation '{simulation_id}' marked as completed",
-        "xp_earned": 100,
-        "new_total_xp": 1350
+        "xp_earned": xp_reward,
+        "new_total_xp": user_progress.total_xp,
+        "current_level": current_level.value,
+        "next_level_xp": next_level_info.xp_required if next_level_info else user_progress.total_xp,
+        "simulations_completed": user_progress.simulations_completed
     }

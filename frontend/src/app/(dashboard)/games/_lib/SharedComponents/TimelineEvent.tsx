@@ -30,13 +30,6 @@ export function TimelineEvent({
     critical: 'bg-red-100 text-red-600',
   };
 
-  const dotVariantStyles = {
-    default: 'bg-blue-500',
-    success: 'bg-green-500',
-    warning: 'bg-amber-500',
-    critical: 'bg-red-500',
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}

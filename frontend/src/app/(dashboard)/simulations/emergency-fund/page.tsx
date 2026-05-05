@@ -12,6 +12,7 @@ import { InsightsPanel } from '@/components/simulations/InsightsPanel'
 import { StepProgressBar } from '@/components/simulations/StepProgressBar'
 import { SafetyNetInfographic } from './components/SafetyNetInfographic'
 import { emergencyFundConfig } from './config'
+import { useSimulationCompletion } from '@/lib/hooks/useSimulationCompletion'
 
 const steps = [
   { number: 1, label: 'Introduction' },
@@ -25,7 +26,7 @@ export default function EmergencyFundPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [monthlyExpenses, setMonthlyExpenses] = useState(50000)
   const [targetMonths, setTargetMonths] = useState(6)
-  const [xpEarned, setXpEarned] = useState(false)
+  const { xpEarned, isCompleting, completeSimulation } = useSimulationCompletion('emergency_fund')
 
   const targetAmount = monthlyExpenses * targetMonths
   const annualSavings = (monthlyExpenses * 0.20) * 12 // Assuming 20% of income
@@ -248,7 +249,9 @@ export default function EmergencyFundPage() {
 
                 <div className="text-center">
                   <Button
-                    onClick={() => setXpEarned(true)}
+                    onClick={completeSimulation}
+                    isLoading={isCompleting}
+                    disabled={xpEarned}
                     variant="primary"
                     size="lg"
                     className="mb-4"

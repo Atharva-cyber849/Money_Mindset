@@ -8,6 +8,9 @@ import numpy as np
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 
+from app.core.config import settings
+from app.services.api_clients import IndianMarketClient
+
 
 @dataclass
 class AssetClass:
@@ -68,6 +71,58 @@ class MarketSimulator:
         """Initialize simulator with optional random seed for reproducibility"""
         if seed:
             np.random.seed(seed)
+
+        self.indian_market_client = IndianMarketClient(
+            base_url=settings.INDIAN_MARKET_API_URL,
+            api_key=settings.INDIAN_MARKET_API_KEY,
+            enabled=settings.INDIAN_MARKET_ENABLED,
+        )
+        self._calibrate_from_historical_data()
+
+    def _calibrate_from_historical_data(self) -> None:
+        """Calibrate selected asset class assumptions from Indian historical data when available."""
+        if not self.indian_market_client.enabled:
+            return
+
+        # Map simulator asset buckets to representative Indian symbols.
+        calibration_targets = {
+            "aggressive_stocks": "INFY",
+            "large_cap_stocks": "RELIANCE",
+            "balanced": "NIFTY",
+        }
+
+        for bucket, symbol in calibration_targets.items():
+            try:
+                df = self.indian_market_client.get_historical_data(
+                    symbol=symbol,
+                    period="5yr",
+                    filter_type="price",
+                )
+                if df is None or df.empty or "close" not in df.columns:
+                    continue
+
+                closes = df["close"].astype(float).dropna().values
+                if len(closes) < 30:
+                    continue
+
+                daily_returns = np.diff(closes) / closes[:-1]
+                if len(daily_returns) < 10:
+                    continue
+
+                annual_mean = float(np.mean(daily_returns) * 252)
+                annual_vol = float(np.std(daily_returns) * np.sqrt(252))
+
+                # Keep calibrated values within realistic educational bounds.
+                annual_mean = max(-0.10, min(0.30, annual_mean))
+                annual_vol = max(0.03, min(0.45, annual_vol))
+
+                asset = self.ASSET_CLASSES.get(bucket)
+                if asset:
+                    asset.mean_return = annual_mean
+                    asset.std_dev = annual_vol
+            except Exception:
+                # Silent fallback to static defaults.
+                continue
     
     def simulate_investment(
         self,

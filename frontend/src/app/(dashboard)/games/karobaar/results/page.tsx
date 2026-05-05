@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api/client';
-import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Loader2, Home, RotateCcw, Share2 } from 'lucide-react';
+import { LearningSummaryCard } from '../../_lib/SharedComponents/LearningSummaryCard';
 
 interface ResultsData {
   session_id: string;
@@ -49,19 +49,26 @@ const getScoreBadge = (score: number) => {
   return { emoji: '📚', label: 'Learning', color: 'from-gray-400 to-gray-600' };
 };
 
-export default function KarobarResults({ params }: { params: { session_id: string } }) {
+export default function KarobarResults() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get('session_id') || '';
   const [results, setResults] = useState<ResultsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     loadResults();
-  }, [params.session_id]);
+  }, [sessionId]);
 
   const loadResults = async () => {
+    if (!sessionId) {
+      setError('Missing session ID. Please return to Karobaar and complete a game session.');
+      setLoading(false);
+      return;
+    }
     try {
-      const response = await api.get(`/games/karobaar/${params.session_id}`);
+      const response = await api.get(`/games/karobaar/${sessionId}`);
       setResults(response.data);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load results');
@@ -220,6 +227,17 @@ export default function KarobarResults({ params }: { params: { session_id: strin
           </div>
         </Card>
       )}
+
+      <LearningSummaryCard
+        title="What this journey teaches"
+        summary="Karobaar rewards the same habits that build real-world wealth: steady income growth, controlled lifestyle inflation, and decisions that keep future options open."
+        takeaways={[
+          'Career growth compounds when you invest in skills, not just salary jumps.',
+          'A stronger balance between money, family, and health usually beats a single-minded chase for income.',
+          'The best decisions preserve flexibility, because optionality matters in long financial journeys.',
+        ]}
+        nextStep="Replay with a different life path and see how small changes in income stability, risk, and family choices reshape your final wealth."
+      />
 
       {/* Action Buttons */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -14,6 +14,7 @@ import { InsightsPanel } from '@/components/simulations/InsightsPanel'
 import { StepProgressBar } from '@/components/simulations/StepProgressBar'
 import { CompoundingCurveInfographic } from './components/CompoundingCurveInfographic'
 import { compoundInterestConfig } from './config'
+import { useSimulationCompletion } from '@/lib/hooks/useSimulationCompletion'
 
 const steps = [
   { number: 1, label: 'Introduction' },
@@ -28,7 +29,7 @@ export default function CompoundInterestPage() {
   const [investmentAge, setInvestmentAge] = useState(35)
   const [monthlyAmount, setMonthlyAmount] = useState(5000)
   const [yearsInvesting, setYearsInvesting] = useState(30)
-  const [xpEarned, setXpEarned] = useState(false)
+  const { xpEarned, isCompleting, completeSimulation } = useSimulationCompletion('compound_interest')
 
   // Calculate investment outcome
   const calculateFinalAmount = () => {
@@ -99,10 +100,6 @@ export default function CompoundInterestPage() {
     if (currentStep < 5) {
       setCurrentStep(currentStep + 1)
     }
-  }
-
-  const handleComplete = () => {
-    setXpEarned(true)
   }
 
   return (
@@ -355,7 +352,9 @@ export default function CompoundInterestPage() {
 
                 <div className="text-center">
                   <Button
-                    onClick={handleComplete}
+                    onClick={completeSimulation}
+                    isLoading={isCompleting}
+                    disabled={xpEarned}
                     variant="primary"
                     size="lg"
                     className="mb-4"

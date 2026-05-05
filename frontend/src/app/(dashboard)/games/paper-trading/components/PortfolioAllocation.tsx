@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { ChartWrapper } from '@/app/(dashboard)/games/_lib/SharedComponents';
 
 interface HoldingData {
@@ -91,7 +91,7 @@ export function PortfolioAllocation({
                   animationBegin={0}
                   animationDuration={800}
                 >
-                  {chartData.map((entry, index) => (
+                  {chartData.map((_entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>

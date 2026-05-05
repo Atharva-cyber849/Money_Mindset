@@ -12,8 +12,9 @@ from app.api.v1 import auth, users, transactions, budgets, goals, simulations, p
 from app.models import user, finance
 from app.models import personality as personality_models
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+# Create database tables (optional in production)
+if settings.AUTO_CREATE_TABLES:
+    Base.metadata.create_all(bind=engine)
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -27,6 +28,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
+    allow_origin_regex=settings.CORS_ALLOW_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -6,6 +6,7 @@ interface LifeStateProps {
   state: {
     age: number;
     job_title: string;
+    starting_job?: string;
     current_salary: number;
     marital_status: string;
     num_children: number;
@@ -22,6 +23,9 @@ const formatCurrency = (amount: number) => {
 };
 
 export default function LifeState({ state }: LifeStateProps) {
+  const earningsBase = Math.max(state.current_salary * 43, 1);
+  const isNonSalaried = state.starting_job === 'freelance' || state.starting_job === 'business' || state.job_title === 'Founder';
+
   return (
     <Card className="p-6 space-y-4">
       <h2 className="text-2xl font-bold">Your Current Life</h2>
@@ -29,7 +33,7 @@ export default function LifeState({ state }: LifeStateProps) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Salary */}
         <div className="space-y-1">
-          <p className="text-sm text-gray-600">Annual Salary</p>
+          <p className="text-sm text-gray-600">{isNonSalaried ? 'Annual Income' : 'Annual Salary'}</p>
           <p className="text-2xl font-bold text-cyan-600">{formatCurrency(state.current_salary)}</p>
           <p className="text-xs text-gray-500">{state.job_title}</p>
         </div>
@@ -39,7 +43,7 @@ export default function LifeState({ state }: LifeStateProps) {
           <p className="text-sm text-gray-600">Net Worth</p>
           <p className="text-2xl font-bold text-green-600">{formatCurrency(state.net_worth)}</p>
           <p className="text-xs text-gray-500">
-            {state.net_worth > 0 ? '+' : ''}{((state.net_worth / (state.current_salary * 43)) * 100).toFixed(0)}% of lifetime earn
+            {state.net_worth > 0 ? '+' : ''}{((state.net_worth / earningsBase) * 100).toFixed(0)}% of lifetime earn
           </p>
         </div>
 

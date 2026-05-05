@@ -6,6 +6,7 @@ import { api } from '@/lib/api/client';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { EnhancedDecisionModal, FinancialLiteracyCard } from '../_lib/SharedComponents';
 import { Loader2, TrendingUp, TrendingDown, Home } from 'lucide-react';
 
 interface Era {
@@ -112,6 +113,11 @@ export default function DalalStreetGame() {
   const [error, setError] = useState('');
   const [activeStage, setActiveStage] = useState<'portfolio' | 'trade' | 'market'>('portfolio');
 
+  // Era decision state
+  const [eraDecision, setEraDecision] = useState<any>(null);
+  const [showEraDecisionModal, setShowEraDecisionModal] = useState(false);
+  const [submittingEraDecision, setSubmittingEraDecision] = useState(false);
+
   // Load existing session on mount
   useEffect(() => {
     loadExistingSession();
@@ -179,10 +185,25 @@ export default function DalalStreetGame() {
       setGameStarted(true);
       setShowOpeningScene(true);
       setError('');
+      
+      // Fetch era decision after game starts
+      await fetchEraDecision(response.data.session_id);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to create game session');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchEraDecision = async (sessionId: string) => {
+    try {
+      const response = await api.get(`/games/dalal/${sessionId}/era-decision`);
+      if (response.data.has_decision) {
+        setEraDecision(response.data);
+        setShowEraDecisionModal(true);
+      }
+    } catch (error) {
+      console.error('Failed to fetch era decision:', error);
     }
   };
 
@@ -456,30 +477,30 @@ export default function DalalStreetGame() {
         </Link>
       </div>
 
-      <div className="bg-white rounded-lg border border-slate-200 p-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
         <button
           onClick={() => setActiveStage('portfolio')}
-          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
-            activeStage === 'portfolio' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+          className={`px-4 py-3 rounded-lg font-semibold text-sm transition-all ${
+            activeStage === 'portfolio' ? 'bg-cyan-600 text-white shadow-md ring-2 ring-cyan-300' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          Stage 1: Portfolio
+          💼 Portfolio
         </button>
         <button
           onClick={() => setActiveStage('trade')}
-          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
-            activeStage === 'trade' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+          className={`px-4 py-3 rounded-lg font-semibold text-sm transition-all ${
+            activeStage === 'trade' ? 'bg-cyan-600 text-white shadow-md ring-2 ring-cyan-300' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          Stage 2: Trade Desk
+          📈 Trade
         </button>
         <button
           onClick={() => setActiveStage('market')}
-          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
-            activeStage === 'market' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+          className={`px-4 py-3 rounded-lg font-semibold text-sm transition-all ${
+            activeStage === 'market' ? 'bg-cyan-600 text-white shadow-md ring-2 ring-cyan-300' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          Stage 3: Market View
+          🌐 Market
         </button>
       </div>
 
@@ -776,6 +797,50 @@ export default function DalalStreetGame() {
           )}
         </div>
       </div>
+
+
+      {showEraDecisionModal && eraDecision && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex flex-col items-center justify-center p-4 overflow-y-auto">
+          <div className="flex flex-col gap-6 w-full max-w-2xl py-6">
+            <EnhancedDecisionModal
+              title={eraDecision.decision_title}
+              description={eraDecision.description}
+              event_type="era_decision"
+              options={eraDecision.options.map((opt: any) => ({
+                index: opt.index,
+                title: opt.title,
+                description: opt.description,
+                risk_level: opt.risk_level || 'medium',
+                consequences: {},
+                monthly_impact: 0,
+                months: 1,
+                long_term_effect: opt.best_for || '',
+              }))}
+              onDecide={async (optionIndex: number) => {
+                setSubmittingEraDecision(true);
+                setError('');
+                try {
+                  await api.post(`/games/dalal/${session?.session_id}/era-decision`, {
+                    option_index: optionIndex,
+                  });
+                  setShowEraDecisionModal(false);
+                } catch (error) {
+                  setError((error as any)?.response?.data?.detail || 'Failed to submit era decision');
+                  console.error('Failed to submit era decision:', error);
+                } finally {
+                  setSubmittingEraDecision(false);
+                }
+              }}
+              isLoading={submittingEraDecision}
+            />
+            <FinancialLiteracyCard
+              concept="opportunity_cost"
+              impact_amount={0}
+              context="Your era-specific strategy shapes market timing and returns"
+            />
+          </div>
+        </div>
+      )}
 
       {error && (
         <Card className="p-4 bg-red-50 border border-red-200">

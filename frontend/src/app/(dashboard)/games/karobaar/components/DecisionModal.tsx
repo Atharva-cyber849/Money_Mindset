@@ -1,7 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/Button';
-import { Loader2, X } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface Decision {
   id: string;

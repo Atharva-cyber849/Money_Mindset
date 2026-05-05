@@ -1,7 +1,6 @@
 'use client';
 
 import { Card } from '@/components/ui/Card';
-import { Loader2 } from 'lucide-react';
 
 interface GameHeaderProps {
   title: string;
@@ -16,9 +15,12 @@ export default function GameHeader({
   totalMonths,
   description,
 }: GameHeaderProps) {
-  const progress = (gameMonth / totalMonths) * 100;
-  const yearsComplete = gameMonth / 12;
-  const yearsTotal = totalMonths / 12;
+  const safeGameMonth = Number.isFinite(gameMonth) ? gameMonth : 0;
+  const safeTotalMonths = Number.isFinite(totalMonths) && totalMonths > 0 ? totalMonths : 12;
+  const progress = Math.min(100, Math.max(0, (safeGameMonth / safeTotalMonths) * 100));
+  const yearsComplete = safeGameMonth / 12;
+  const yearsTotal = safeTotalMonths / 12;
+  const currentYearOfLife = 22 + Math.floor(yearsComplete);
 
   return (
     <Card className="p-6 bg-gradient-to-r from-blue-50 to-cyan-50">
@@ -33,7 +35,7 @@ export default function GameHeader({
           <p className="text-4xl font-bold text-indigo-600">
             {yearsComplete.toFixed(1)}y / {yearsTotal}y
           </p>
-          <p className="text-sm text-gray-600">Year {Math.floor(yearsComplete) + 22} of life</p>
+          <p className="text-sm text-gray-600">Year {currentYearOfLife} of life</p>
         </div>
       </div>
 
@@ -51,7 +53,9 @@ export default function GameHeader({
       </div>
 
       <div className="mt-4 p-3 bg-cyan-100 text-cyan-900 rounded text-sm">
-        <p>Month {gameMonth + 1} of {totalMonths} • Navigate your financial journey with smart decisions</p>
+        <p>
+          Month {safeGameMonth + 1} of {safeTotalMonths} • Focus on cash flow, resilience, and long-term wealth
+        </p>
       </div>
     </Card>
   );

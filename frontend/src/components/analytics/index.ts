@@ -1,2 +1,6 @@
 export * from './charts'
 export * from './engagement'
+export { ExpenseClassificationDashboard } from './ExpenseClassificationDashboard'
+export { MarketSimulationDashboard } from './MarketSimulationDashboard'
+export { BudgetOptimizationDashboard } from './BudgetOptimizationDashboard'
+export { ForecastingDashboard } from './ForecastingDashboard'

@@ -31,7 +31,6 @@ export function PortfolioOverview({
   }, [pnl, totalValue]);
 
   const currencySymbol = currency === 'INR' ? '₹' : '$';
-  const invested = totalValue - cash;
 
   const containerVariants = {
     hidden: { opacity: 0 },

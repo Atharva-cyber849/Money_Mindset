@@ -1,10 +1,11 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import { ArrowRight, Gamepad2, Calculator, PiggyBank, CreditCard, TrendingUp, Home, DollarSign, Zap } from 'lucide-react';
+import { getSimulationsStatus, type SimulationStatus } from '@/lib/api/progress';
 
 const simulations = [
   {
@@ -59,6 +60,34 @@ const simulations = [
 ];
 
 export default function SimulationsPage() {
+  const [simulationStatus, setSimulationStatus] = useState<Record<string, SimulationStatus>>({});
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadStatus = async () => {
+      try {
+        const statusList = await getSimulationsStatus();
+        if (!mounted) return;
+
+        const nextStatus = statusList.reduce<Record<string, SimulationStatus>>((acc, item) => {
+          acc[item.id] = item;
+          return acc;
+        }, {});
+
+        setSimulationStatus(nextStatus);
+      } catch (error) {
+        console.error('Failed to load simulation status:', error);
+      }
+    };
+
+    void loadStatus();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       <div className="mb-8">
@@ -71,8 +100,15 @@ export default function SimulationsPage() {
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {simulations.map((simulation) => {
           const Icon = simulation.icon;
+          const status = simulationStatus[simulation.href.split('/').pop() || ''];
+          const isCompleted = Boolean(status?.is_completed);
           return (
-            <Card key={simulation.title} hover animate className="p-6">
+            <Card key={simulation.title} hover animate className="relative p-6">
+              {isCompleted && (
+                <div className="absolute right-4 top-4 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                  Completed
+                </div>
+              )}
               <div className={`w-12 h-12 ${simulation.color} rounded-lg flex items-center justify-center mb-4`}>
                 <Icon className="w-6 h-6 text-white" />
               </div>
@@ -80,7 +116,7 @@ export default function SimulationsPage() {
               <p className="text-muted-foreground mb-4">{simulation.description}</p>
               <Link href={simulation.href}>
                 <Button className="w-full group">
-                  Start Simulation
+                  {isCompleted ? 'Review Simulation' : 'Start Simulation'}
                   <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>

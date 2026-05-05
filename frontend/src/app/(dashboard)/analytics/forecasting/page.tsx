@@ -4,272 +4,209 @@ import React, { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Badge } from '@/components/ui/Pill';
-import { forecastCategory } from '@/lib/api/analytics';
-import { formatCurrency } from '@/lib/utils';
-import { Loader2, TrendingUp, TrendingDown, Minus, BarChart3, TrendingUpIcon, Lightbulb, Calendar, Clock, AlertCircle } from 'lucide-react';
-import { ForecastLineChart, StatisticsPulse, InsightCard, ExplanationCard, HowItWorks, ExampleShowcase } from '@/components/analytics';
+import { ForecastingDashboard } from '@/components/analytics';
+import { detectAnomalies, forecastCategory } from '@/lib/api/analytics';
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 export default function ForecastingPage() {
+  const [showForecastTool, setShowForecastTool] = useState(false);
   const [category, setCategory] = useState('groceries');
-  const [historicalData, setHistoricalData] = useState('500,520,480,510,495,530');
   const [monthsAhead, setMonthsAhead] = useState('3');
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [amountsInput, setAmountsInput] = useState('12000, 13500, 12800, 14200, 15000, 14750');
+  const [loadingForecast, setLoadingForecast] = useState(false);
+  const [loadingAnomalies, setLoadingAnomalies] = useState(false);
+  const [error, setError] = useState('');
+  const [forecastResult, setForecastResult] = useState<any>(null);
+  const [anomalyResult, setAnomalyResult] = useState<any>(null);
 
-  const handleForecast = async () => {
-    setLoading(true);
+  const parseAmounts = () => {
+    return amountsInput
+      .split(',')
+      .map((item) => Number(item.trim()))
+      .filter((value) => Number.isFinite(value) && value >= 0);
+  };
+
+  const handleCategoryForecast = async () => {
+    const amounts = parseAmounts();
+    const ahead = Number(monthsAhead);
+
+    if (!category.trim()) {
+      setError('Please enter a category name.');
+      return;
+    }
+
+    if (amounts.length < 2) {
+      setError('Enter at least 2 valid historical amounts.');
+      return;
+    }
+
+    if (!Number.isInteger(ahead) || ahead < 1 || ahead > 12) {
+      setError('Months ahead must be between 1 and 12.');
+      return;
+    }
+
+    setLoadingForecast(true);
+    setError('');
+
     try {
-      const amounts = historicalData.split(',').map((val) => parseFloat(val.trim())).filter((val) => !isNaN(val));
-      
-      if (amounts.length < 2) {
-        alert('Please enter at least 2 historical data points');
-        setLoading(false);
-        return;
-      }
-
       const data = await forecastCategory({
-        category,
+        category: category.trim(),
         historical_amounts: amounts,
-        months_ahead: parseInt(monthsAhead),
+        months_ahead: ahead,
       });
-      setResult(data);
-    } catch (error) {
-      console.error('Forecast failed:', error);
+      setForecastResult(data);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to run category forecast.');
     } finally {
-      setLoading(false);
+      setLoadingForecast(false);
     }
   };
 
-  const getTrendIcon = (trend: string) => {
-    if (trend === 'increasing') return <TrendingUp className="w-5 h-5 text-red-600" />;
-    if (trend === 'decreasing') return <TrendingDown className="w-5 h-5 text-green-600" />;
-    return <Minus className="w-5 h-5 text-gray-600" />;
-  };
+  const handleDetectAnomalies = async () => {
+    const amounts = parseAmounts();
+    if (amounts.length < 2) {
+      setError('Enter at least 2 valid historical amounts.');
+      return;
+    }
 
-  const getTrendColor = (trend: string) => {
-    if (trend === 'increasing') return 'text-red-600 bg-red-50';
-    if (trend === 'decreasing') return 'text-green-600 bg-green-50';
-    return 'text-gray-600 bg-gray-50';
+    setLoadingAnomalies(true);
+    setError('');
+
+    try {
+      const data = await detectAnomalies(amounts, 2.0);
+      setAnomalyResult(data);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to detect anomalies.');
+    } finally {
+      setLoadingAnomalies(false);
+    }
   };
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-5xl">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">Spending Forecasting</h1>
-        <p className="text-muted-foreground">
-          Time-series analysis to predict future spending trends
-        </p>
-      </div>
+    <div className="container mx-auto py-8 px-4 max-w-7xl space-y-8">
+      {/* Dashboard */}
+      <ForecastingDashboard
+        onForecast={() => setShowForecastTool(!showForecastTool)}
+      />
 
-      {/* Educational Infographics */}
-      <div className="mb-12 space-y-6">
-        {/* Explanation */}
-        <ExplanationCard
-          icon={TrendingUp}
-          title="What is Spending Forecasting?"
-          description="Forecasting predicts future spending patterns by analyzing your historical spending data. Using time-series analysis, we identify trends and project what you'll likely spend in upcoming months."
-          keyPoints={[
-            'Analyzes your historical spending data across months',
-            'Identifies increasing or decreasing trends in your expenses',
-            'Projects future spending with confidence intervals',
-            'Helps you plan budgets and anticipate financial needs',
-            'More data points = more accurate predictions',
-          ]}
-          color="blue"
-          example="If you spent $500, $520, $480, $510 on groceries, we predict next month will be around $505 ± $25"
-        />
+      {showForecastTool && (
+        <Card className="p-6 space-y-5 border-cyan-200 bg-cyan-50/30">
+          <div>
+            <h2 className="text-xl font-bold">Manual Forecast Tool</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Provide category-wise historical monthly amounts to generate a focused forecast and anomaly signal.
+            </p>
+          </div>
 
-        {/* How It Works */}
-        <HowItWorks
-          title="How Spending Forecast Works"
-          steps={[
-            {
-              number: 1,
-              title: 'Input Historical Data',
-              description: 'Enter your monthly spending amounts for a specific category (e.g., groceries, entertainment). More months of data = better accuracy.',
-              icon: Calendar,
-            },
-            {
-              number: 2,
-              title: 'Analyze Trends',
-              description: 'Our algorithm identifies if your spending is increasing, decreasing, or staying stable over time.',
-              icon: TrendingUp,
-            },
-            {
-              number: 3,
-              title: 'Calculate Statistics',
-              description: 'We compute average spending, variation (std dev), and identify minimum/maximum spending months.',
-              icon: BarChart3,
-            },
-            {
-              number: 4,
-              title: 'Generate Forecast',
-              description: 'We project future spending for your chosen months with confidence intervals showing likely range.',
-              icon: Clock,
-            },
-          ]}
-          color="blue"
-        />
-
-        {/* Example */}
-        <ExampleShowcase
-          title="Forecasting Example"
-          description="See how we predict your future spending based on history"
-          inputExample={[
-            { label: 'Category', value: 'Restaurants' },
-            { label: 'Historical Data (6 months)', value: '$300-400', highlight: true },
-            { label: 'Months to Forecast', value: '3 months' },
-            { label: 'Average Monthly', value: '$350' },
-          ]}
-          outputExample={[
-            { label: 'Month 1 Prediction', value: '$355' },
-            { label: 'Confidence Range', value: '$320-390', highlight: true },
-            { label: 'Trend Direction', value: 'Stable' },
-            { label: 'Recommendation', value: 'Budget $380' },
-          ]}
-          color="blue"
-        />
-      </div>
-
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Input Panel */}
-        <Card className="lg:col-span-1 p-6">
-          <h3 className="text-lg font-bold mb-2">Forecast Parameters</h3>
-          <p className="text-sm text-muted-foreground mb-4">Enter historical spending data</p>
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label htmlFor="category" className="text-sm font-medium">Category</label>
+              <label htmlFor="forecast-category" className="text-sm font-medium">Category</label>
               <Input
-                id="category"
+                id="forecast-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                placeholder="e.g., groceries, restaurants"
+                placeholder="groceries"
               />
             </div>
-
             <div className="space-y-2">
-              <label htmlFor="months" className="text-sm font-medium">Months to Forecast</label>
+              <label htmlFor="months-ahead" className="text-sm font-medium">Months Ahead (1-12)</label>
               <Input
-                id="months"
+                id="months-ahead"
                 type="number"
                 min="1"
                 max="12"
                 value={monthsAhead}
                 onChange={(e) => setMonthsAhead(e.target.value)}
+                placeholder="3"
               />
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <label htmlFor="historical" className="text-sm font-medium">Historical Data (comma-separated)</label>
-              <textarea
-                id="historical"
-                className="w-full min-h-[100px] p-3 border rounded-md text-sm"
-                value={historicalData}
-                onChange={(e) => setHistoricalData(e.target.value)}
-                placeholder="500, 520, 480, 510, 495..."
-              />
-              <p className="text-xs text-muted-foreground">
-                Enter monthly amounts separated by commas. More data = better accuracy.
-              </p>
+          <div className="space-y-2">
+            <label htmlFor="historical-amounts" className="text-sm font-medium">Historical Amounts (comma-separated)</label>
+            <Input
+              id="historical-amounts"
+              value={amountsInput}
+              onChange={(e) => setAmountsInput(e.target.value)}
+              placeholder="12000, 13500, 12800, 14200"
+            />
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+              <AlertCircle className="w-4 h-4" />
+              {error}
             </div>
+          )}
 
-            <Button onClick={handleForecast} disabled={loading} className="w-full">
-              {loading ? (
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={handleCategoryForecast} disabled={loadingForecast}>
+              {loadingForecast ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Forecasting...
                 </>
               ) : (
-                'Generate Forecast'
+                'Run Category Forecast'
               )}
             </Button>
+            <Button variant="outline" onClick={handleDetectAnomalies} disabled={loadingAnomalies}>
+              {loadingAnomalies ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Detecting...
+                </>
+              ) : (
+                'Detect Anomalies'
+              )}
+            </Button>
+            <Button variant="outline" onClick={() => setShowForecastTool(false)}>
+              Close
+            </Button>
           </div>
-        </Card>
 
-        {/* Results Panel */}
-        {result && (
-          <div className="lg:col-span-2 space-y-6">
-            {/* Forecast Line Chart */}
-            <ForecastLineChart
-              historicalData={result.historical_data?.map((val: number, idx: number) => ({
-                month: `Month ${idx + 1}`,
-                value: Math.round(val),
-              })) || []}
-              predictions={result.predictions?.map((pred: any) => ({
-                month: `M${pred.month}`,
-                value: Math.round(pred.predicted),
-                low: Math.round(pred.confidence_low),
-                high: Math.round(pred.confidence_high),
-              })) || []}
-              months={result.predictions?.length || 0}
-            />
-
-            {/* Key Statistics */}
-            <StatisticsPulse
-              stats={[
-                {
-                  label: 'Average',
-                  value: Math.round(result.historical_stats.average),
-                  icon: BarChart3,
-                  color: 'teal',
-                },
-                {
-                  label: 'Min',
-                  value: Math.round(result.historical_stats.min),
-                  icon: TrendingDown,
-                  color: 'green',
-                },
-                {
-                  label: 'Max',
-                  value: Math.round(result.historical_stats.max),
-                  icon: TrendingUp,
-                  color: 'red',
-                },
-                {
-                  label: 'Std Dev',
-                  value: Math.round(result.historical_stats.std_dev),
-                  icon: BarChart3,
-                  color: 'cyan',
-                },
-              ]}
-            />
-
-            {/* Trend Analysis with Insight */}
-            <InsightCard
-              icon={result.trend.trend === 'increasing' ? TrendingUp : result.trend.trend === 'decreasing' ? TrendingDown : Minus}
-              title={`Spending Trend: ${result.trend.trend.charAt(0).toUpperCase() + result.trend.trend.slice(1)}`}
-              description={`Monthly change: ${result.trend.monthly_change >= 0 ? '+' : ''}${formatCurrency(Math.abs(result.trend.monthly_change), 'INR')}`}
-              color={result.trend.trend === 'increasing' ? 'red' : result.trend.trend === 'decreasing' ? 'green' : 'yellow'}
-            />
-
-            {/* Recommendation */}
-            {result.recommendation && (
-              <InsightCard
-                icon={Lightbulb}
-                title="Forecast Insight"
-                description={result.recommendation}
-                color="cyan"
-                featured
-              />
-            )}
-          </div>
-        )}
-
-        {/* Placeholder */}
-        {!result && !loading && (
-          <Card className="lg:col-span-2 p-6">
-            <div className="flex flex-col items-center justify-center py-12">
-              <BarChart3 className="w-16 h-16 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Ready to Forecast</h3>
-              <p className="text-muted-foreground text-center max-w-md">
-                Enter your historical spending data to generate predictions using time-series
-                analysis. The more data you provide, the more accurate the forecast.
+          {forecastResult && (
+            <Card className="p-4 border-green-200 bg-green-50/40 space-y-2">
+              <h3 className="font-semibold text-green-900">Forecast Result</h3>
+              <p className="text-sm text-green-800">Trend: {forecastResult.trend_analysis?.trend ?? 'N/A'}</p>
+              <p className="text-sm text-green-800">
+                Historical Average: {Number.isFinite(Number(forecastResult.historical_stats?.average))
+                  ? Number(forecastResult.historical_stats.average).toLocaleString('en-IN')
+                  : 'N/A'}
               </p>
-            </div>
-          </Card>
-        )}
-      </div>
+              {Array.isArray(forecastResult.predictions) && forecastResult.predictions.length > 0 && (
+                <div className="space-y-2 mt-2">
+                  {forecastResult.predictions.map((item: any, idx: number) => (
+                    <div key={idx} className="text-sm bg-white/80 border border-green-200 rounded-md px-3 py-2 text-slate-800">
+                      Month {item.month}: {Number(item.predicted).toLocaleString('en-IN')} ({item.confidence_low} - {item.confidence_high})
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
+
+          {anomalyResult && (
+            <Card className="p-4 border-amber-200 bg-amber-50/40 space-y-2">
+              <h3 className="font-semibold text-amber-900">Anomaly Result</h3>
+              <p className="text-sm text-amber-800">
+                Anomalies Found: {Array.isArray(anomalyResult.anomalies) ? anomalyResult.anomalies.length : 0}
+              </p>
+              {Array.isArray(anomalyResult.anomalies) && anomalyResult.anomalies.length > 0 && (
+                <div className="space-y-2 mt-2">
+                  {anomalyResult.anomalies.map((item: any, idx: number) => (
+                    <div key={idx} className="text-sm bg-white/80 border border-amber-200 rounded-md px-3 py-2 text-slate-800">
+                      Index {item.index}: value {Number(item.value).toLocaleString('en-IN')} (z-score {Number(item.z_score).toFixed(2)})
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
+        </Card>
+      )}
     </div>
   );
 }

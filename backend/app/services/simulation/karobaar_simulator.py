@@ -165,6 +165,7 @@ class LifeState:
     gender: str
     city: str
     education: str
+    starting_job: str
 
     # Career state
     job_title: str
@@ -246,16 +247,27 @@ class KarobarSimulator:
         self.education = education
         self.starting_job = starting_job
 
-        # Calculate starting salary
-        start_salary = CAREER_PATHS[CareerPath(starting_job)]["entry_salary"][
-            Education(education)
-        ]
-        city_mult = CITY_MULTIPLIERS[City(city)]["salary"]
-        self.starting_salary = start_salary * city_mult
+        career_path = CareerPath(starting_job)
+        # Career paths are not uniform: salaried uses education-based entry pay,
+        # freelance uses a flat entry income, and business starts from a revenue baseline.
+        self.starting_salary = self._get_starting_income(career_path, Education(education))
+        self.career_path = career_path
 
         # Apply gender penalty (15% for women in India - realistic representation)
         if gender == "female":
             self.starting_salary *= 0.85
+
+        initial_job_title = "Associate"
+        initial_company_size = "large"
+        initial_business_status: Optional[str] = None
+
+        if career_path == CareerPath.FREELANCE:
+            initial_job_title = "Freelance Consultant"
+            initial_company_size = "independent"
+        elif career_path == CareerPath.BUSINESS:
+            initial_job_title = "Founder"
+            initial_company_size = "startup"
+            initial_business_status = "active"
 
         # Initialize game state
         self.state = LifeState(
@@ -265,12 +277,13 @@ class KarobarSimulator:
             gender=gender,
             city=city,
             education=education,
-            job_title="Associate",
-            company_size="large",
+            starting_job=starting_job,
+            job_title=initial_job_title,
+            company_size=initial_company_size,
             current_salary=self.starting_salary,
             years_in_job=0,
             career_changes_count=0,
-            business_status=None,
+            business_status=initial_business_status,
             has_mba=False,
             marital_status="single",
             spouse_income=0,
@@ -292,6 +305,34 @@ class KarobarSimulator:
         self.events_log = []
         self.random_seed = random.randint(0, 100000)
 
+    def _get_starting_income(self, career_path: CareerPath, education: Education) -> float:
+        """Return the initial annual income for the selected career path."""
+        path_config = CAREER_PATHS[career_path]
+        entry_salary = path_config.get("entry_salary")
+
+        if isinstance(entry_salary, dict):
+            base_income = entry_salary[education]
+        elif isinstance(entry_salary, (int, float)):
+            base_income = entry_salary
+        elif career_path == CareerPath.BUSINESS:
+            # Business mode starts with a modest operating income derived from initial capital.
+            base_income = path_config["entry_capital_needed"] * 0.18
+        else:
+            raise ValueError(f"Unsupported career path: {career_path.value}")
+
+        city_mult = CITY_MULTIPLIERS[City(self.city)]["salary"]
+        return base_income * city_mult
+
+    def _get_salary_cap(self) -> Optional[float]:
+        """Return the maximum salary for salaried/freelance paths, if one exists."""
+        path_config = CAREER_PATHS[CareerPath(self.starting_job)]
+        max_salary = path_config.get("max_salary")
+
+        if isinstance(max_salary, dict):
+            return max_salary[Education(self.education)]
+
+        return None
+
     def advance_year(self) -> Optional[DecisionPoint]:
         """Advance one year and check for decision points"""
         if self.state.age >= 65:
@@ -310,7 +351,7 @@ class KarobarSimulator:
         expenses = self._calculate_yearly_expenses()
 
         # Calculate savings
-        annual_income = (self.state.current_salary + self.state.spouse_income) / 12
+        annual_income = self.state.current_salary + self.state.spouse_income
         annual_savings = max(0, annual_income - expenses)
         self.state.monthly_savings = annual_savings / 12
 
@@ -319,11 +360,14 @@ class KarobarSimulator:
 
         # Update net worth
         total_assets = (
-            self.emergency_fund
+            self.state.emergency_fund
             + sum(self.state.investments.values())
-            + (self.state.net_worth - self.emergency_fund - sum(self.state.investments.values()))
+            + (self.state.net_worth - self.state.emergency_fund - sum(self.state.investments.values()))
         )
         self.state.net_worth += annual_savings
+
+        # Generate next decision point
+        decision = self._generate_decision_point()
 
         # Create yearly snapshot
         snapshot = {
@@ -334,17 +378,27 @@ class KarobarSimulator:
             "family_status": self.state.marital_status,
             "career_satisfaction": self.state.career_satisfaction,
             "happiness": self.state.family_happiness,
+            "decision_id": decision.id if decision else None,
+            "decision_point": self._serialize_decision_point(decision) if decision else None,
         }
         self.yearly_snapshots.append(snapshot)
 
-        # Generate next decision point
-        return self._generate_decision_point()
+        return decision
 
     def _apply_salary_growth(self):
         """Apply annual salary growth based on career satisfaction and experience"""
         if self.state.business_status == "active":
             # Business income more volatile
             growth_factor = 1 + (0.08 + random.random() * 0.12)
+            if self.state.job_title != "Founder":
+                self.state.job_title = "Founder"
+                self.state.company_size = "startup"
+        elif self.starting_job == CareerPath.FREELANCE.value:
+            # Freelance growth is less predictable than salaried roles.
+            growth_factor = 1 + random.uniform(0.03, 0.18)
+            if self.state.job_title == "Associate":
+                self.state.job_title = "Freelance Consultant"
+                self.state.company_size = "independent"
         else:
             # Standard growth 5% + bonus based on satisfaction
             satisfaction_boost = (self.state.career_satisfaction - 60) / 1000
@@ -354,10 +408,9 @@ class KarobarSimulator:
 
         # Cap based on career path
         if self.state.business_status != "active":
-            max_salary = CAREER_PATHS[CareerPath(self.state.starting_job)]["max_salary"][
-                Education(self.education)
-            ]
-            self.state.current_salary = min(self.state.current_salary, max_salary)
+            max_salary = self._get_salary_cap()
+            if max_salary is not None:
+                self.state.current_salary = min(self.state.current_salary, max_salary)
 
     def _calculate_yearly_expenses(self) -> float:
         """Calculate yearly expenses based on family size and city"""
@@ -694,6 +747,7 @@ class KarobarSimulator:
         if not decision_point:
             raise ValueError(f"Decision {decision_id} not found")
 
+        decision_point = self._normalize_decision_point(decision_point)
         option = decision_point.options[option_id]
 
         # Apply impacts
@@ -717,6 +771,9 @@ class KarobarSimulator:
                 self.state.has_mba = True
             elif key == "business_status":
                 self.state.business_status = value
+                if value == "active":
+                    self.state.job_title = "Founder"
+                    self.state.company_size = "startup"
 
         # Record decision
         self.decision_history.append(
@@ -793,3 +850,56 @@ class KarobarSimulator:
             "decision_history": self.decision_history,
             "events_log": self.events_log,
         }
+
+    @staticmethod
+    def _serialize_decision_point(decision: Optional[DecisionPoint]) -> Optional[Dict]:
+        if not decision:
+            return None
+
+        return {
+            "id": decision.id,
+            "age": decision.age,
+            "decision_type": decision.decision_type,
+            "description": decision.description,
+            "options": [
+                {
+                    "id": option.id,
+                    "text": option.text,
+                    "salary_impact": option.salary_impact,
+                    "happiness_impact": option.happiness_impact,
+                    "career_satisfaction_impact": option.career_satisfaction_impact,
+                    "wealth_impact": option.wealth_impact,
+                    "debt_impact": option.debt_impact,
+                    "side_effects": option.side_effects,
+                }
+                for option in decision.options
+            ],
+        }
+
+    @staticmethod
+    def _normalize_decision_point(decision_point: DecisionPoint | Dict) -> DecisionPoint:
+        if isinstance(decision_point, DecisionPoint):
+            return decision_point
+
+        options = [
+            DecisionOption(
+                id=option.get("id", index),
+                text=option.get("text", ""),
+                salary_impact=float(option.get("salary_impact", 0)),
+                happiness_impact=float(option.get("happiness_impact", 0)),
+                career_satisfaction_impact=float(option.get("career_satisfaction_impact", 0)),
+                wealth_impact=float(option.get("wealth_impact", 0)),
+                debt_impact=float(option.get("debt_impact", 0)),
+                side_effects=option.get("side_effects", {}) if isinstance(option.get("side_effects", {}), dict) else {},
+            )
+            for index, option in enumerate(decision_point.get("options", []))
+            if isinstance(option, dict)
+        ]
+
+        return DecisionPoint(
+            id=decision_point.get("id", "unknown"),
+            age=int(decision_point.get("age", 0)),
+            decision_type=decision_point.get("decision_type", "unknown"),
+            description=decision_point.get("description", ""),
+            options=options,
+        )

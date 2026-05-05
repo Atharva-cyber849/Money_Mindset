@@ -6,10 +6,10 @@ import { api } from '@/lib/api/client';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import JarAllocation from './components/JarAllocation';
-import LifeEventModal from './components/LifeEventModal';
 import { TreemapChart, WaterfallChart, JarGrowthChart, ConsequencePanel, DecisionTimeline } from './components';
 import GameHeader from '../_lib/GameHeader';
 import FinancialMetricsPanel from '../_lib/FinancialMetricsPanel';
+import { EnhancedDecisionModal, FinancialLiteracyCard, getRelevantConcept } from '../_lib/SharedComponents';
 import { Loader2 } from 'lucide-react';
 
 interface GameSession {
@@ -29,11 +29,24 @@ interface GameSession {
   events_log?: Array<Record<string, any>>;
 }
 
-interface MonthlyEvent {
-  month: number;
-  type: string;
+interface DecisionOption {
+  index: number;
+  title: string;
   description: string;
-  impact_amount: number;
+  risk_level: 'low' | 'medium' | 'high';
+  consequences: Record<string, number>;
+  monthly_impact: number;
+  months: number;
+  long_term_effect: string;
+}
+
+interface DecisionEvent {
+  month: number;
+  event_type: string;
+  description: string;
+  decision_title: string;
+  options: DecisionOption[];
+  has_event: boolean;
 }
 
 interface AllocationRecord {
@@ -54,8 +67,8 @@ export default function GullakGame() {
   const [gameStarted, setGameStarted] = useState(false);
   const [monthlyIncome, setMonthlyIncome] = useState(0);
   const [monthlyExpenses, setMonthlyExpenses] = useState(0);
-  const [lifeEvent, setLifeEvent] = useState<MonthlyEvent | null>(null);
-  const [showEventModal, setShowEventModal] = useState(false);
+  const [decisionEvent, setDecisionEvent] = useState<DecisionEvent | null>(null);
+  const [showDecisionModal, setShowDecisionModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [allocationHistory, setAllocationHistory] = useState<AllocationRecord[]>([]);
   const [activeStage, setActiveStage] = useState<'allocate' | 'insights' | 'timeline'>('allocate');
@@ -198,55 +211,11 @@ export default function GullakGame() {
       setMonthlyExpenses(response.data.expenses);
 
       if (response.data.event) {
-        setLifeEvent(response.data.event);
-        setShowEventModal(true);
+        setDecisionEvent(response.data.event);
+        setShowDecisionModal(true);
       }
 
       const updated = await api.get(`/games/gullak/${initialSession.session_id}`);
-      setSession(updated.data);
-      setAllocationHistory(mapSessionHistory(updated.data));
-
-    } catch (error) {
-      console.error('Failed to simulate month:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const simulateMonth = async () => {
-    if (!session) return;
-
-    try {
-      setLoading(true);
-
-      // Get current jars from session
-      const jars = session.current_jars;
-
-      // For the first month, use default allocation
-      const allocation = {
-        emergency: jars.emergency || 50000,
-        insurance: jars.insurance || 10000,
-        short_term: jars.short_term || 10000,
-        long_term: jars.long_term || 20000,
-        gold: jars.gold || 10000,
-      };
-
-      const response = await api.post(
-        `/games/gullak/${session.session_id}/allocate`,
-        allocation
-      );
-
-      // Update session data
-      setMonthlyIncome(response.data.income);
-      setMonthlyExpenses(response.data.expenses);
-
-      if (response.data.event) {
-        setLifeEvent(response.data.event);
-        setShowEventModal(true);
-      }
-
-      // Refresh session
-      const updated = await api.get(`/games/gullak/${session.session_id}`);
       setSession(updated.data);
       setAllocationHistory(mapSessionHistory(updated.data));
 
@@ -270,18 +239,42 @@ export default function GullakGame() {
       setMonthlyIncome(response.data.income);
       setMonthlyExpenses(response.data.expenses);
 
-      if (response.data.event) {
-        setLifeEvent(response.data.event);
-        setShowEventModal(true);
-      }
-
       // Refresh session
       const updated = await api.get(`/games/gullak/${session?.session_id}`);
       setSession(updated.data);
       setAllocationHistory(mapSessionHistory(updated.data));
 
+      // Check if there's a decision event for this month
+      const eventResponse = await api.get(`/games/gullak/${session?.session_id}/event-options`);
+      if (eventResponse.data.has_event) {
+        setDecisionEvent(eventResponse.data);
+        setShowDecisionModal(true);
+      }
+
     } catch (error) {
       console.error('Failed to allocate:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDecision = async (optionIndex: number) => {
+    if (!session) return;
+
+    try {
+      setSubmitting(true);
+
+      // Submit decision to backend
+      await api.post(`/games/gullak/${session.session_id}/decide`, {
+        option_index: optionIndex,
+      });
+
+      // Close modal
+      setShowDecisionModal(false);
+      setDecisionEvent(null);
+
+    } catch (error) {
+      console.error('Failed to submit decision:', error);
     } finally {
       setSubmitting(false);
     }
@@ -291,7 +284,7 @@ export default function GullakGame() {
     try {
       setSubmitting(true);
 
-      const response = await api.post(
+      await api.post(
         `/games/gullak/${session?.session_id}/complete`
       );
 
@@ -389,31 +382,36 @@ export default function GullakGame() {
         monthlyExpenses={monthlyExpenses}
       />
 
-      <div className="bg-white rounded-lg border border-slate-200 p-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
-        <button
-          onClick={() => setActiveStage('allocate')}
-          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
-            activeStage === 'allocate' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
-          }`}
-        >
-          Stage 1: Allocation
-        </button>
-        <button
-          onClick={() => setActiveStage('insights')}
-          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
-            activeStage === 'insights' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
-          }`}
-        >
-          Stage 2: Insights
-        </button>
-        <button
-          onClick={() => setActiveStage('timeline')}
-          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
-            activeStage === 'timeline' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
-          }`}
-        >
-          Stage 3: Timeline
-        </button>
+      <div className="space-y-3">
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <button
+            onClick={() => setActiveStage('allocate')}
+            className={`px-4 py-3 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+              activeStage === 'allocate' ? 'bg-cyan-600 text-white shadow-md ring-2 ring-cyan-300' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
+            }`}
+          >
+            🏺 Allocate
+          </button>
+          <button
+            onClick={() => setActiveStage('insights')}
+            className={`px-4 py-3 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+              activeStage === 'insights' ? 'bg-cyan-600 text-white shadow-md ring-2 ring-cyan-300' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
+            }`}
+          >
+            💡 Insights
+          </button>
+          <button
+            onClick={() => setActiveStage('timeline')}
+            className={`px-4 py-3 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+              activeStage === 'timeline' ? 'bg-cyan-600 text-white shadow-md ring-2 ring-cyan-300' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
+            }`}
+          >
+            📅 Timeline
+          </button>
+        </div>
+        <div className="px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200 text-xs font-semibold text-slate-700">
+          <span className="text-green-700">Month {(session?.current_month || 0) + 1} of 120</span> • <span className="text-slate-600">₹{(Object.values(session?.current_jars || {}) as number[]).reduce((a, b) => a + b, 0).toLocaleString()} saved</span>
+        </div>
       </div>
 
       {session && (
@@ -494,11 +492,24 @@ export default function GullakGame() {
         </>
       )}
 
-      {showEventModal && lifeEvent && (
-        <LifeEventModal
-          event={lifeEvent}
-          onClose={() => setShowEventModal(false)}
-        />
+      {showDecisionModal && decisionEvent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex flex-col items-center justify-center p-4 overflow-y-auto">
+          <div className="flex flex-col gap-6 w-full max-w-2xl py-6">
+            <EnhancedDecisionModal
+              title={decisionEvent.decision_title}
+              description={decisionEvent.description}
+              event_type={decisionEvent.event_type}
+              options={decisionEvent.options}
+              onDecide={handleDecision}
+              isLoading={submitting}
+            />
+            <FinancialLiteracyCard
+              concept={getRelevantConcept(decisionEvent.event_type)}
+              impact_amount={Math.max(...decisionEvent.options.map((o) => Math.abs(o.consequences.total || 0)))}
+              context="Understanding how this decision affects your financial plan"
+            />
+          </div>
+        </div>
       )}
     </div>
   );

@@ -4,184 +4,98 @@ import React, { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Badge } from '@/components/ui/Pill';
+import { AlertCircle, Loader2 } from 'lucide-react';
+import { BudgetOptimizationDashboard } from '@/components/analytics';
 import { analyzeBudget } from '@/lib/api/analytics';
-import { Loader2, AlertTriangle, CheckCircle, TrendingUp, Target, Wallet, PiggyBank, Zap, DollarSign, BarChart3, Lightbulb } from 'lucide-react';
-import { BudgetBreakdownDonut, CircularHealthScore, StatisticsPulse, InsightCard, ExplanationCard, HowItWorks, ExampleShowcase, ConceptInfographic } from '@/components/analytics';
 
 export default function BudgetOptimizationPage() {
-  const [income, setIncome] = useState('5000');
-  const [savings, setSavings] = useState('1000');
+  const [showCustomizer, setShowCustomizer] = useState(false);
+  const [income, setIncome] = useState('50000');
+  const [savings, setSavings] = useState('10000');
   const [expenses, setExpenses] = useState({
-    housing: '1250',
-    transportation: '500',
-    groceries: '400',
-    restaurants: '300',
-    utilities: '150',
-    entertainment: '200',
+    housing: '18000',
+    utilities: '3000',
+    groceries: '7000',
+    transportation: '4000',
+    insurance: '2000',
+    healthcare: '1000',
+    restaurants: '5000',
+    entertainment: '3000',
+    shopping: '2500',
+    subscriptions: '1000',
+    personal_care: '1500',
   });
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [manualLoading, setManualLoading] = useState(false);
+  const [manualError, setManualError] = useState('');
+  const [manualResult, setManualResult] = useState<any>(null);
 
-  const handleAnalyze = async () => {
-    setLoading(true);
+  const expenseFields = [
+    { key: 'housing', label: 'Housing (Rent/EMI)' },
+    { key: 'utilities', label: 'Utilities (Electricity/Internet)' },
+    { key: 'groceries', label: 'Groceries' },
+    { key: 'transportation', label: 'Transportation' },
+    { key: 'insurance', label: 'Insurance' },
+    { key: 'healthcare', label: 'Healthcare' },
+    { key: 'restaurants', label: 'Restaurants & Eating Out' },
+    { key: 'entertainment', label: 'Entertainment' },
+    { key: 'shopping', label: 'Shopping' },
+    { key: 'subscriptions', label: 'Subscriptions' },
+    { key: 'personal_care', label: 'Personal Care' },
+  ] as const;
+
+  const handleManualAnalyze = async () => {
+    const monthlyIncome = Number(income);
+    const savingsAmount = Number(savings);
+    const parsedExpenses = Object.fromEntries(
+      Object.entries(expenses).map(([key, value]) => [key, Number(value || 0)])
+    ) as Record<string, number>;
+    const expenseValues = Object.values(parsedExpenses);
+
+    if (!monthlyIncome || monthlyIncome <= 0) {
+      setManualError('Please enter a valid monthly income.');
+      return;
+    }
+
+    if ([...expenseValues, savingsAmount].some((n) => n < 0 || Number.isNaN(n))) {
+      setManualError('Amounts cannot be negative.');
+      return;
+    }
+
+    setManualLoading(true);
+    setManualError('');
+
     try {
-      const expenseValues: Record<string, number> = {};
-      Object.entries(expenses).forEach(([key, value]) => {
-        expenseValues[key] = parseFloat(value) || 0;
+      const result = await analyzeBudget({
+        income: monthlyIncome,
+        expenses: parsedExpenses,
+        savings: savingsAmount,
       });
-
-      const data = await analyzeBudget({
-        income: parseFloat(income),
-        expenses: expenseValues,
-        savings: parseFloat(savings),
-      });
-      setResult(data);
+      setManualResult(result);
     } catch (error) {
-      console.error('Analysis failed:', error);
+      console.error(error);
+      setManualError('Unable to analyze manual budget right now. Please try again.');
     } finally {
-      setLoading(false);
+      setManualLoading(false);
     }
   };
 
-  const updateExpense = (category: string, value: string) => {
-    setExpenses({ ...expenses, [category]: value });
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 90) return 'text-green-600';
-    if (score >= 75) return 'text-cyan-600';
-    if (score >= 60) return 'text-yellow-600';
-    if (score >= 40) return 'text-orange-600';
-    return 'text-red-600';
-  };
-
-  const getPriorityIcon = (priority: string) => {
-    if (priority === 'high') return <AlertTriangle className="w-4 h-4 text-red-600" />;
-    if (priority === 'medium') return <AlertTriangle className="w-4 h-4 text-yellow-600" />;
-    return <CheckCircle className="w-4 h-4 text-green-600" />;
-  };
-
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">Budget Optimization</h1>
-        <p className="text-muted-foreground">
-          Rule-based heuristics to analyze savings and expense ratios
-        </p>
-      </div>
+    <div className="container mx-auto py-8 px-4 max-w-7xl space-y-8">
+      {/* Dashboard */}
+      <BudgetOptimizationDashboard
+        onCustomize={() => setShowCustomizer(!showCustomizer)}
+      />
 
-      {/* Educational Infographics Section */}
-      <div className="mb-12 space-y-6">
-        {/* Explanation */}
-        <ExplanationCard
-          icon={Target}
-          title="What is Budget Optimization?"
-          description="The 50/30/20 rule is a proven budgeting framework that helps you allocate income across three categories: needs, wants, and savings. Our AI analyzes your spending to show how well you're aligned with this proven financial strategy."
-          keyPoints={[
-            '50% of income should go to needs (housing, food, utilities)',
-            '30% should go to wants (entertainment, dining, hobbies)',
-            '20% should go to savings and debt repayment',
-            'Helps identify overspending areas and savings opportunities',
-          ]}
-          color="teal"
-          example="If you earn ₹4,00,000/month: ₹2,00,000 needs, ₹1,20,000 wants, ₹80,000 savings"
-        />
+      {showCustomizer && (
+        <Card className="p-6 space-y-6 border-cyan-200 bg-cyan-50/30">
+          <div>
+            <h2 className="text-xl font-bold">Provide Budget Manually</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              If you see "No transactions found", enter category-wise monthly expenses here to run analysis instantly.
+            </p>
+          </div>
 
-        {/* How It Works */}
-        <HowItWorks
-          title="How Budget Analysis Works"
-          steps={[
-            {
-              number: 1,
-              title: 'Enter Your Income & Expenses',
-              description: 'Input your monthly income and breakdown your expenses by category (housing, food, entertainment, etc.)',
-              icon: DollarSign,
-            },
-            {
-              number: 2,
-              title: 'AI Categorizes Your Spending',
-              description: 'Our algorithm automatically categorizes your expenses into Needs (50%), Wants (30%), and Savings (20%)',
-              icon: BarChart3,
-            },
-            {
-              number: 3,
-              title: 'Health Score Analysis',
-              description: 'We calculate your Budget Health Score (0-100) based on how well you follow the 50/30/20 rule',
-              icon: Target,
-            },
-            {
-              number: 4,
-              title: 'Get Recommendations',
-              description: 'Receive personalized recommendations to optimize your budget and increase savings potential',
-              icon: Lightbulb,
-            },
-          ]}
-          color="teal"
-        />
-
-        {/* Visual Concept */}
-        <ConceptInfographic
-          title="The 50/30/20 Budget Rule Explained"
-          subtitle="How your ideal budget should be allocated"
-          type="50-30-20"
-          segments={[
-            {
-              label: 'Needs',
-              percentage: 50,
-              color: '#0891B2',
-              description: 'Essential expenses',
-            },
-            {
-              label: 'Wants',
-              percentage: 30,
-              color: '#8B5CF6',
-              description: 'Lifestyle choices',
-            },
-            {
-              label: 'Savings',
-              percentage: 20,
-              color: '#10B981',
-              description: 'Financial security',
-            },
-          ]}
-        />
-
-        {/* Example */}
-        <ExampleShowcase
-          title="Budget Optimization Example"
-          description="See how our analysis helps you understand your spending"
-          inputExample={[
-            { label: 'Monthly Income', value: '₹4,00,000', highlight: true },
-            { label: 'Housing Expenses', value: '₹1,00,000' },
-            { label: 'Food & Groceries', value: '₹32,000' },
-            { label: 'Entertainment', value: '₹32,000' },
-            { label: 'Current Savings', value: '₹64,000' },
-          ]}
-          outputExample={[
-            {
-              label: 'Health Score',
-              value: '78/100',
-              highlight: true,
-            },
-            { label: 'Needs Allocation', value: '52%' },
-            { label: 'Savings Rate', value: '18%' },
-            {
-              label: 'Optimization Potential',
-              value: '+₹16,000/month',
-              highlight: true,
-            },
-          ]}
-          color="teal"
-        />
-      </div>
-
-      <div className="grid lg:grid-cols-5 gap-6">
-        {/* Input Panel */}
-        <Card className="lg:col-span-2 p-6">
-          <h3 className="text-lg font-bold mb-2">Budget Details</h3>
-          <p className="text-sm text-muted-foreground mb-4">Enter your monthly income and expenses</p>
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label htmlFor="income" className="text-sm font-medium">Monthly Income</label>
               <Input
@@ -189,165 +103,95 @@ export default function BudgetOptimizationPage() {
                 type="number"
                 value={income}
                 onChange={(e) => setIncome(e.target.value)}
+                placeholder="50000"
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="savings" className="text-sm font-medium">Monthly Savings</label>
+              <label htmlFor="savings" className="text-sm font-medium">Savings (20% target)</label>
               <Input
                 id="savings"
                 type="number"
                 value={savings}
                 onChange={(e) => setSavings(e.target.value)}
+                placeholder="10000"
               />
             </div>
+          </div>
 
-            <div className="border-t pt-4 mt-4">
-              <label className="text-base font-medium mb-3 block">Monthly Expenses</label>
-              <div className="space-y-3">
-                {Object.entries(expenses).map(([category, value]) => (
-                  <div key={category} className="space-y-1">
-                    <label htmlFor={category} className="text-sm font-medium capitalize">
-                      {category.replace('_', ' ')}
-                    </label>
-                    <Input
-                      id={category}
-                      type="number"
-                      value={value}
-                      onChange={(e) => updateExpense(category, e.target.value)}
-                    />
-                  </div>
-                ))}
-              </div>
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-slate-900">Monthly Expense Categories</h3>
+            <p className="text-xs text-muted-foreground">
+              Enter actual category amounts. Leave as 0 if not applicable.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {expenseFields.map((field) => (
+                <div key={field.key} className="space-y-2">
+                  <label htmlFor={field.key} className="text-sm font-medium">{field.label}</label>
+                  <Input
+                    id={field.key}
+                    type="number"
+                    value={expenses[field.key]}
+                    onChange={(e) =>
+                      setExpenses((prev) => ({
+                        ...prev,
+                        [field.key]: e.target.value,
+                      }))
+                    }
+                    placeholder="0"
+                  />
+                </div>
+              ))}
             </div>
+          </div>
 
-            <Button onClick={handleAnalyze} disabled={loading} className="w-full mt-4">
-              {loading ? (
+          {manualError && (
+            <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+              <AlertCircle className="w-4 h-4" />
+              {manualError}
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={handleManualAnalyze} disabled={manualLoading}>
+              {manualLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Analyzing...
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Analyzing Budget...
                 </>
               ) : (
-                'Analyze Budget'
+                'Analyze My Budget'
               )}
             </Button>
+            <Button variant="outline" onClick={() => setShowCustomizer(false)}>
+              Close
+            </Button>
           </div>
-        </Card>
 
-        {/* Results Panel */}
-        {result && (
-          <div className="lg:col-span-3 space-y-6">
-            {/* Health Score - Circular Visualization */}
-            <CircularHealthScore
-              score={result.health_score.score}
-              rating={result.health_score.rating}
-              factors={result.health_score.factors}
-            />
-
-            {/* Budget Breakdown Donut */}
-            <BudgetBreakdownDonut
-              budget_breakdown={{ needs: 50, wants: 30, savings: 20 }}
-              actual={{
-                needs: result.fifty_thirty_twenty.needs?.percentage || 0,
-                wants: result.fifty_thirty_twenty.wants?.percentage || 0,
-                savings: result.fifty_thirty_twenty.savings?.percentage || 0,
-              }}
-              compliance={result.fifty_thirty_twenty.overall_compliance?.compliance == true}
-            />
-
-            {/* Key Statistics */}
-            <StatisticsPulse
-              stats={[
-                {
-                  label: 'Savings Rate',
-                  value: result.health_score.factors.savings_rate,
-                  icon: PiggyBank,
-                  color: 'green',
-                },
-                {
-                  label: 'Current Score',
-                  value: result.health_score.score,
-                  icon: Target,
-                  color: 'teal',
-                },
-                {
-                  label: 'Monthly Income',
-                  value: parseFloat(income) || 0,
-                  icon: TrendingUp,
-                  color: 'cyan',
-                },
-                {
-                  label: 'Monthly Savings',
-                  value: parseFloat(savings) || 0,
-                  icon: Wallet,
-                  color: 'purple',
-                },
-              ]}
-            />
-
-            {/* Recommendations */}
-            {result.recommendations && result.recommendations.length > 0 && (
-              <Card className="p-6">
-                <h3 className="text-lg font-bold mb-4">Optimization Recommendations</h3>
-                <div className="space-y-3">
-                  {result.recommendations.map((rec: any, idx: number) => (
-                    <InsightCard
-                      key={idx}
-                      icon={rec.priority === 'high' ? AlertTriangle : CheckCircle}
-                      title={rec.issue}
-                      description={rec.suggestion}
-                      color={rec.priority === 'high' ? 'red' : rec.priority === 'medium' ? 'yellow' : 'green'}
-                    />
+          {manualResult && (
+            <Card className="p-4 border-green-200 bg-green-50/40">
+              <h3 className="font-semibold text-green-900">Manual Budget Analysis Result</h3>
+              <p className="text-sm mt-1 text-green-800">
+                Health Score: {Number.isFinite(Number(manualResult.health_score)) ? Math.round(Number(manualResult.health_score)) : 'N/A'}/100
+              </p>
+              <p className="text-sm text-green-800">
+                Savings Rate: {manualResult.summary?.savings_rate_pct ?? 0}%
+              </p>
+              {Array.isArray(manualResult.recommendations) && manualResult.recommendations.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {manualResult.recommendations.slice(0, 3).map((rec: any, idx: number) => (
+                    <div key={idx} className="text-sm bg-white/80 border border-green-200 rounded-md px-3 py-2 text-slate-800">
+                      <span className="font-medium">{rec.issue}</span>
+                      {rec.suggestion ? ` - ${rec.suggestion}` : ''}
+                    </div>
                   ))}
                 </div>
-              </Card>
-            )}
-
-            {/* Optimization Potential */}
-            {result.optimization_potential && (
-              <Card className="p-6">
-                <h3 className="text-lg font-bold mb-4">Optimization Potential</h3>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-                    <div className="text-2xl font-bold text-green-600">
-                      ₹{result.optimization_potential.potential_additional_savings.toLocaleString('en-IN')}
-                    </div>
-                    <div className="text-sm text-gray-600 mt-1">
-                      Potential Monthly Savings
-                    </div>
-                  </div>
-                  <div className="text-center p-4 bg-cyan-50 rounded-lg border border-cyan-200">
-                    <div className="text-2xl font-bold text-cyan-600">
-                      {result.optimization_potential.potential_savings_rate}%
-                    </div>
-                    <div className="text-sm text-gray-600 mt-1">
-                      Potential Savings Rate
-                    </div>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 mt-4">
-                  By optimizing expenses to recommended levels, you could increase your savings
-                  rate by {result.optimization_potential.improvement}%.
-                </p>
-              </Card>
-            )}
-          </div>
-        )}
-
-        {/* Placeholder */}
-        {!result && !loading && (
-          <Card className="lg:col-span-3 p-6">
-            <div className="flex flex-col items-center justify-center py-12">
-              <Target className="w-16 h-16 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Ready to Optimize</h3>
-              <p className="text-muted-foreground text-center max-w-md">
-                Enter your income, expenses, and savings to get personalized optimization
-                recommendations based on proven financial rules.
-              </p>
-            </div>
-          </Card>
-        )}
-      </div>
+              )}
+            </Card>
+          )}
+        </Card>
+      )}
     </div>
   );
 }
+

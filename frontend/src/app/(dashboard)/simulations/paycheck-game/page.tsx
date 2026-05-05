@@ -13,6 +13,7 @@ import { InsightsPanel } from '@/components/simulations/InsightsPanel'
 import { StepProgressBar } from '@/components/simulations/StepProgressBar'
 import { MoneyPieInfographic } from './components/MoneyPieInfographic'
 import { paycheckGameConfig } from './config'
+import { useSimulationCompletion } from '@/lib/hooks/useSimulationCompletion'
 
 const steps = [
   { number: 1, label: 'Introduction' },
@@ -26,7 +27,7 @@ export default function PaycheckGamePage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [income, setIncome] = useState(50000)
   const [strategy, setStrategy] = useState<'save_first' | 'bills_first' | 'spend_first'>('save_first')
-  const [xpEarned, setXpEarned] = useState(false)
+  const { xpEarned, isCompleting, completeSimulation } = useSimulationCompletion('paycheck_game')
 
   const strategies = {
     save_first: {
@@ -309,7 +310,9 @@ export default function PaycheckGamePage() {
 
                 <div className="text-center">
                   <Button
-                    onClick={() => setXpEarned(true)}
+                    onClick={completeSimulation}
+                    isLoading={isCompleting}
+                    disabled={xpEarned}
                     variant="primary"
                     size="lg"
                     className="mb-4"

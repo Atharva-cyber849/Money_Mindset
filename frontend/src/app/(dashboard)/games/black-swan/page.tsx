@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api/client';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Loader2, TrendingDown, AlertCircle, Home } from 'lucide-react';
+import { EnhancedDecisionModal, FinancialLiteracyCard } from '../_lib/SharedComponents';
+import { Loader2, AlertCircle, Home } from 'lucide-react';
 
 interface CrisisOption {
   id: string;
@@ -96,6 +97,11 @@ export default function BlackSwanGame() {
   const [currentAction, setCurrentAction] = useState('');
   const [decisionLog, setDecisionLog] = useState<DecisionLogEntry[]>([]);
   const [activeStage, setActiveStage] = useState<'portfolio' | 'decisions' | 'resilience'>('portfolio');
+
+  // Crisis decision state
+  const [crisisDecision, setCrisisDecision] = useState<any>(null);
+  const [showCrisisDecisionModal, setShowCrisisDecisionModal] = useState(false);
+  const [submittingCrisisDecision, setSubmittingCrisisDecision] = useState(false);
 
   const getProfileMix = (profileType: string) => {
     switch (profileType) {
@@ -434,13 +440,29 @@ export default function BlackSwanGame() {
         </Card>
 
         <Button
-          onClick={() => setScreen('game')}
+          onClick={async () => {
+            await fetchCrisisDecision();
+            setScreen('game');
+          }}
           className="w-full bg-red-600 hover:bg-red-700 text-white py-3 text-lg"
         >
           Face the Crisis
         </Button>
       </div>
     );
+  }
+
+  async function fetchCrisisDecision() {
+    if (!session) return;
+    try {
+      const response = await api.get(`/games/black-swan/${session.session_id}/crisis-decision`);
+      if (response.data.has_decision) {
+        setCrisisDecision(response.data);
+        setShowCrisisDecisionModal(true);
+      }
+    } catch (error) {
+      console.error('Failed to fetch crisis decision:', error);
+    }
   }
 
   // Active Game Screen
@@ -453,6 +475,8 @@ export default function BlackSwanGame() {
       'trough': '🔴',
       'recovery': '✅',
     };
+    const currentPhase = session.current_phase || 'pre_crisis';
+    const currentPhaseEmoji = phaseEmoji[currentPhase] || '📝';
     const profileMix = getProfileMix(session.profile_type);
     const assetRows = Object.entries(profileMix)
       .map(([asset, pct]) => ({ asset, pct, amount: (session.wealth * pct) / 100 }))
@@ -460,11 +484,11 @@ export default function BlackSwanGame() {
     const resilienceMetrics = {
       liquidity: Math.min(100, profileMix.cash + profileMix.fds),
       diversification: 100 - Math.max(...Object.values(profileMix)),
-      optionality: Math.min(100, profileMix.cash + (session.current_phase === 'trough' ? 30 : 15)),
+      optionality: Math.min(100, profileMix.cash + (currentPhase === 'trough' ? 30 : 15)),
       hedge: Math.min(100, profileMix.gold * 5),
     };
     const selectedConsequence = currentAction && currentAsset
-      ? getDecisionConsequence(currentAction, currentAsset, session.current_phase)
+      ? getDecisionConsequence(currentAction, currentAsset, currentPhase)
       : 'Pick an asset and action to see expected consequences before executing.';
 
     return (
@@ -473,7 +497,7 @@ export default function BlackSwanGame() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">⚫ Black Swan Crisis</h1>
-            <p className="text-gray-600">Quarter {session.current_quarter} • Phase: {phaseEmoji[session.current_phase]}</p>
+            <p className="text-gray-600">Quarter {session.current_quarter} • Phase: {currentPhaseEmoji}</p>
           </div>
           <Link href="/games" className="text-cyan-600 hover:underline flex items-center gap-2">
             <Home className="w-4 h-4" />
@@ -481,30 +505,30 @@ export default function BlackSwanGame() {
           </Link>
         </div>
 
-        <div className="bg-white rounded-lg border border-slate-200 p-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
           <button
             onClick={() => setActiveStage('portfolio')}
-            className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
-              activeStage === 'portfolio' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+            className={`px-4 py-3 rounded-lg font-semibold text-sm transition-all ${
+              activeStage === 'portfolio' ? 'bg-red-600 text-white shadow-md ring-2 ring-red-300' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
             }`}
           >
-            Stage 1: Portfolio
+            💼 Portfolio
           </button>
           <button
             onClick={() => setActiveStage('decisions')}
-            className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
-              activeStage === 'decisions' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+            className={`px-4 py-3 rounded-lg font-semibold text-sm transition-all ${
+              activeStage === 'decisions' ? 'bg-red-600 text-white shadow-md ring-2 ring-red-300' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
             }`}
           >
-            Stage 2: Decisions
+            ⚡ Decisions
           </button>
           <button
             onClick={() => setActiveStage('resilience')}
-            className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
-              activeStage === 'resilience' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+            className={`px-4 py-3 rounded-lg font-semibold text-sm transition-all ${
+              activeStage === 'resilience' ? 'bg-red-600 text-white shadow-md ring-2 ring-red-300' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
             }`}
           >
-            Stage 3: Resilience
+            🛡️ Resilience
           </button>
         </div>
 
@@ -523,7 +547,7 @@ export default function BlackSwanGame() {
                 </div>
                 <div className="bg-gray-50 p-3 rounded space-y-2">
                   <p className="text-sm font-semibold text-gray-700">Phase Status:</p>
-                  <p className="text-sm">{phaseEmoji[session.current_phase]} {session.current_phase.replace('_', ' ').toUpperCase()}</p>
+                  <p className="text-sm">{currentPhaseEmoji} {currentPhase.replace('_', ' ').toUpperCase()}</p>
                 </div>
               </div>
             </Card>
@@ -572,7 +596,7 @@ export default function BlackSwanGame() {
             {/* Phase Info */}
             <Card className="p-4 bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500">
               <p className="font-semibold text-red-900">
-                {phaseEmoji[session.current_phase]} {session.current_phase === 'pre_crisis' ? 'Prepare now while you can' : 'Crisis is underway - make tough choices'}
+                {currentPhaseEmoji} {currentPhase === 'pre_crisis' ? 'Prepare now while you can' : 'Crisis is underway - make tough choices'}
               </p>
             </Card>
 
@@ -707,5 +731,59 @@ export default function BlackSwanGame() {
     );
   }
 
+  {showCrisisDecisionModal && crisisDecision && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex flex-col items-center justify-center p-4 overflow-y-auto">
+      <div className="flex flex-col gap-6 w-full max-w-2xl py-6">
+        <EnhancedDecisionModal
+          title={crisisDecision.decision_title}
+          description={crisisDecision.description}
+          event_type={crisisDecision.event_type}
+          options={crisisDecision.options.map((opt: any) => ({
+            index: opt.index,
+            title: opt.title,
+            description: opt.description,
+            risk_level: opt.risk_level,
+            consequences: {},
+            monthly_impact: 0,
+            months: 1,
+            long_term_effect: opt.best_for || '',
+          }))}
+          onDecide={async (optionIndex: number) => {
+            setSubmittingCrisisDecision(true);
+            setError('');
+            try {
+              const response = await api.post(`/games/black-swan/${session?.session_id}/crisis-decision`, {
+                option_index: optionIndex,
+              });
+
+              if (response?.data && session) {
+                setSession({
+                  ...session,
+                  wealth: Number(response.data.wealth ?? session.wealth),
+                  current_phase: response.data.current_phase || session.current_phase,
+                  financial_profile: response.data.financial_profile || session.financial_profile,
+                });
+              }
+
+              setShowCrisisDecisionModal(false);
+            } catch (error: any) {
+              setError(error?.response?.data?.detail || 'Failed to submit crisis decision');
+              console.error('Failed to submit crisis decision:', error);
+            } finally {
+              setSubmittingCrisisDecision(false);
+            }
+          }}
+          isLoading={submittingCrisisDecision}
+        />
+        <FinancialLiteracyCard
+          concept="emergency_fund"
+          impact_amount={0}
+          context="Crisis resilience depends on pre-crisis preparation and disciplined decision-making"
+        />
+      </div>
+    </div>
+  )}
+
   return null;
 }
+

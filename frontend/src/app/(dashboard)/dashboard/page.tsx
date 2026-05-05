@@ -15,6 +15,7 @@ import MarketWidget from '@/components/dashboard/MarketWidget'
 import { getUserStats, UserStats } from '@/lib/api/progress'
 import { userAPI } from '@/lib/api/client'
 import { useMarketData } from '@/lib/api/hooks'
+import { getCrossGameSummary, CrossGameSummary } from '@/lib/api/analytics'
 import { gamesCatalog } from '@/lib/data/games'
 import GameSection from '@/components/dashboard/GameSection'
 import SimulationSection from '@/components/dashboard/SimulationSection'
@@ -28,6 +29,7 @@ interface FinanceProfile {
 export default function DashboardPage() {
   const [userStats, setUserStats] = useState<UserStats | null>(null)
   const [financeProfile, setFinanceProfile] = useState<FinanceProfile | null>(null)
+  const [crossGameSummary, setCrossGameSummary] = useState<CrossGameSummary | null>(null)
 
   // Fetch market data
   const { data: marketData } = useMarketData(8)
@@ -37,11 +39,15 @@ export default function DashboardPage() {
       try {
         const [stats, profile] = await Promise.all([
           getUserStats(),
-          userAPI.getFinancialProfile().catch(() => null) // Don't fail if profile doesn't exist
+          userAPI.getFinancialProfile().catch(() => null), // Don't fail if profile doesn't exist
         ])
+        const summary = await getCrossGameSummary().catch(() => null)
         setUserStats(stats)
         if (profile) {
           setFinanceProfile(profile)
+        }
+        if (summary) {
+          setCrossGameSummary(summary)
         }
       } catch (err) {
         console.error('Error fetching dashboard data:', err)
@@ -159,6 +165,80 @@ export default function DashboardPage() {
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className="text-sm font-bold text-purple-600">{Math.round((financeProfile.finance_iq_score / 100) * 100)}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cross-Game Progress */}
+      {crossGameSummary && (
+        <div className="bg-slate-950 rounded-2xl p-6 text-white overflow-hidden relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-emerald-500/10" />
+          <div className="relative grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+            <div>
+              <div className="inline-flex items-center px-3 py-1 rounded-full bg-white/10 text-cyan-100 text-xs font-semibold mb-4">
+                Cross-Game Progress
+              </div>
+              <h3 className="text-2xl font-bold mb-2">Your portfolio carries across games</h3>
+              <p className="text-sm text-slate-300 max-w-2xl mb-6">
+                Use Karobaar, Paper Trading, and Dalal Street together. Build one portfolio, unlock harder simulations, and compound your learning rewards.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                <div className="rounded-xl bg-white/8 border border-white/10 p-4">
+                  <p className="text-xs text-slate-300 mb-1">Portfolio Value</p>
+                  <p className="text-2xl font-bold">₹{Math.round(crossGameSummary.portfolio.value).toLocaleString('en-IN')}</p>
+                </div>
+                <div className="rounded-xl bg-white/8 border border-white/10 p-4">
+                  <p className="text-xs text-slate-300 mb-1">Active Sessions</p>
+                  <p className="text-2xl font-bold">{crossGameSummary.compound_rewards.active_sessions}</p>
+                </div>
+                <div className="rounded-xl bg-white/8 border border-white/10 p-4">
+                  <p className="text-xs text-slate-300 mb-1">XP Boost</p>
+                  <p className="text-2xl font-bold">+{Math.round(crossGameSummary.compound_rewards.xp_boost_from_progress * 100)}%</p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {crossGameSummary.recommendations.map((item) => (
+                  <span key={item} className="px-3 py-2 rounded-full bg-white/10 text-sm text-slate-100 border border-white/10">
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="rounded-xl bg-white text-slate-900 p-4">
+                <p className="text-xs uppercase tracking-wide text-cyan-700 font-semibold mb-1">Career Path</p>
+                <p className="font-bold mb-2">{crossGameSummary.career_path.next_step}</p>
+                <p className="text-sm text-slate-600">
+                  Karobaar: {crossGameSummary.career_path.karobaar_sessions} · Paper Trading: {crossGameSummary.career_path.paper_trading_sessions} · Dalal Street: {crossGameSummary.career_path.dalal_sessions}
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-white/5 border border-white/10 p-4">
+                <p className="text-xs uppercase tracking-wide text-cyan-100 font-semibold mb-3">Achievement-Locked Content</p>
+                <div className="space-y-2">
+                  {crossGameSummary.achievement_locked_content.map((item) => (
+                    <div key={item.id} className="flex items-start justify-between gap-3 text-sm">
+                      <span className="text-slate-200 capitalize">{item.id.replace(/-/g, ' ')}</span>
+                      <span className={item.locked ? 'text-amber-300' : 'text-emerald-300'}>{item.locked ? item.reason : 'Unlocked'}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-white/5 border border-white/10 p-4">
+                <p className="text-xs uppercase tracking-wide text-cyan-100 font-semibold mb-3">Technical Improvements</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-slate-200">
+                  <span>Session analytics: {crossGameSummary.technical_improvements.session_analytics ? 'Ready' : 'Pending'}</span>
+                  <span>Export reports: {crossGameSummary.technical_improvements.export_reports ? 'Ready' : 'Pending'}</span>
+                  <span>Mobile variants: {crossGameSummary.technical_improvements.mobile_optimized_variants ? 'Ready' : 'Pending'}</span>
+                  <span>Offline mode: {crossGameSummary.technical_improvements.offline_mode_ready ? 'Ready' : 'Pending'}</span>
+                  <span>Live market data: {crossGameSummary.technical_improvements.real_time_data_integration ? 'Ready' : 'Pending'}</span>
+                </div>
               </div>
             </div>
           </div>

@@ -170,6 +170,10 @@ class PaperTradingTradeRequest(BaseModel):
     quantity: int = Field(..., gt=0, description="Number of shares")
     price: float = Field(..., gt=0, description="Execution price per share")
     side: str = Field(..., description="BUY or SELL")
+    order_type: str = Field(default="market", description="market, limit, stop_loss, trailing_stop")
+    limit_price: Optional[float] = Field(default=None, gt=0, description="Limit price for limit orders")
+    stop_price: Optional[float] = Field(default=None, gt=0, description="Stop price for stop-loss orders")
+    trailing_stop_pct: Optional[float] = Field(default=None, gt=0, description="Trailing stop percentage")
 
 
 # Gullak schemas

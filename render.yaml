@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: money-mindset-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DEBUG
+        value: "False"
+      - key: APP_NAME
+        value: Money Mindset API
+      - key: VERSION
+        value: 1.0.0
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: openai/gpt-oss-120b:free
+      - key: OPENAI_BASE_URL
+        value: https://openrouter.ai/api/v1
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: FINNHUB_API_KEY
+        sync: false
+      - key: NEWSAPI_KEY
+        sync: false
+      - key: OTP_DEVELOPER_MODE
+        value: "false"
+
+databases:
+  - name: money-mindset-db
+    plan: free
+    databaseName: moneymindset
+    user: moneymindset

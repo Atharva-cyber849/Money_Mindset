@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { MessageSquare, Send, Sparkles, HelpCircle, DollarSign, PiggyBank, TrendingUp, AlertCircle } from 'lucide-react';
+import { MessageSquare, Send, Sparkles, DollarSign, PiggyBank, TrendingUp, AlertCircle } from 'lucide-react';
 
 const suggestedQuestions = [
   {

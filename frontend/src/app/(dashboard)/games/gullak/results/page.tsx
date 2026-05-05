@@ -10,8 +10,6 @@ import { Loader2 } from 'lucide-react';
 import {
   BarChart,
   Bar,
-  LineChart,
-  Line,
   PieChart,
   Pie,
   Cell,
@@ -19,7 +17,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from 'recharts';
 
@@ -296,7 +293,7 @@ export default function GullakResults() {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => `₹${(value / 100000).toFixed(1)}L`} />
+                <Tooltip formatter={(value: any) => `₹${(value / 100000).toFixed(1)}L`} />
               </PieChart>
             </ResponsiveContainer>
           </div>

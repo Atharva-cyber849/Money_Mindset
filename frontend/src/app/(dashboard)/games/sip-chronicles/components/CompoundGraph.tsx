@@ -24,7 +24,6 @@ export default function CompoundGraph({ data }: CompoundGraphProps) {
   }));
 
   // Calculate multiplier
-  const initialContribution = 500 * 1; // First month
   const finalWealth = data[data.length - 1].wealth;
   const multiplier = finalWealth > 0 ? (finalWealth / (500 * data.length)) : 1;
 

@@ -3,11 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api/client';
-import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Loader2, Home, RotateCcw } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { LearningSummaryCard } from '../../_lib/SharedComponents/LearningSummaryCard';
 
 interface ResultsData {
   session_id: string;
@@ -61,7 +60,7 @@ export default function DalalStreetResults({ searchParams }: { searchParams?: Re
       const quarterly = JSON.parse(response.data.quarterly_snapshots || '[]');
 
       setResults({
-        session_id: sessionId,
+        session_id: sessionId || '',
         status: response.data.status,
         era: response.data.era,
         final_scores: {
@@ -238,6 +237,17 @@ export default function DalalStreetResults({ searchParams }: { searchParams?: Re
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <p className="text-sm text-gray-600 mb-2">Maximum Drawdown</p>
+
+        <LearningSummaryCard
+          title="What market trading teaches"
+          summary="Dalal Street rewards patience, position sizing, and discipline more than constant activity. Winning over a market cycle means respecting risk while letting quality picks compound."
+          takeaways={[
+            'Strong timing helps, but portfolio construction and risk control keep you in the game long enough to benefit from it.',
+            'Diversification smooths the ride when one sector or stock goes against you.',
+            'A repeatable process is more valuable than trying to force action every quarter.',
+          ]}
+          nextStep="Play again and compare an aggressive, concentrated approach with a more balanced portfolio to see how the learning changes."
+        />
             <div className="w-full bg-gray-200 rounded h-4">
               <div
                 className="bg-red-600 h-4 rounded"

@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
+import { LearningSummaryCard } from '../../_lib/SharedComponents/LearningSummaryCard';
 
 interface GameResults {
   final_corpus: number;
@@ -36,8 +37,7 @@ export default function SIPChronclesResults() {
           return;
         }
 
-        const response = await api.get(`/games/sip/${sessionId}`);
-        const data = response.data;
+        await api.get(`/games/sip/${sessionId}`);
 
         // Need to get the complete results - call completion endpoint instead
         const completeResponse = await api.post(`/games/sip/${sessionId}/complete`);
@@ -135,7 +135,7 @@ export default function SIPChronclesResults() {
         <Card className="p-6">
           <p className="text-sm text-gray-600 mb-1">Total Contributed</p>
           <p className="text-3xl font-bold">₹{(results.total_contributions / 100000).toFixed(1)}L</p>
-          <p className="text-xs text-gray-500 mt2">{results.total_months} months</p>
+          <p className="text-xs text-gray-500 mt-2">{results.total_months} months</p>
         </Card>
 
         <Card className="p-6">
@@ -186,14 +186,16 @@ export default function SIPChronclesResults() {
         </Link>
       </div>
 
-      {/* Educational Note */}
-      <Card className="p-6 bg-amber-50">
-        <h4 className="font-bold mb-2">💡 Key Learning</h4>
-        <p className="text-sm text-gray-700">
-          Over {results.total_months} months, your ₹500/month SIP became ₹{(results.final_corpus / 100000).toFixed(1)}L through the
-          power of compounding. Every interruption you faced tested your discipline. This is why SIP consistency matters!
-        </p>
-      </Card>
+      <LearningSummaryCard
+        title="What SIP consistency teaches"
+        summary="SIP Chronicles shows how disciplined, repeated investing can turn small monthly contributions into meaningful wealth over time."
+        takeaways={[
+          'Consistency beats timing when your goal is long-term wealth creation.',
+          'Interruptions are expensive because they break the compounding rhythm.',
+          'A simple monthly habit can create a large corpus if you keep it running long enough.',
+        ]}
+        nextStep={`Replay and try to protect the SIP through more interruptions, then compare how the final corpus changes after ${results.total_months} months.`}
+      />
     </div>
   );
 }

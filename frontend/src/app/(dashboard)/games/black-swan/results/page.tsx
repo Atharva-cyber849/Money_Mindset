@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api/client';
-import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Loader2, Home, RotateCcw, TrendingUp, TrendingDown } from 'lucide-react';
+import { LearningSummaryCard } from '../../_lib/SharedComponents/LearningSummaryCard';
 
 interface Results {
   session_id: string;
@@ -53,7 +53,7 @@ export default function BlackSwanResults() {
       const response = await api.get(`/games/black-swan/${sessionId}`);
       // Construct results from response
       setResults({
-        session_id: sessionId,
+        session_id: sessionId || '',
         crisis_type: response.data.crisis_type,
         scores: {
           antifragility: response.data.antifragility_score || 0,
@@ -236,6 +236,17 @@ export default function BlackSwanResults() {
           </div>
         </div>
       </Card>
+
+      <LearningSummaryCard
+        title="What crisis investing teaches"
+        summary="Black Swan scenarios reward liquidity, diversification, and calm decision-making. The goal is not to predict the storm; it is to stay positioned so the storm does not destroy your future choices."
+        takeaways={[
+          'Cash and hedges are not wasted returns when they preserve your ability to act later.',
+          'A crisis exposes whether your portfolio was built for growth alone or for survival plus recovery.',
+          'The best response to panic is often to protect capital and wait for better prices, not to overtrade.',
+        ]}
+        nextStep="Replay and compare a defensive approach versus an opportunistic one to see how risk management changes long-term outcomes."
+      />
 
       {/* Key Insights */}
       <Card className="p-6 bg-amber-50 border border-amber-200 space-y-4">

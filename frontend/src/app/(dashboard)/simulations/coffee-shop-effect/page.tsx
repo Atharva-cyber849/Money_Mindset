@@ -13,6 +13,7 @@ import { InsightsPanel } from '@/components/simulations/InsightsPanel'
 import { StepProgressBar } from '@/components/simulations/StepProgressBar'
 import { DailyLeakInfographic } from './components/DailyLeakInfographic'
 import { coffeeShopEffectConfig } from './config'
+import { useSimulationCompletion } from '@/lib/hooks/useSimulationCompletion'
 
 const steps = [
   { number: 1, label: 'Introduction' },
@@ -25,7 +26,7 @@ const steps = [
 export default function CoffeeShopEffectPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [dailyAmount, setDailyAmount] = useState(100)
-  const [xpEarned, setXpEarned] = useState(false)
+  const { xpEarned, isCompleting, completeSimulation } = useSimulationCompletion('coffee_shop_effect')
 
   const annualAmount = dailyAmount * 365
   const fiveYearAmount = annualAmount * 5
@@ -257,7 +258,9 @@ export default function CoffeeShopEffectPage() {
 
                 <div className="text-center">
                   <Button
-                    onClick={() => setXpEarned(true)}
+                    onClick={completeSimulation}
+                    isLoading={isCompleting}
+                    disabled={xpEarned}
                     variant="primary"
                     size="lg"
                     className="mb-4"

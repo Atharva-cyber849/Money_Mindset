@@ -11,7 +11,8 @@ import CompoundGraph from './components/CompoundGraph';
 import InterruptionModal from './components/InterruptionModal';
 import ProjectionConeChart from './components/ProjectionConeChart';
 import StrategyComparison from './components/StrategyComparison';
-import { Loader2, Play, Pause, Zap } from 'lucide-react';
+import { FinancialLiteracyCard, getRelevantConcept } from '../_lib/SharedComponents';
+import { Loader2, Play, Pause } from 'lucide-react';
 
 interface SIPSession {
   session_id: string;
@@ -159,6 +160,22 @@ export default function SIPChroniclesGame() {
     }
   };
 
+  const handlePlayToggle = async () => {
+    if (!session || session.current_month >= 456) return;
+
+    if (isPlaying) {
+      setIsPlaying(false);
+      return;
+    }
+
+    if (playbackSpeed === 'manual') {
+      await progressMonth();
+      return;
+    }
+
+    setIsPlaying(true);
+  };
+
   const handleInterruptionResponse = async (action: string) => {
     if (!session || !interruption) return;
 
@@ -200,7 +217,7 @@ export default function SIPChroniclesGame() {
 
   const completeGame = async () => {
     try {
-      const response = await api.post(`/games/sip/${session?.session_id}/complete`);
+      await api.post(`/games/sip/${session?.session_id}/complete`);
       router.push(`/games/sip-chronicles/results?session_id=${session?.session_id}`);
     } catch (error) {
       console.error('Failed to complete game:', error);
@@ -266,30 +283,30 @@ export default function SIPChroniclesGame() {
         savingsRate={100}
       />
 
-      <div className="bg-white rounded-lg border border-slate-200 p-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
         <button
           onClick={() => setActiveStage('overview')}
-          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
-            activeStage === 'overview' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+          className={`px-4 py-3 rounded-lg font-semibold text-sm transition-all ${
+            activeStage === 'overview' ? 'bg-green-600 text-white shadow-md ring-2 ring-green-300' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          Stage 1: Wealth Overview
+          📈 Overview
         </button>
         <button
           onClick={() => setActiveStage('analysis')}
-          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
-            activeStage === 'analysis' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+          className={`px-4 py-3 rounded-lg font-semibold text-sm transition-all ${
+            activeStage === 'analysis' ? 'bg-green-600 text-white shadow-md ring-2 ring-green-300' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          Stage 2: Analysis
+          📊 Analysis
         </button>
         <button
           onClick={() => setActiveStage('actions')}
-          className={`px-4 py-2 rounded-md font-semibold text-sm transition ${
-            activeStage === 'actions' ? 'bg-cyan-600 text-white' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+          className={`px-4 py-3 rounded-lg font-semibold text-sm transition-all ${
+            activeStage === 'actions' ? 'bg-green-600 text-white shadow-md ring-2 ring-green-300' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          Stage 3: Actions
+          ✅ Actions
         </button>
       </div>
 
@@ -349,8 +366,8 @@ export default function SIPChroniclesGame() {
         <Card className="p-6">
           <div className="flex gap-4 items-center justify-center">
             <Button
-              onClick={() => setIsPlaying(!isPlaying)}
-              disabled={session?.current_month >= 456}
+              onClick={handlePlayToggle}
+              disabled={(session?.current_month ?? 0) >= 456}
               className={isPlaying ? 'bg-red-600 hover:bg-red-700' : ''}
             >
               {isPlaying ? (
@@ -368,7 +385,7 @@ export default function SIPChroniclesGame() {
 
             <Button
               onClick={() => progressMonth()}
-              disabled={session?.current_month >= 456 || isPlaying}
+              disabled={(session?.current_month ?? 0) >= 456 || isPlaying}
               variant="outline"
             >
               Next Month
@@ -387,18 +404,27 @@ export default function SIPChroniclesGame() {
         </Card>
       )}
 
-      {session?.current_month >= 456 && (
+      {(session?.current_month ?? 0) >= 456 && (
         <Button onClick={completeGame} className="w-full py-4 text-lg bg-green-600 hover:bg-green-700">
           See Results & Final Score
         </Button>
       )}
 
       {showInterruptionModal && interruption && (
-        <InterruptionModal
-          interruption={interruption}
-          onResponse={handleInterruptionResponse}
-          disabled={submitting}
-        />
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 overflow-y-auto pointer-events-none">
+          <div className="flex flex-col gap-6 w-full max-w-2xl py-6 pointer-events-auto">
+            <InterruptionModal
+              interruption={interruption}
+              onResponse={handleInterruptionResponse}
+              disabled={submitting}
+            />
+            <FinancialLiteracyCard
+              concept={getRelevantConcept(interruption.type)}
+              context="Understanding how this decision affects your long-term wealth"
+              impact_amount={0}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

@@ -13,6 +13,7 @@ import { InsightsPanel } from '@/components/simulations/InsightsPanel'
 import { StepProgressBar } from '@/components/simulations/StepProgressBar'
 import { CarPathsInfographic } from './components/CarPathsInfographic'
 import { carPaymentConfig } from './config'
+import { useSimulationCompletion } from '@/lib/hooks/useSimulationCompletion'
 
 const steps = [
   { number: 1, label: 'Introduction' },
@@ -26,7 +27,7 @@ export default function CarPaymentPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [carPrice, setCarPrice] = useState(1500000)
   const [monthlyBudget, setMonthlyBudget] = useState(30000)
-  const [xpEarned, setXpEarned] = useState(false)
+  const { xpEarned, isCompleting, completeSimulation } = useSimulationCompletion('car_payment')
 
   // Three options
   const lease = {
@@ -311,7 +312,9 @@ export default function CarPaymentPage() {
 
                 <div className="text-center">
                   <Button
-                    onClick={() => setXpEarned(true)}
+                    onClick={completeSimulation}
+                    isLoading={isCompleting}
+                    disabled={xpEarned}
                     variant="primary"
                     size="lg"
                     className="mb-4"

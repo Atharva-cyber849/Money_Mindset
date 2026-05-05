@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Bell, Search, User, LogOut, Settings } from 'lucide-react'
 import { useAuth } from '@/lib/auth/AuthContext'
 import { ProgressBar } from '@/components/ui/ProgressBar'
@@ -30,21 +30,30 @@ export function Navbar() {
     }
   }, [])
 
+  const fetchUserProgress = useCallback(async () => {
+    try {
+      const stats = await getUserStats()
+      setUserProgress(stats)
+    } catch (error) {
+      console.error('Error fetching user progress:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   // Fetch user progress from API
   useEffect(() => {
-    const fetchUserProgress = async () => {
-      try {
-        const stats = await getUserStats()
-        setUserProgress(stats)
-      } catch (error) {
-        console.error('Error fetching user progress:', error)
-      } finally {
-        setLoading(false)
-      }
+    void fetchUserProgress()
+  }, [fetchUserProgress])
+
+  useEffect(() => {
+    const handleProgressUpdate = () => {
+      void fetchUserProgress()
     }
 
-    fetchUserProgress()
-  }, [])
+    window.addEventListener('progress-updated', handleProgressUpdate)
+    return () => window.removeEventListener('progress-updated', handleProgressUpdate)
+  }, [fetchUserProgress])
 
   // Animate dropdown menu
   useEffect(() => {
